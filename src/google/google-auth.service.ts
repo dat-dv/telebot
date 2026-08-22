@@ -28,34 +28,39 @@ interface CredentialsFile {
 @Injectable()
 export class GoogleAuthService {
   private readonly logger = new Logger(GoogleAuthService.name);
-  private oauth2Client: OAuth2Client | null = null;
+  private userClients: Map<number, OAuth2Client> = new Map();
+  private defaultClient: OAuth2Client | null = null;
   private readonly credentialsPath: string;
-  private readonly tokenPath: string;
+  private readonly defaultTokenPath: string;
+  private readonly tokensDir: string;
 
   constructor(private readonly configService: ConfigService) {
     this.credentialsPath = path.resolve(
       process.cwd(),
       this.configService.get<string>('google.credentialsPath', './gcp-oauth.keys.json'),
     );
-    this.tokenPath = path.resolve(
+    this.defaultTokenPath = path.resolve(
       process.cwd(),
       this.configService.get<string>('google.tokenPath', './.gcp-saved-tokens.json'),
     );
 
-    this.initializeClient();
+    this.tokensDir = path.resolve(process.cwd(), 'data', 'tokens');
+    if (!fs.existsSync(this.tokensDir)) {
+      fs.mkdirSync(this.tokensDir, { recursive: true });
+    }
+
+    this.initializeDefaultClient();
   }
 
-  public initializeClient(): boolean {
+  private getClientKeys(): { clientId: string; clientSecret: string; redirectUri: string } | null {
     try {
       if (!fs.existsSync(this.credentialsPath)) {
-        this.logger.warn(
-          `Google credentials file not found at: ${this.credentialsPath}. Please download your OAuth client keys and save them as gcp-oauth.keys.json.`,
-        );
-        return false;
+        this.logger.warn(`Google credentials file not found at: ${this.credentialsPath}`);
+        return null;
       }
 
-      const credentialsRaw = fs.readFileSync(this.credentialsPath, 'utf8');
-      const credentials = JSON.parse(credentialsRaw) as CredentialsFile;
+      const raw = fs.readFileSync(this.credentialsPath, 'utf8');
+      const credentials = JSON.parse(raw) as CredentialsFile;
       const keys = credentials.installed || credentials.web || credentials;
 
       const clientId = keys.client_id;
@@ -63,100 +68,194 @@ export class GoogleAuthService {
       const redirectUri = keys.redirect_uris?.[0] || 'http://localhost:3000/oauth2callback';
 
       if (!clientId || !clientSecret) {
-        this.logger.warn(`Invalid Google credentials format in ${this.credentialsPath}.`);
-        return false;
+        this.logger.warn(`Invalid Google credentials format in ${this.credentialsPath}`);
+        return null;
       }
 
-      this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+      return { clientId, clientSecret, redirectUri };
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error reading client keys: ${error.message}`);
+      return null;
+    }
+  }
 
-      // Auto-save refreshed tokens
-      this.oauth2Client.on('tokens', (tokens: Credentials) => {
-        this.logger.log('Google OAuth tokens refreshed. Updating token file...');
-        this.saveTokens(tokens);
+  private createOAuth2Instance(): OAuth2Client | null {
+    const keys = this.getClientKeys();
+    if (!keys) return null;
+    return new google.auth.OAuth2(keys.clientId, keys.clientSecret, keys.redirectUri);
+  }
+
+  public initializeDefaultClient(): boolean {
+    try {
+      const client = this.createOAuth2Instance();
+      if (!client) return false;
+
+      this.defaultClient = client;
+
+      this.defaultClient.on('tokens', (tokens: Credentials) => {
+        this.logger.log('Default Google OAuth tokens refreshed. Updating default token file...');
+        this.saveDefaultTokens(tokens);
       });
 
-      if (!fs.existsSync(this.tokenPath)) {
-        this.logger.warn(
-          `Google tokens file not found at: ${this.tokenPath}. Run 'npm run auth' to authenticate your Google account.`,
-        );
-        return false;
+      if (fs.existsSync(this.defaultTokenPath)) {
+        const raw = fs.readFileSync(this.defaultTokenPath, 'utf8').trim();
+        if (raw) {
+          const tokens = JSON.parse(raw) as Credentials;
+          this.defaultClient.setCredentials(tokens);
+          this.logger.log('Default Google OAuth2Client successfully authenticated.');
+          return true;
+        }
       }
-
-      const tokensRaw = fs.readFileSync(this.tokenPath, 'utf8').trim();
-      if (!tokensRaw || tokensRaw.length === 0) {
-        this.logger.warn(
-          `Google tokens file is empty at: ${this.tokenPath}. Run 'npm run auth' to authenticate your Google account.`,
-        );
-        return false;
-      }
-
-      try {
-        const tokens = JSON.parse(tokensRaw) as Credentials;
-        this.oauth2Client.setCredentials(tokens);
-        this.logger.log('Google OAuth2Client successfully authenticated.');
-        return true;
-      } catch {
-        this.logger.warn(
-          `Invalid JSON in tokens file at: ${this.tokenPath}. Run 'npm run auth' to re-authenticate.`,
-        );
-        return false;
-      }
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Error initializing Google OAuth2 client: ${err.message}`, err.stack);
+      return false;
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error initializing default Google OAuth2 client: ${error.message}`);
       return false;
     }
   }
 
-  public getOAuth2Client(): OAuth2Client | null {
-    if (!this.oauth2Client) {
-      this.initializeClient();
-    }
-    return this.oauth2Client;
+  public getUserTokenPath(userId: number): string {
+    return path.join(this.tokensDir, `${userId}.json`);
   }
 
-  public isAuthorized(): boolean {
-    const client = this.getOAuth2Client();
+  public getOAuth2Client(userId?: number): OAuth2Client | null {
+    if (!userId) {
+      if (!this.defaultClient) this.initializeDefaultClient();
+      return this.defaultClient;
+    }
+
+    if (this.userClients.has(userId)) {
+      return this.userClients.get(userId) || null;
+    }
+
+    const tokenPath = this.getUserTokenPath(userId);
+    if (fs.existsSync(tokenPath)) {
+      try {
+        const raw = fs.readFileSync(tokenPath, 'utf8').trim();
+        if (raw) {
+          const tokens = JSON.parse(raw) as Credentials;
+          const client = this.createOAuth2Instance();
+          if (client) {
+            client.setCredentials(tokens);
+            client.on('tokens', (refreshed: Credentials) => {
+              this.logger.log(`Tokens refreshed for user ${userId}. Saving to user storage...`);
+              this.saveTokensForUser(userId, refreshed);
+            });
+            this.userClients.set(userId, client);
+            return client;
+          }
+        }
+      } catch (err) {
+        const error = err as Error;
+        this.logger.error(`Error loading tokens for user ${userId}: ${error.message}`);
+      }
+    }
+
+    // If user has no specific tokens, fallback to defaultClient for backward compatibility / Admin
+    if (!this.defaultClient) this.initializeDefaultClient();
+    return this.defaultClient;
+  }
+
+  public isAuthorized(userId?: number): boolean {
+    const client = this.getOAuth2Client(userId);
     if (!client) return false;
     const creds = client.credentials;
     return !!(creds && (creds.access_token || creds.refresh_token));
   }
 
-  public saveTokens(tokens: Credentials): void {
+  public hasUserSpecificAuth(userId: number): boolean {
+    const tokenPath = this.getUserTokenPath(userId);
+    return fs.existsSync(tokenPath);
+  }
+
+  public generateAuthUrl(userId: number): string {
+    const client = this.createOAuth2Instance();
+    if (!client) {
+      throw new Error('Google OAuth credentials chưa được cấu hình.');
+    }
+
+    return client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: GOOGLE_SCOPES,
+      state: userId.toString(),
+    });
+  }
+
+  public async exchangeCodeForTokens(userId: number, code: string): Promise<boolean> {
+    const client = this.createOAuth2Instance();
+    if (!client) {
+      throw new Error('Google OAuth credentials chưa được cấu hình.');
+    }
+
     try {
-      let existingTokens: Credentials = {};
-      if (fs.existsSync(this.tokenPath)) {
-        try {
-          const raw = fs.readFileSync(this.tokenPath, 'utf8').trim();
-          if (raw) {
-            existingTokens = JSON.parse(raw) as Credentials;
-          }
-        } catch {
-          // Ignore invalid JSON when reading existing tokens for update
-        }
-      }
-
-      const updatedTokens: Credentials = {
-        ...existingTokens,
-        ...tokens,
-      };
-
-      fs.writeFileSync(this.tokenPath, JSON.stringify(updatedTokens, null, 2), 'utf8');
-      if (this.oauth2Client) {
-        this.oauth2Client.setCredentials(updatedTokens);
-      }
-      this.logger.log(`Tokens saved successfully to ${this.tokenPath}`);
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to save tokens to ${this.tokenPath}: ${err.message}`);
+      const { tokens } = await client.getToken(code.trim());
+      this.saveTokensForUser(userId, tokens);
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to exchange code for user ${userId}: ${error.message}`);
+      throw error;
     }
   }
 
-  public getCredentialsPath(): string {
-    return this.credentialsPath;
+  public saveTokensForUser(userId: number, tokens: Credentials): void {
+    const tokenPath = this.getUserTokenPath(userId);
+    try {
+      let existingTokens: Credentials = {};
+      if (fs.existsSync(tokenPath)) {
+        try {
+          const raw = fs.readFileSync(tokenPath, 'utf8').trim();
+          if (raw) existingTokens = JSON.parse(raw) as Credentials;
+        } catch {
+          // ignore
+        }
+      }
+
+      const updated = { ...existingTokens, ...tokens };
+      fs.writeFileSync(tokenPath, JSON.stringify(updated, null, 2), 'utf8');
+
+      let client = this.userClients.get(userId);
+      if (!client) {
+        const newClient = this.createOAuth2Instance();
+        if (newClient) {
+          newClient.on('tokens', (refreshed) => this.saveTokensForUser(userId, refreshed));
+          this.userClients.set(userId, newClient);
+          client = newClient;
+        }
+      }
+      if (client) {
+        client.setCredentials(updated);
+      }
+      this.logger.log(`Saved OAuth tokens for user ${userId} to ${tokenPath}`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to save tokens for user ${userId}: ${error.message}`);
+    }
   }
 
-  public getTokenPath(): string {
-    return this.tokenPath;
+  public saveDefaultTokens(tokens: Credentials): void {
+    try {
+      let existingTokens: Credentials = {};
+      if (fs.existsSync(this.defaultTokenPath)) {
+        try {
+          const raw = fs.readFileSync(this.defaultTokenPath, 'utf8').trim();
+          if (raw) existingTokens = JSON.parse(raw) as Credentials;
+        } catch {
+          // ignore
+        }
+      }
+
+      const updated = { ...existingTokens, ...tokens };
+      fs.writeFileSync(this.defaultTokenPath, JSON.stringify(updated, null, 2), 'utf8');
+      if (this.defaultClient) {
+        this.defaultClient.setCredentials(updated);
+      }
+      this.logger.log(`Saved default tokens to ${this.defaultTokenPath}`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to save default tokens: ${error.message}`);
+    }
   }
 }

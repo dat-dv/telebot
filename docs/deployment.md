@@ -9,7 +9,7 @@ Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trườ
 - **Node.js**: Phiên bản 20.x hoặc 22.x LTS.
 - **NPM**: Phiên bản 10.x trở lên.
 - **Docker & Docker Compose** (nếu chạy dạng container).
-- **Tài khoản Google Cloud** đã kích hoạt Calendar API & Tasks API.
+- **Tài khoản Google Cloud** đã kích hoạt Calendar API & Tasks API (và đã add Gmail của bạn bè vào mục *Test Users*).
 - **Telegram Bot Token** tạo từ `@BotFather`.
 
 ---
@@ -27,23 +27,24 @@ Nội dung chi tiết các biến:
 ```env
 # 1. TELEGRAM CONFIG
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ  # Token từ @BotFather
-TELEGRAM_ALLOWED_USER_IDS=12345678,87654321            # Danh sách Telegram ID được phép dùng (để trống nếu public)
+TELEGRAM_ALLOWED_USER_IDS=12345678                      # Telegram ID được phép dùng ban đầu
+TELEGRAM_ADMIN_ID=12345678                              # Telegram ID của Quản trị viên (Admin tối cao)
 
 # 2. GEMINI AI CONFIG
 GEMINI_API_KEY=AIzaSyD...                               # API Key từ Google AI Studio
-GEMINI_MODEL=gemini-3.5-flash                           # Model chính (mặc định: gemini-3.5-flash)
+GEMINI_MODEL=gemini-3.5-flash-lite                      # Model chính (mặc định: 500 lượt/ngày miễn phí)
 
 # 3. TIMEZONE CONFIG
 DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh                       # Múi giờ hệ thống (Việt Nam)
 
 # 4. GOOGLE OAUTH CONFIG
 GOOGLE_OAUTH_CREDENTIALS=./gcp-oauth.keys.json          # Đường dẫn file client secret
-GOOGLE_CALENDAR_MCP_TOKEN_PATH=./.gcp-saved-tokens.json  # Đường dẫn file lưu token
+GOOGLE_CALENDAR_MCP_TOKEN_PATH=./.gcp-saved-tokens.json  # Đường dẫn file lưu token Admin
 ```
 
 ---
 
-## 3. Xác Thực Google OAuth Lần Đầu
+## 3. Xác Thực Google OAuth Lần Đầu (Dành Cho Admin)
 
 1. Tải file JSON OAuth Client ID (loại Desktop App) từ Google Cloud Console và lưu tại thư mục gốc với tên `gcp-oauth.keys.json`.
 2. Chạy lệnh xác thực tự động:
@@ -52,6 +53,8 @@ GOOGLE_CALENDAR_MCP_TOKEN_PATH=./.gcp-saved-tokens.json  # Đường dẫn file 
    ```
 3. Terminal sẽ hiển thị đường link xác thực. Mở link trên trình duyệt, cấp quyền cho ứng dụng.
 4. File `.gcp-saved-tokens.json` sẽ tự động được tạo.
+
+*(Đối với bạn bè/khách mời, họ chỉ cần gõ `/login` và gửi `/code` trực tiếp trên Telegram mà không cần chạy lệnh `npm run auth`)*.
 
 ---
 
@@ -95,7 +98,7 @@ docker-compose down
 ```
 
 > [!NOTE]
-> Trong `docker-compose.yml`, hai file token `.gcp-saved-tokens.json` và `gcp-oauth.keys.json` được mount dạng volume vào container để khi token tự refresh, dữ liệu sẽ được bảo toàn trên máy chủ.
+> Trong `docker-compose.yml`, thư mục `./data` và các file token được mount dạng volume vào container để lưu trữ bền vững cơ sở dữ liệu người dùng (`data/users.json`) và token riêng của từng người (`data/tokens/`).
 
 ---
 
@@ -108,11 +111,12 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 1. **Tạo Application mới**: Chọn **Public / Private Repository** và liên kết với repo GitHub của bạn.
 2. **Chọn Build Pack**: Chọn **Dockerfile** (Coolify sẽ tự động nhận diện `Dockerfile` multi-stage đã tối ưu).
 3. **Cấu hình Environment Variables**:
-   - Thêm đầy đủ các biến môi trường từ `.env` vào mục **Environment Variables** trên Dashboard Coolify (`TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `DEFAULT_TIMEZONE`...).
+   - Thêm đầy đủ các biến môi trường từ `.env` vào mục **Environment Variables** trên Dashboard Coolify (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `DEFAULT_TIMEZONE`...).
 4. **Cấu hình Persistent Storage / File Mounts (Cực kỳ quan trọng)**:
-   - Vào mục **Storages** > **File Mounts** trên Coolify:
-     - Tạo mount `/app/gcp-oauth.keys.json` với nội dung từ file `gcp-oauth.keys.json`.
-     - Tạo mount `/app/.gcp-saved-tokens.json` với nội dung từ file `.gcp-saved-tokens.json`.
+   - Vào mục **Storages** > **Persistent Directories / File Mounts** trên Coolify:
+     - Tạo mount thư mục `/app/data` (để lưu dữ liệu người dùng & token khách).
+     - Tạo mount file `/app/gcp-oauth.keys.json` với nội dung từ file `gcp-oauth.keys.json`.
+     - Tạo mount file `/app/.gcp-saved-tokens.json` với nội dung từ file `.gcp-saved-tokens.json`.
 5. **Kích hoạt Auto Deploy**:
    - Bật Webhook trong Coolify.
    - Mỗi lần bạn thực hiện `git push origin main`, Coolify sẽ tự động build lại Docker image và cập nhật ứng dụng sau 10-20 giây mà không làm gián đoạn bot!
@@ -149,6 +153,6 @@ pm2 monit
 | Hiện tượng | Nguyên nhân | Cách khắc phục |
 | :--- | :--- | :--- |
 | Bot không phản hồi tin nhắn | Sai `TELEGRAM_BOT_TOKEN` hoặc Telegram Polling bị đè bởi instance khác. | Kiểm tra log, đảm bảo chỉ có 1 container/process bot đang chạy. |
-| Lỗi `Google Calendar/Tasks chưa được xác thực` | Thiếu file `.gcp-saved-tokens.json` hoặc token bị thu hồi. | Chạy lại `npm run auth` ở local và cập nhật lại file token lên server. |
-| AI báo lỗi `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key. | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio. |
-| Người dùng gửi tin nhắn bị báo `Truy cập bị từ chối` | `TELEGRAM_ALLOWED_USER_IDS` chưa chứa ID của người dùng. | Lấy ID qua `@userinfobot` và bổ sung vào biến môi trường. |
+| Bạn bè nhắn tin báo `Truy cập bị từ chối` | Bạn chưa được Admin mời qua link `/invite`. | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`. |
+| Bạn bè tạo lịch báo lỗi `Chưa kết nối Google` | Bạn chưa đăng nhập tài khoản Google. | Bảo bạn gõ `/login` và làm theo hướng dẫn nhập `/code`. |
+| AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key. | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio. |

@@ -10,5 +10,6 @@ services:
     env_file:
       - .env
     volumes:
+      - ./data:/app/data
       - ./.gcp-saved-tokens.json:/app/.gcp-saved-tokens.json
       - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json

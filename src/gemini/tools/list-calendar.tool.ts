@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { GeminiTool } from './tool.interface';
+import { GeminiTool, ToolExecutionContext } from './tool.interface';
 import { GoogleCalendarService } from '../../google/google-calendar.service';
 
 export interface ListCalendarArgs {
@@ -63,15 +63,21 @@ export class ListCalendarTool implements GeminiTool {
 
   constructor(private readonly calendarService: GoogleCalendarService) {}
 
-  public async execute(args: Record<string, unknown>): Promise<ListCalendarResult> {
+  public async execute(
+    args: Record<string, unknown>,
+    context?: ToolExecutionContext,
+  ): Promise<ListCalendarResult> {
     try {
       const payload = args as unknown as ListCalendarArgs;
-      const items = await this.calendarService.listEvents({
-        timeMin: payload.timeMin,
-        timeMax: payload.timeMax,
-        query: payload.query,
-        maxResults: payload.maxResults || 20,
-      });
+      const items = await this.calendarService.listEvents(
+        {
+          timeMin: payload.timeMin,
+          timeMax: payload.timeMax,
+          query: payload.query,
+          maxResults: payload.maxResults || 20,
+        },
+        context?.userId,
+      );
 
       const events: CalendarEventItem[] = items.map((item) => ({
         id: item.id,

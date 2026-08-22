@@ -1,29 +1,97 @@
 import { Update, Start, Help, Command, On, Ctx } from 'nestjs-telegraf';
 import { UseGuards, Logger } from '@nestjs/common';
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { AuthGuard } from './guards/auth.guard';
 import { GeminiService } from '../gemini/gemini.service';
+import { UsersService } from '../users/users.service';
+import { GoogleAuthService } from '../google/google-auth.service';
 
 @Update()
 @UseGuards(AuthGuard)
 export class TelegramUpdate {
   private readonly logger = new Logger(TelegramUpdate.name);
 
-  constructor(private readonly geminiService: GeminiService) {}
+  constructor(
+    private readonly geminiService: GeminiService,
+    private readonly usersService: UsersService,
+    private readonly googleAuthService: GoogleAuthService,
+  ) {}
 
   @Start()
   public async onStart(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
     const fromName = ctx.from?.first_name || 'bạn';
+    const message = ctx.message;
+    const text = message && 'text' in message ? message.text : '';
+
+    // Handle deep link invite: /start invite_<code>
+    if (text.startsWith('/start invite_')) {
+      const inviteCode = text.replace('/start ', '').trim();
+      const consumeResult = this.usersService.consumeInvite(inviteCode, {
+        id: userId,
+        username: ctx.from?.username,
+        firstName: ctx.from?.first_name,
+      });
+
+      if (!consumeResult.success) {
+        await ctx.reply(`⚠️ ${consumeResult.message}`, { parse_mode: 'Markdown' });
+        return;
+      }
+
+      let authUrl = '';
+      try {
+        authUrl = this.googleAuthService.generateAuthUrl(userId);
+      } catch {
+        // ignore
+      }
+
+      const activatedMessage = `🎉 *CHÚC MỪNG ${fromName.toUpperCase()} ĐÃ KÍCH HOẠT THÀNH CÔNG!*
+
+Bạn đã được cấp quyền sử dụng trợ lý cá nhân độc lập 100%.
+
+👉 *Bước tiếp theo: Kết nối tài khoản Google của bạn*
+Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho trợ lý:`;
+
+      if (authUrl) {
+        await ctx.reply(
+          activatedMessage,
+          Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng nhập Google', authUrl)]]),
+        );
+        await ctx.reply(
+          '💡 *Mẹo:* Sau khi đăng nhập và bấm Cho phép, trình duyệt sẽ cung cấp mã xác thực. Hãy copy mã đó và gửi theo cú pháp:\n`/code <mã_xác_thực>` để hoàn tất nhé!',
+          { parse_mode: 'Markdown' },
+        );
+      } else {
+        await ctx.reply(
+          activatedMessage + '\n\nGõ lệnh `/login` để nhận đường link kết nối Google nhé!',
+          { parse_mode: 'Markdown' },
+        );
+      }
+      return;
+    }
+
+    // Normal /start
+    const isGoogleConnected = this.googleAuthService.isAuthorized(userId);
+    const googleStatus = isGoogleConnected
+      ? '✅ *Tài khoản Google*: Đã kết nối'
+      : '⚠️ *Tài khoản Google*: Chưa kết nối (Gõ `/login` để liên kết)';
+
     const welcomeMessage = `👋 Xin chào *${fromName}*! Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar* và *Google Tasks*.
+
+${googleStatus}
 
 🚀 *Các lệnh nhanh hỗ trợ:*
 • \`/today\` - Tóm tắt toàn bộ lịch hẹn & to-do list hôm nay
 • \`/week\` - Tổng quan lịch trình & việc cần làm 7 ngày tới
 • \`/calendar <nội dung>\` - Lên lịch hẹn mới nhanh chóng
 • \`/task <nội dung>\` - Thêm công việc to-do mới
-• \`/help\` - Xem hướng dẫn sử dụng chi tiết
+• \`/login\` - Kết nối tài khoản Google cá nhân
+• \`/usage\` - Kiểm tra số lượt gọi còn lại trong ngày
+• \`/help\` - Xem hướng dẫn chi tiết
 
-💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_, _"Thêm vào to-do mua cà phê"_). AI sẽ tự động phân tích và kích hoạt công cụ chuẩn xác!`;
+💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_). AI sẽ tự động phân tích và phục vụ riêng cho bạn!`;
 
     await this.sendSafeReply(ctx, welcomeMessage);
   }
@@ -31,7 +99,10 @@ export class TelegramUpdate {
   @Help()
   @Command('help')
   public async onHelp(@Ctx() ctx: Context): Promise<void> {
-    const helpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ AI GOOGLE WORKSPACE*
+    const userId = ctx.from?.id;
+    const isAdmin = userId ? this.usersService.isAdmin(userId) : false;
+
+    let helpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ AI CÁ NHÂN*
 
 1️⃣ *Quản lý Google Calendar (Lịch hẹn / Họp có giờ cố định)*
 • _"Mai 14h họp kickoff dự án tại phòng họp A"_
@@ -46,29 +117,220 @@ export class TelegramUpdate {
 • _"Xem danh sách việc cần làm của tớ"_
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
-3️⃣ *Các Slash Commands tiện lợi:*
+3️⃣ *Các Lệnh Tiện Ích:*
+• \`/login\` hoặc \`/auth\` - Lấy link kết nối Google Calendar riêng của bạn
+• \`/code <mã>\` - Hoàn tất kết nối Google bằng mã Authorization
+• \`/usage\` hoặc \`/status\` - Kiểm tra hạn mức tin nhắn hôm nay
 • \`/today\` - Xem tất cả lịch và task hôm nay
 • \`/week\` - Xem tổng thể 7 ngày sắp tới
 • \`/calendar <lời nhắc>\` - Tạo lịch hẹn nhanh
 • \`/task <công việc>\` - Thêm to-do nhanh`;
 
+    if (isAdmin) {
+      helpMessage += `\n\n👑 *LỆNH DÀNH CHO QUẢN TRỊ VIÊN (ADMIN):*
+• \`/invite\` - Tạo link mời người dùng mới (có hạn 24h)
+• \`/users\` - Xem danh sách người dùng đang hoạt động
+• \`/allow <id>\` - Cấp quyền trực tiếp cho một Telegram ID
+• \`/ban <id>\` - Thu hồi quyền của một Telegram ID`;
+    }
+
     await this.sendSafeReply(ctx, helpMessage);
+  }
+
+  @Command('invite')
+  public async onInvite(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId || !this.usersService.isAdmin(userId)) {
+      await ctx.reply('⛔ Chỉ Quản trị viên (Admin) mới có quyền tạo link mời.');
+      return;
+    }
+
+    const invite = this.usersService.createInvite(userId);
+    const botUsername = ctx.botInfo.username;
+    const inviteLink = `https://t.me/${botUsername}?start=${invite.code}`;
+
+    const msg = `🎟️ *TẠO LINK MỜI THÀNH CÔNG!*\n\nBạn có thể gửi đường link này cho bạn bè/đồng nghiệp:\n👉 \`${inviteLink}\`\n\n⏳ *Lưu ý:* Link có hiệu lực trong **24 giờ** và **chỉ dùng được 1 lần**. Khi bạn của bạn nhấn link, họ sẽ tự động được mở khóa và có trợ lý riêng!`;
+
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  }
+
+  @Command('login')
+  @Command('auth')
+  public async onLogin(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    try {
+      const authUrl = this.googleAuthService.generateAuthUrl(userId);
+      const isConnected = this.googleAuthService.isAuthorized(userId);
+      const statusText = isConnected
+        ? '*(Hiện tại bạn ĐÃ kết nối Google, bấm nút bên dưới nếu muốn đăng nhập lại tài khoản khác)*'
+        : '*(Hiện tại bạn CHƯA kết nối tài khoản Google)*';
+
+      const msg = `🔐 *KẾT NỐI GOOGLE CALENDAR & TASKS*\n\n${statusText}\n\n1️⃣ Nhấn vào nút bên dưới để mở trang đăng nhập Google.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (Authorization Code) hiện trên màn hình và gửi lại cho bot bằng lệnh:\n\`/code <mã_xác_thực>\``;
+
+      await ctx.reply(
+        msg,
+        Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng nhập Google', authUrl)]]),
+      );
+    } catch (err) {
+      const error = err as Error;
+      await ctx.reply(`⚠️ Lỗi tạo link đăng nhập: ${error.message}`);
+    }
+  }
+
+  @Command('code')
+  public async onCode(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const message = ctx.message;
+    const text = message && 'text' in message ? message.text : '';
+    const code = text.replace(/^\/code\s*/i, '').trim();
+
+    if (!code) {
+      await ctx.reply('ℹ️ Vui lòng nhập mã xác thực sau lệnh. Ví dụ:\n`/code 4/0AQ...`', {
+        parse_mode: 'Markdown',
+      });
+      return;
+    }
+
+    try {
+      await this.withTyping(ctx, async () => {
+        await this.googleAuthService.exchangeCodeForTokens(userId, code);
+      });
+
+      await ctx.reply(
+        '🎉 *KẾT NỐI THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể nhắn tin cho bot để quản lý lịch trình và việc cần làm rồi nhé!',
+        { parse_mode: 'Markdown' },
+      );
+    } catch (err) {
+      const error = err as Error;
+      await ctx.reply(
+        `❌ *Xác thực thất bại:* Mã xác thực không hợp lệ hoặc đã hết hạn.\nVui lòng gõ \`/login\` để lấy link đăng nhập mới.\nChi tiết: \`${error.message}\``,
+        { parse_mode: 'Markdown' },
+      );
+    }
+  }
+
+  @Command('status')
+  @Command('usage')
+  public async onUsage(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const usage = this.usersService.getUserUsage(userId);
+    const isGoogleConnected = this.googleAuthService.isAuthorized(userId);
+    const isAdmin = this.usersService.isAdmin(userId);
+
+    const msg = `📊 *THỐNG KÊ HOẠT ĐỘNG HÔM NAY*
+
+👤 *Vai trò*: ${isAdmin ? '👑 Quản trị viên (Admin)' : '👤 Người dùng (Member)'}
+🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối' : '❌ Chưa kết nối (gõ `/login`)'}
+📈 *Lượt tin nhắn đã dùng*: **${usage.usedToday} / ${usage.dailyLimit}**
+✨ *Lượt còn lại hôm nay*: **${usage.remaining}**
+
+⏰ Hạn mức tin nhắn sẽ tự động được làm mới vào lúc **07:00 sáng mai**.`;
+
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  }
+
+  @Command('users')
+  public async onListUsers(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId || !this.usersService.isAdmin(userId)) {
+      await ctx.reply('⛔ Chỉ Quản trị viên mới có thể xem danh sách người dùng.');
+      return;
+    }
+
+    const users = this.usersService.getUsers();
+    if (users.length === 0) {
+      await ctx.reply('Chưa có người dùng nào trong cơ sở dữ liệu.');
+      return;
+    }
+
+    let listText = `👥 *DANH SÁCH NGƯỜI DÙNG (${users.length}):*\n\n`;
+    for (const u of users) {
+      const isAuth = this.googleAuthService.isAuthorized(u.id);
+      const usage = this.usersService.getUserUsage(u.id);
+      const name = u.firstName || u.username || 'User';
+      listText += `• *${name}* (\`${u.id}\`) - ${u.role === 'admin' ? '👑 Admin' : '👤 Member'}\n  Google: ${isAuth ? '✅' : '❌'} | Usage: ${usage.usedToday}/${usage.dailyLimit}\n`;
+    }
+
+    await ctx.reply(listText, { parse_mode: 'Markdown' });
+  }
+
+  @Command('allow')
+  public async onAllowUser(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId || !this.usersService.isAdmin(userId)) {
+      await ctx.reply('⛔ Chỉ Quản trị viên mới có thể cấp quyền.');
+      return;
+    }
+
+    const message = ctx.message;
+    const text = message && 'text' in message ? message.text : '';
+    const targetIdStr = text.replace(/^\/allow\s*/i, '').trim();
+    const targetId = Number(targetIdStr);
+
+    if (!targetId || isNaN(targetId)) {
+      await ctx.reply('ℹ️ Cú pháp: `/allow <telegram_user_id>`', { parse_mode: 'Markdown' });
+      return;
+    }
+
+    this.usersService.allowUser(targetId);
+    await ctx.reply(`✅ Đã cấp quyền sử dụng cho User ID \`${targetId}\`.`, {
+      parse_mode: 'Markdown',
+    });
+  }
+
+  @Command('ban')
+  public async onBanUser(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId || !this.usersService.isAdmin(userId)) {
+      await ctx.reply('⛔ Chỉ Quản trị viên mới có thể thu hồi quyền.');
+      return;
+    }
+
+    const message = ctx.message;
+    const text = message && 'text' in message ? message.text : '';
+    const targetIdStr = text.replace(/^\/ban\s*/i, '').trim();
+    const targetId = Number(targetIdStr);
+
+    if (!targetId || isNaN(targetId)) {
+      await ctx.reply('ℹ️ Cú pháp: `/ban <telegram_user_id>`', { parse_mode: 'Markdown' });
+      return;
+    }
+
+    const success = this.usersService.banUser(targetId);
+    if (success) {
+      await ctx.reply(`🚫 Đã thu hồi quyền sử dụng của User ID \`${targetId}\`.`, {
+        parse_mode: 'Markdown',
+      });
+    } else {
+      await ctx.reply(`⚠️ Không tìm thấy User ID \`${targetId}\` trong danh sách.`, {
+        parse_mode: 'Markdown',
+      });
+    }
   }
 
   @Command('today')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
-    const summary = await this.withTyping(ctx, () => this.geminiService.getTodaySummary());
+    const userId = ctx.from?.id;
+    const summary = await this.withTyping(ctx, () => this.geminiService.getTodaySummary(userId));
     await this.sendSafeReply(ctx, summary);
   }
 
   @Command('week')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
-    const summary = await this.withTyping(ctx, () => this.geminiService.getWeekSummary());
+    const userId = ctx.from?.id;
+    const summary = await this.withTyping(ctx, () => this.geminiService.getWeekSummary(userId));
     await this.sendSafeReply(ctx, summary);
   }
 
   @Command('calendar')
   public async onCalendar(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
     const query = text.replace(/^\/calendar(@\w+)?\s*/i, '').trim();
@@ -82,12 +344,13 @@ export class TelegramUpdate {
     }
 
     const prompt = `Hãy tạo một sự kiện trên Google Calendar dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt));
+    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt, [], userId));
     await this.sendSafeReply(ctx, response);
   }
 
   @Command('task')
   public async onTask(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
     const query = text.replace(/^\/task(@\w+)?\s*/i, '').trim();
@@ -101,19 +364,20 @@ export class TelegramUpdate {
     }
 
     const prompt = `Hãy thêm một công việc mới vào Google Tasks dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt));
+    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt, [], userId));
     await this.sendSafeReply(ctx, response);
   }
 
   @On('text')
   public async onTextMessage(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
     if (!text) return;
 
-    this.logger.log(`Received text message from ${ctx.from?.id}: "${text}"`);
+    this.logger.log(`Received text message from ${userId}: "${text}"`);
 
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(text));
+    const response = await this.withTyping(ctx, () => this.geminiService.chat(text, [], userId));
     await this.sendSafeReply(ctx, response);
   }
 
@@ -123,10 +387,8 @@ export class TelegramUpdate {
    * always sees that the bot is actively processing.
    */
   private async withTyping<T>(ctx: Context, action: () => Promise<T>): Promise<T> {
-    // Fire immediate typing action
     ctx.sendChatAction('typing').catch(() => {});
 
-    // Set interval to re-send typing action every 4 seconds
     const interval = setInterval(() => {
       ctx.sendChatAction('typing').catch(() => {});
     }, 4000);

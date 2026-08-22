@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { GeminiTool } from './tool.interface';
+import { GeminiTool, ToolExecutionContext } from './tool.interface';
 import { GoogleTasksService } from '../../google/google-tasks.service';
 
 export interface CompleteTaskArgs {
@@ -40,10 +40,17 @@ export class CompleteTaskTool implements GeminiTool {
 
   constructor(private readonly tasksService: GoogleTasksService) {}
 
-  public async execute(args: Record<string, unknown>): Promise<CompleteTaskResult> {
+  public async execute(
+    args: Record<string, unknown>,
+    context?: ToolExecutionContext,
+  ): Promise<CompleteTaskResult> {
     try {
       const payload = args as unknown as CompleteTaskArgs;
-      const task = await this.tasksService.completeTask(payload.taskId);
+      const task = await this.tasksService.completeTask(
+        payload.taskId,
+        '@default',
+        context?.userId,
+      );
       return {
         success: true,
         message: `Đã đánh dấu hoàn thành công việc "${task.title}" (ID: ${payload.taskId}).`,

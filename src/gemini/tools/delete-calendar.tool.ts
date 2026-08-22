@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { GeminiTool } from './tool.interface';
+import { GeminiTool, ToolExecutionContext } from './tool.interface';
 import { GoogleCalendarService } from '../../google/google-calendar.service';
 
 export interface DeleteCalendarArgs {
@@ -35,10 +35,13 @@ export class DeleteCalendarTool implements GeminiTool {
 
   constructor(private readonly calendarService: GoogleCalendarService) {}
 
-  public async execute(args: Record<string, unknown>): Promise<DeleteCalendarResult> {
+  public async execute(
+    args: Record<string, unknown>,
+    context?: ToolExecutionContext,
+  ): Promise<DeleteCalendarResult> {
     try {
       const payload = args as unknown as DeleteCalendarArgs;
-      await this.calendarService.deleteEvent(payload.eventId);
+      await this.calendarService.deleteEvent(payload.eventId, context?.userId);
       return {
         success: true,
         message: `Đã xóa thành công sự kiện có ID: ${payload.eventId}`,

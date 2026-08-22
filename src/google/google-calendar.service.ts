@@ -29,18 +29,21 @@ export class GoogleCalendarService {
     private readonly configService: ConfigService,
   ) {}
 
-  private getCalendarClient(): calendar_v3.Calendar {
-    const auth = this.authService.getOAuth2Client();
-    if (!auth || !this.authService.isAuthorized()) {
+  private getCalendarClient(userId?: number): calendar_v3.Calendar {
+    const auth = this.authService.getOAuth2Client(userId);
+    if (!auth || !this.authService.isAuthorized(userId)) {
       throw new Error(
-        'Google Calendar chưa được xác thực. Hãy đảm bảo bạn đã cung cấp gcp-oauth.keys.json và chạy "npm run auth".',
+        'Tài khoản Google Calendar của bạn chưa được kết nối. Vui lòng gõ /login trên bot để liên kết tài khoản Google cá nhân.',
       );
     }
     return google.calendar({ version: 'v3', auth });
   }
 
-  public async listEvents(options: ListEventsOptions = {}): Promise<calendar_v3.Schema$Event[]> {
-    const calendar = this.getCalendarClient();
+  public async listEvents(
+    options: ListEventsOptions = {},
+    userId?: number,
+  ): Promise<calendar_v3.Schema$Event[]> {
+    const calendar = this.getCalendarClient(userId);
     const timeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
 
     const res = await calendar.events.list({
@@ -57,8 +60,11 @@ export class GoogleCalendarService {
     return res.data.items || [];
   }
 
-  public async createEvent(options: CreateEventOptions): Promise<calendar_v3.Schema$Event> {
-    const calendar = this.getCalendarClient();
+  public async createEvent(
+    options: CreateEventOptions,
+    userId?: number,
+  ): Promise<calendar_v3.Schema$Event> {
+    const calendar = this.getCalendarClient(userId);
     const defaultTimeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
     const timeZone = options.timeZone || defaultTimeZone;
 
@@ -96,22 +102,24 @@ export class GoogleCalendarService {
       requestBody: eventPayload,
     });
 
-    this.logger.log(`Created Google Calendar event: "${options.summary}" (ID: ${res.data.id})`);
+    this.logger.log(
+      `Created Google Calendar event: "${options.summary}" for user ${userId || 'default'} (ID: ${res.data.id})`,
+    );
     return res.data;
   }
 
-  public async deleteEvent(eventId: string): Promise<boolean> {
-    const calendar = this.getCalendarClient();
+  public async deleteEvent(eventId: string, userId?: number): Promise<boolean> {
+    const calendar = this.getCalendarClient(userId);
     await calendar.events.delete({
       calendarId: 'primary',
       eventId,
     });
-    this.logger.log(`Deleted Google Calendar event: ${eventId}`);
+    this.logger.log(`Deleted Google Calendar event: ${eventId} for user ${userId || 'default'}`);
     return true;
   }
 
-  public async getEvent(eventId: string): Promise<calendar_v3.Schema$Event> {
-    const calendar = this.getCalendarClient();
+  public async getEvent(eventId: string, userId?: number): Promise<calendar_v3.Schema$Event> {
+    const calendar = this.getCalendarClient(userId);
     const res = await calendar.events.get({
       calendarId: 'primary',
       eventId,

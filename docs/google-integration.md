@@ -1,165 +1,75 @@
-# 📅 Tích Hợp Google Workspace (OAuth2, Calendar & Tasks)
+# 📅 Tích Hợp Google Workspace & Cô Lập Dữ Liệu Đa Người Dùng (OAuth2)
 
-Tài liệu này mô tả chi tiết cách thức xác thực Google OAuth 2.0, kiến trúc các service tích hợp **Google Calendar**, **Google Tasks** và hướng dẫn mở rộng sang các dịch vụ khác của Google Workspace (Gmail, Drive, Sheets...).
+Tài liệu này mô tả chi tiết cách thức xác thực Google OAuth 2.0 theo từng người dùng độc lập, kiến trúc các service tích hợp **Google Calendar**, **Google Tasks** và hướng dẫn mở rộng sang các dịch vụ khác của Google Workspace (Gmail, Drive, Sheets...).
 
 ---
 
-## 1. Vòng Đời Google OAuth 2.0
+## 1. Vòng Đời Google OAuth 2.0 & Cô Lập Token
 
-Ứng dụng sử dụng luồng xác thực **Google OAuth 2.0 (Desktop App)**, lưu trữ `refresh_token` offline để bot có thể hoạt động 24/7 mà không cần người dùng đăng nhập lại.
+Ứng dụng hỗ trợ mô hình **Multi-Tenant Token Isolation** (Mỗi người dùng lưu một file Token riêng):
 
 ```mermaid
 graph TD
-    A[Google Cloud Console] -->|1. Tạo OAuth Client Desktop App| B[gcp-oauth.keys.json]
-    B -->|2. Chạy 'npm run auth'| C[Trình duyệt mở trang xác thực Google]
-    C -->|3. Người dùng cấp quyền| D[Token trả về & lưu tự động]
-    D --> E[.gcp-saved-tokens.json]
-    E -->|4. Load khi NestJS khởi động| F[GoogleAuthService]
-    F -->|5. Token hết hạn sau 1h| G[oauth2Client tự động refresh token]
-    G -->|6. Sự kiện 'tokens' kích hoạt| H[Ghi đè token mới vào file .gcp-saved-tokens.json]
+    A[Google Cloud Console] -->|1. OAuth Client Desktop App| B[gcp-oauth.keys.json]
+    
+    subgraph Multi-User Token Storage
+        C[Admin / Single-user] -->|.gcp-saved-tokens.json| E[GoogleAuthService]
+        D[Bạn bè / User 123456] -->|data/tokens/123456.json| E
+        F[Bạn bè / User 876543] -->|data/tokens/876543.json| E
+    end
+
+    E -->|Khởi tạo OAuth2Client riêng cho từng userId| G[GoogleCalendarService / GoogleTasksService]
+    G -->|Ghi đúng lịch của người gửi| H[Google Calendar & Tasks API]
 ```
 
-### Các File Cấu Hình Quan Trọng:
-
+### Các File & Thư Mục Cấu Hình Quan Trọng:
 1. `gcp-oauth.keys.json`: File chứa `client_id` và `client_secret` tải về từ Google Cloud Console.
-2. `.gcp-saved-tokens.json`: File lưu `access_token`, `refresh_token`, `expiry_date` sau khi xác thực thành công.
+2. `data/tokens/<telegramUserId>.json`: Lưu Token OAuth của từng người dùng Telegram.
+3. `.gcp-saved-tokens.json`: Token mặc định của Admin (hoặc single-user mode).
 
 ---
 
-## 2. Quản Lý Quyền (Scopes)
+## 2. Luồng Đăng Nhập Cho Người Dùng Mới (`/login` & `/code`)
 
-Danh sách Scope được khai báo tại [`src/google/google-auth.service.ts`](/src/google/google-auth.service.ts) và [`scripts/auth.ts`](/scripts/auth.ts):
-
-```typescript
-export const GOOGLE_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/tasks',
-  // Thêm scope mới tại đây khi mở rộng tính năng
-];
-```
-
-> [!WARNING]
-> Mỗi khi thêm Scope mới, bạn **BẮT BUỘC** phải chạy lại lệnh `npm run auth` trên máy để tài khoản Google cấp thêm quyền cho Token mới.
+1. Người dùng gõ `/login` hoặc bấm nút **"🔗 Đăng nhập Google"** trên Telegram.
+2. `GoogleAuthService.generateAuthUrl(userId)` sinh URL xác thực Google với tham số `state: userId`.
+3. Người dùng đăng nhập Gmail (đã nằm trong danh sách **Test Users**) và bấm **Cho phép (Allow)**.
+4. Trình duyệt hiển thị mã xác thực (Authorization Code).
+5. Người dùng gửi mã cho bot:
+   ```text
+   /code 4/0AQ...
+   ```
+6. Bot tự động trao đổi mã lấy `access_token` & `refresh_token`, lưu an toàn vào `data/tokens/<userId>.json`.
 
 ---
 
 ## 3. Dịch Vụ Google Calendar (`GoogleCalendarService`)
 
-File vị trí: [`src/google/google-calendar.service.ts`](/src/google/google-calendar.service.ts).
+File vị trí: [`src/google/google-calendar.service.ts`](file:///Users/datdoan/Documents/projects/telebot/src/google/google-calendar.service.ts).
 
-### Các Tính Năng & Phương Thức Chính:
-
-- `listEvents(options)`: Liệt kê sự kiện trong khoảng thời gian `timeMin` đến `timeMax`, sắp xếp theo `startTime`, hỗ trợ tìm kiếm từ khóa `q`.
-- `createEvent(options)`: Tạo sự kiện mới. Mặc định tự động gắn **4 mốc chuông báo Popup**:
-  ```typescript
-  const reminderMinutes = options.reminderMinutes || [60, 30, 10, 0];
-  // 60 phút, 30 phút, 10 phút, 0 phút (đúng giờ)
-  ```
-- `deleteEvent(eventId)`: Xóa sự kiện theo ID.
-- `getEvent(eventId)`: Lấy thông tin chi tiết một sự kiện cụ thể.
-
-### Định Dạng Thời Gian:
-
-- Phải luôn sử dụng chuẩn **ISO 8601** có Offset múi giờ Việt Nam (`+07:00`).
-- Ví dụ: `2026-08-23T14:00:00+07:00`.
+### Các Phương Thức Nhận `userId`:
+- `listEvents(options, userId?)`: Liệt kê sự kiện trong Calendar của đúng người gửi.
+- `createEvent(options, userId?)`: Tạo sự kiện mới kèm 4 mốc chuông `[60p, 30p, 10p, 0p]` vào đúng Calendar của người gửi.
+- `deleteEvent(eventId, userId?)`: Xóa sự kiện.
+- `getEvent(eventId, userId?)`: Lấy chi tiết sự kiện.
 
 ---
 
 ## 4. Dịch Vụ Google Tasks (`GoogleTasksService`)
 
-File vị trí: [`src/google/google-tasks.service.ts`](/src/google/google-tasks.service.ts).
+File vị trí: [`src/google/google-tasks.service.ts`](file:///Users/datdoan/Documents/projects/telebot/src/google/google-tasks.service.ts).
 
-### Các Phương Thức Chính:
-
-- `listTasks(options)`: Lấy danh sách việc cần làm từ tasklist mặc định (`@default`). Hỗ trợ lọc task chưa xong (`showCompleted: false`).
-- `createTask(options)`: Tạo task mới với tiêu đề (`title`), ghi chú (`notes`) và hạn chót (`due` theo định dạng RFC 3339).
-- `completeTask(taskId)`: Đánh dấu trạng thái `status: 'completed'`.
-- `deleteTask(taskId)`: Xóa vĩnh viễn task khỏi danh sách.
+### Các Phương Thức Nhận `userId`:
+- `listTasks(options, userId?)`: Lấy danh sách việc cần làm từ `@default` tasklist của đúng người gửi.
+- `createTask(options, userId?)`: Tạo to-do mới có deadline vào Tasks của đúng người gửi.
+- `completeTask(taskId, taskListId?, userId?)`: Đánh dấu hoàn thành task.
+- `deleteTask(taskId, taskListId?, userId?)`: Xóa task.
 
 ---
 
-## 5. Hướng Dẫn Mở Rộng Thêm Dịch Vụ Google Mới
+## 5. Hướng Dẫn Mở Rộng Thêm Dịch Vụ Mới (Gmail, Drive)
 
-Khi muốn bổ sung **Gmail**, **Google Drive**, **Google Sheets**, thực hiện theo quy trình chuẩn 4 bước:
-
-### Bước 1: Kích hoạt API trên Google Cloud Console
-
-1. Truy cập [Google Cloud Console Library](https://console.cloud.google.com/apis/library).
-2. Tìm `Gmail API` (hoặc `Google Drive API`) và nhấn **Enable**.
-
-### Bước 2: Khai báo Scope & Cấp quyền lại
-
-Thêm scope vào `src/google/google-auth.service.ts` và `scripts/auth.ts`:
-
-```typescript
-export const GOOGLE_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/tasks',
-  'https://www.googleapis.com/auth/gmail.send', // <-- Thêm Gmail Scope
-  'https://www.googleapis.com/auth/drive.readonly', // <-- Thêm Drive Scope
-];
-```
-
-Chạy xác thực lại trên máy:
-
-```bash
-npm run auth
-```
-
-### Bước 3: Tạo Service tương tác
-
-Tạo file mới [`src/google/google-gmail.service.ts`](/src/google/google-gmail.service.ts):
-
-```typescript
-import { Injectable, Logger } from '@nestjs/common';
-import { google, gmail_v1 } from 'googleapis';
-import { GoogleAuthService } from './google-auth.service';
-
-@Injectable()
-export class GoogleGmailService {
-  private readonly logger = new Logger(GoogleGmailService.name);
-
-  constructor(private readonly authService: GoogleAuthService) {}
-
-  private getGmailClient(): gmail_v1.Gmail {
-    const auth = this.authService.getOAuth2Client();
-    if (!auth || !this.authService.isAuthorized()) {
-      throw new Error('Google Gmail chưa được xác thực.');
-    }
-    return google.gmail({ version: 'v1', auth });
-  }
-
-  public async sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-    const gmail = this.getGmailClient();
-
-    // Tạo MIME format string UTF-8
-    const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
-    const messageParts = [
-      `To: ${to}`,
-      'Content-Type: text/html; charset=utf-8',
-      'MIME-Version: 1.0',
-      `Subject: ${utf8Subject}`,
-      '',
-      body,
-    ];
-    const message = messageParts.join('\n');
-    const encodedMessage = Buffer.from(message)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-
-    this.logger.log(`Sent email to ${to} successfully`);
-    return true;
-  }
-}
-```
-
-### Bước 4: Đăng ký trong `GoogleModule`
-
-Mở [`src/google/google.module.ts`](/src/google/google.module.ts) và thêm service vào mảng `providers` và `exports`. Service này đã sẵn sàng để được inject vào các Tool của Gemini!
+1. **Bật API** trên Google Cloud Console Library.
+2. **Khai báo Scope** trong `src/google/google-auth.service.ts` và `scripts/auth.ts`.
+3. **Tạo Service** trong `src/google/` và inject `GoogleAuthService`.
+4. Gọi `this.authService.getOAuth2Client(userId)` để tương tác API Google tương ứng cho từng người dùng.

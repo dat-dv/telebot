@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { GeminiTool } from './tool.interface';
+import { GeminiTool, ToolExecutionContext } from './tool.interface';
 import { GoogleTasksService } from '../../google/google-tasks.service';
 
 export interface CreateTaskArgs {
@@ -54,14 +54,20 @@ export class CreateTaskTool implements GeminiTool {
 
   constructor(private readonly tasksService: GoogleTasksService) {}
 
-  public async execute(args: Record<string, unknown>): Promise<CreateTaskResult> {
+  public async execute(
+    args: Record<string, unknown>,
+    context?: ToolExecutionContext,
+  ): Promise<CreateTaskResult> {
     try {
       const payload = args as unknown as CreateTaskArgs;
-      const task = await this.tasksService.createTask({
-        title: payload.title,
-        notes: payload.notes,
-        due: payload.due,
-      });
+      const task = await this.tasksService.createTask(
+        {
+          title: payload.title,
+          notes: payload.notes,
+          due: payload.due,
+        },
+        context?.userId,
+      );
 
       return {
         success: true,

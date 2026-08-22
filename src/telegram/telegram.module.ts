@@ -5,6 +5,7 @@ import { TelegramUpdate } from './telegram.update';
 import { AuthGuard } from './guards/auth.guard';
 import { GeminiModule } from '../gemini/gemini.module';
 import { GoogleModule } from '../google/google.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { GoogleModule } from '../google/google.module';
     }),
     GeminiModule,
     GoogleModule,
+    UsersModule,
   ],
   providers: [TelegramUpdate, AuthGuard],
 })

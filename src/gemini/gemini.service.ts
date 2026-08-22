@@ -33,10 +33,10 @@ export class GeminiService {
     private readonly completeTaskTool: CompleteTaskTool,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
-    const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash');
+    const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
     this.primaryModelName =
       !rawModel || rawModel === 'gemini-2.0-flash' || rawModel === 'gemini-1.5-flash'
-        ? 'gemini-3.5-flash'
+        ? 'gemini-3.5-flash-lite'
         : rawModel;
     this.defaultTimeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
 
@@ -117,6 +117,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
 === QUY TRÌNH FUNCTION CALLING ===
 - Khi người dùng yêu cầu tạo, tra cứu, xóa lịch hoặc việc cần làm, hãy gọi ngay công cụ (tool) tương ứng.
 - Khi người dùng muốn xem lịch hôm nay/tuần này hoặc tổng hợp, hãy gọi list_calendar_events và list_tasks để lấy dữ liệu thực tế rồi tổng hợp lại.
+- Nếu tool trả về lỗi người dùng chưa liên kết Google (yêu cầu /login), hãy nhắc nhở lịch sự và hướng dẫn họ gõ /login để kết nối.
 - Sau khi thực hiện xong công cụ, hãy trả lời người dùng một cách rõ ràng, súc tích, thân thiện bằng tiếng Việt.
 - Định dạng tin nhắn đẹp mắt với các emoji thích hợp (📅, ⏰, 📍, ✅, 📝, 📌, 🚀) và cấu trúc danh sách dễ đọc trên Telegram.`;
   }
@@ -132,11 +133,15 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
     });
   }
 
-  public async chat(userMessage: string, chatHistory: Content[] = []): Promise<string> {
+  public async chat(
+    userMessage: string,
+    chatHistory: Content[] = [],
+    userId?: number,
+  ): Promise<string> {
     const candidateModels = [
       this.primaryModelName,
-      'gemini-3.5-flash',
       'gemini-3.5-flash-lite',
+      'gemini-3.5-flash',
       'gemini-3.6-flash',
     ];
 
@@ -147,7 +152,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
 
     for (const modelName of uniqueModels) {
       try {
-        const text = await this.executeChatWithModel(modelName, userMessage, chatHistory);
+        const text = await this.executeChatWithModel(modelName, userMessage, chatHistory, userId);
         return text;
       } catch (error) {
         lastError = error as Error;
@@ -168,6 +173,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
     modelName: string,
     userMessage: string,
     chatHistory: Content[] = [],
+    userId?: number,
   ): Promise<string> {
     const model = this.getGenerativeModel(modelName);
     const chat: ChatSession = model.startChat({
@@ -185,7 +191,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
     while (functionCalls && functionCalls.length > 0 && iterations < MAX_ITERATIONS) {
       iterations++;
       this.logger.log(
-        `[${modelName}] Executing ${functionCalls.length} function call(s) (Iteration ${iterations}): ${functionCalls.map((f) => f.name).join(', ')}`,
+        `[${modelName}] Executing ${functionCalls.length} function call(s) for user ${userId || 'default'} (Iteration ${iterations}): ${functionCalls.map((f) => f.name).join(', ')}`,
       );
 
       const functionResponses: Part[] = await Promise.all(
@@ -195,7 +201,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
 
           if (tool) {
             try {
-              toolResult = await tool.execute(call.args as Record<string, unknown>);
+              toolResult = await tool.execute(call.args as Record<string, unknown>, { userId });
             } catch (err) {
               const error = err as Error;
               this.logger.error(`Error executing tool ${call.name}: ${error.message}`, error.stack);
@@ -228,15 +234,15 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
     return text || 'Đã xử lý xong yêu cầu của bạn.';
   }
 
-  public async getTodaySummary(): Promise<string> {
+  public async getTodaySummary(userId?: number): Promise<string> {
     const prompt =
       'Hãy kiểm tra và tóm tắt toàn bộ lịch hẹn (Google Calendar) và các việc cần làm (Google Tasks) của TÔI TRONG NGÀY HÔM NAY. Trình bày rõ ràng theo từng phần.';
-    return this.chat(prompt);
+    return this.chat(prompt, [], userId);
   }
 
-  public async getWeekSummary(): Promise<string> {
+  public async getWeekSummary(userId?: number): Promise<string> {
     const prompt =
       'Hãy kiểm tra và tổng hợp toàn bộ lịch trình, sự kiện và công việc cần làm trong 7 NGÀY TỚI của tôi. Trình bày trực quan, có chia theo từng ngày.';
-    return this.chat(prompt);
+    return this.chat(prompt, [], userId);
   }
 }

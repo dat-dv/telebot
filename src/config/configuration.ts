@@ -2,6 +2,7 @@ export interface AppConfig {
   telegram: {
     token: string;
     allowedUserIds: number[];
+    adminId?: number;
   };
   gemini: {
     apiKey: string;
@@ -23,14 +24,19 @@ export default (): AppConfig => {
     .map((id) => Number(id))
     .filter((id) => !isNaN(id));
 
+  const adminId = process.env.TELEGRAM_ADMIN_ID
+    ? Number(process.env.TELEGRAM_ADMIN_ID)
+    : allowedUserIds[0] || undefined;
+
   return {
     telegram: {
       token: process.env.TELEGRAM_BOT_TOKEN || '',
       allowedUserIds,
+      adminId,
     },
     gemini: {
       apiKey: process.env.GEMINI_API_KEY || '',
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
     },
     timezone: process.env.DEFAULT_TIMEZONE || 'Asia/Ho_Chi_Minh',
     google: {

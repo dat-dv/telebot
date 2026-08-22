@@ -1,121 +1,88 @@
-# 💬 Giao Diện Telegram Bot & Xử Lý Tin Nhắn
+# 💬 Giao Diện Telegram Bot & Hệ Thống Đa Người Dùng (Multi-User & UX)
 
-Tài liệu này giải thích chi tiết tầng giao tiếp Telegram (`TelegramModule`, `TelegramUpdate`), hệ thống bảo mật Guard, cơ chế xử lý Slash Commands và các tối ưu trải nghiệm người dùng (UX) trên Telegram.
+Tài liệu này giải thích chi tiết tầng giao tiếp Telegram (`TelegramModule`, `TelegramUpdate`), hệ thống xác thực mời người dùng qua Deep Link, các Slash Commands tiện ích, bảo vệ Rate Limit và tối ưu trải nghiệm (UX).
 
 ---
 
 ## 1. Tầng Telegram Bot (`TelegramModule`)
 
-Dự án sử dụng thư viện `nestjs-telegraf` để tích hợp Telegram Bot API vào vòng đời của NestJS.
-File vị trí:
+Dự án sử dụng thư viện `nestjs-telegraf` kết hợp với `UsersModule` và `GoogleModule` để cung cấp môi trường trợ lý đa người dùng độc lập:
 - Module: [`src/telegram/telegram.module.ts`](file:///Users/datdoan/Documents/projects/telebot/src/telegram/telegram.module.ts)
 - Handler & Controller: [`src/telegram/telegram.update.ts`](file:///Users/datdoan/Documents/projects/telebot/src/telegram/telegram.update.ts)
+- Guard: [`src/telegram/guards/auth.guard.ts`](file:///Users/datdoan/Documents/projects/telebot/src/telegram/guards/auth.guard.ts)
 
 ---
 
-## 2. Phân Quyền & Bảo Mật (`AuthGuard`)
+## 2. Quy Trình Mời Người Dùng & Kích Hoạt (Deep Link Invitation)
 
-Tất cả các tin nhắn và lệnh gửi đến bot đều được kiểm soát bởi `AuthGuard` tại [`src/telegram/guards/auth.guard.ts`](file:///Users/datdoan/Documents/projects/telebot/src/telegram/guards/auth.guard.ts).
+Để cho phép bạn bè/người thân sử dụng bot mà không cần sửa file `.env` hay restart server:
 
-### Cơ chế hoạt động:
-1. Đọc biến môi trường `TELEGRAM_ALLOWED_USER_IDS` (ví dụ: `12345678,87654321`).
-2. Nếu biến này **trống**: Bot hoạt động ở chế độ Public (ai cũng có thể dùng).
-3. Nếu biến có danh sách ID: Bot kiểm tra `ctx.from?.id`.
-   - Nếu ID nằm trong danh sách: Cho phép xử lý.
-   - Nếu ID lạ: Chặn truy cập và gửi thông báo từ chối kèm Telegram ID của người đó.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Quản trị viên (Admin)
+    actor User as Bạn bè (Khách mời)
+    participant Bot as Telegram Bot
+    participant Store as UsersService
+    participant Auth as GoogleAuthService
+
+    Admin->>Bot: /invite
+    Bot->>Store: createInvite(adminId)
+    Bot-->>Admin: Link mời: t.me/Bot?start=invite_xyz123 (Hạn 24h)
+    Admin->>User: Gửi link qua Zalo/Telegram
+    User->>Bot: Bấm link và nhấn START
+    Bot->>Store: consumeInvite(code, user)
+    Bot->>Auth: generateAuthUrl(userId)
+    Bot-->>User: Chào mừng + Nút "🔗 Đăng nhập Google"
+    User->>Bot: /code <mã_xác_thực> (sau khi cấp quyền Gmail)
+    Bot->>Auth: exchangeCodeForTokens(userId, code)
+    Bot-->>User: 🎉 Kết nối thành công! Trợ lý cá nhân sẵn sàng.
+```
 
 ---
 
-## 3. Hệ Thống Slash Commands
+## 3. Hệ Thống Slash Commands Đầy Đủ
 
-Các lệnh tắt bắt đầu bằng dấu `/` được định nghĩa trong `TelegramUpdate`:
-
+### 👥 Dành Cho Mọi Người Dùng:
 | Lệnh | Handler | Chức Năng |
 | :--- | :--- | :--- |
-| `/start` | `@Start()` | Gửi tin nhắn chào mừng, giới thiệu các tính năng và hướng dẫn cơ bản. |
-| `/help` | `@Help()`, `@Command('help')` | Cung cấp tài liệu mẫu câu và cách tương tác chi tiết. |
-| `/today` | `@Command('today')` | Kích hoạt AI tổng hợp toàn bộ lịch hẹn & to-do trong ngày hôm nay. |
-| `/week` | `@Command('week')` | Kích hoạt AI tổng hợp lịch trình và việc cần làm trong 7 ngày tới. |
-| `/calendar <nội dung>` | `@Command('calendar')` | Lên lịch hẹn nhanh (VD: `/calendar Họp team lúc 15h chiều mai`). |
-| `/task <nội dung>` | `@Command('task')` | Tạo to-do nhanh (VD: `/task Mua đồ siêu thị`). |
+| `/start` | `@Start()` | Khởi động bot, xử lý link kích hoạt mời (`/start invite_...`) hoặc hướng dẫn kết nối Google. |
+| `/login`, `/auth` | `@Command('login')` | Gửi link OAuth cá nhân kèm nút bấm Inline để đăng nhập tài khoản Google. |
+| `/code <mã>` | `@Command('code')` | Nhập mã xác thực Google trả về từ trình duyệt để kích hoạt Calendar & Tasks. |
+| `/status`, `/usage` | `@Command('usage')` | Xem thống kê số lượng tin nhắn đã dùng trong ngày, hạn mức còn lại và tình trạng Google. |
+| `/today` | `@Command('today')` | Kích hoạt AI tổng hợp toàn bộ lịch hẹn & to-do trong ngày hôm nay của người gửi. |
+| `/week` | `@Command('week')` | Kích hoạt AI tổng hợp lịch trình và việc cần làm 7 ngày tới của người gửi. |
+| `/calendar <nội dung>` | `@Command('calendar')` | Lên lịch hẹn nhanh vào Calendar riêng của người gửi. |
+| `/task <nội dung>` | `@Command('task')` | Tạo to-do nhanh vào Tasks riêng của người gửi. |
+| `/help` | `@Help()`, `@Command('help')` | Xem hướng dẫn tương tác chi tiết. |
+
+### 👑 Dành Riêng Cho Quản Trị Viên (Admin):
+| Lệnh | Handler | Chức Năng |
+| :--- | :--- | :--- |
+| `/invite` | `@Command('invite')` | Sinh link mời 1 lần (dùng trong 24h) để gửi cho bạn bè/đồng nghiệp. |
+| `/users` | `@Command('users')` | Xem danh sách toàn bộ người dùng trong hệ thống, trạng thái Google và số lượt dùng hôm nay. |
+| `/allow <telegram_id>` | `@Command('allow')` | Mở khóa trực tiếp cho một Telegram ID mà không cần link mời. |
+| `/ban <telegram_id>` | `@Command('ban')` | Thu hồi quyền sử dụng ngay lập tức của một Telegram ID. |
 
 ---
 
-## 4. Xử Lý Ngôn Ngữ Tự Nhiên (`@On('text')`)
+## 4. Cơ Chế Chống Rate Limit & Quản Lý Quota (`AuthGuard`)
 
-Khi người dùng nhắn bất kỳ tin nhắn tự nhiên nào không phải Slash Command, decorator `@On('text')` sẽ tiếp nhận:
-
-```typescript
-@On('text')
-public async onTextMessage(@Ctx() ctx: Context): Promise<void> {
-  const message = ctx.message;
-  const text = message && 'text' in message ? message.text : '';
-  if (!text) return;
-
-  this.logger.log(`Received text message from ${ctx.from?.id}: "${text}"`);
-
-  // Bọc qua withTyping để AI suy luận và gửi phản hồi an toàn
-  const response = await this.withTyping(ctx, () => this.geminiService.chat(text));
-  await this.sendSafeReply(ctx, response);
-}
-```
+Tất cả tin nhắn gửi đến bot đều được kiểm soát bởi `AuthGuard`:
+1. **Kiểm tra Whitelist**: Chỉ những ai đã nằm trong danh sách hoặc kích hoạt bằng link mời mới được phép nhắn tin.
+2. **Chống Spam (Cooldown 2s)**: Ngăn chặn người dùng xả tin nhắn liên tục (dưới 2 giây).
+3. **Phân Bổ Hạn Mức Ngày (Fair-use Daily Limit)**:
+   - **Admin**: 500 lượt/ngày.
+   - **Khách mời (Members)**: 100 lượt/ngày.
+   - *Tự động làm mới vào 07:00 sáng mỗi ngày.*
 
 ---
 
-## 5. Tối Ưu Trải Nghiệm Người Dùng (UX Enhancements)
+## 5. Tối Ưu Trải Nghiệm Người Dùng (UX)
 
 ### 1. Trạng thái "Đang soạn tin..." liên tục (`withTyping`)
-Telegram tự động tắt trạng thái `typing` sau 5 giây. Nếu Gemini AI hoặc Google API mất 5–10 giây để xử lý, người dùng sẽ tưởng bot bị treo.
-
-Hàm `withTyping` tự động gửi action `typing` lặp lại mỗi **4 giây** bằng `setInterval` cho đến khi toàn bộ tác vụ hoàn tất:
-
-```typescript
-private async withTyping<T>(ctx: Context, action: () => Promise<T>): Promise<T> {
-  ctx.sendChatAction('typing').catch(() => {});
-  const interval = setInterval(() => {
-    ctx.sendChatAction('typing').catch(() => {});
-  }, 4000);
-
-  try {
-    return await action();
-  } finally {
-    clearInterval(interval);
-  }
-}
-```
+Telegram tự động tắt trạng thái `typing` sau 5 giây. Hàm `withTyping` tự động gửi action `typing` lặp lại mỗi **4 giây** bằng `setInterval` cho đến khi toàn bộ tác vụ của Gemini và Google hoàn tất.
 
 ### 2. Gửi phản hồi an toàn & Chia nhỏ tin nhắn (`sendSafeReply`)
-Hàm `sendSafeReply` giải quyết 2 lỗi phổ biến nhất của Telegram Bot:
-
-1. **Giới hạn độ dài (Telegram Character Limit)**: Telegram giới hạn tối đa 4096 ký tự mỗi tin nhắn. `sendSafeReply` tự động chia nhỏ văn bản ở các vị trí xuống dòng (`\n`) hợp lý nếu độ dài vượt quá 4000 ký tự.
-2. **Lỗi Parse Markdown**: Khi AI tạo ra câu trả lời chứa các ký tự đặc biệt chưa được escape (`_`, `*`, `[`...), Telegram sẽ ném lỗi `Bad Request: can't parse entities`. `sendSafeReply` tự động bắt lỗi và fallback gửi dạng plain-text ngay lập tức.
-
----
-
-## 6. Hướng Dẫn Thêm Slash Command Mới
-
-Ví dụ: Thêm lệnh `/note <nội dung>`:
-
-1. Mở [`src/telegram/telegram.update.ts`](file:///Users/datdoan/Documents/projects/telebot/src/telegram/telegram.update.ts).
-2. Thêm phương thức mới:
-
-```typescript
-@Command('note')
-public async onNote(@Ctx() ctx: Context): Promise<void> {
-  const message = ctx.message;
-  const text = message && 'text' in message ? message.text : '';
-  const content = text.replace(/^\/note(@\w+)?\s*/i, '').trim();
-
-  if (!content) {
-    await ctx.reply('ℹ️ Vui lòng nhập nội dung ghi chú sau lệnh:\n`/note Mua bánh mì`', {
-      parse_mode: 'Markdown',
-    });
-    return;
-  }
-
-  const prompt = `Ghi chú nội dung sau: "${content}"`;
-  const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt));
-  await this.sendSafeReply(ctx, response);
-}
-```
-3. Cập nhật thông báo trong `@Help()` và `@Start()` để người dùng nhìn thấy lệnh mới.
+- Tự động chia nhỏ tin nhắn dài vượt quá giới hạn 4000 ký tự của Telegram.
+- Tự động fallback về plain-text nếu cú pháp Markdown của AI bị lỗi ký tự đặc biệt.
