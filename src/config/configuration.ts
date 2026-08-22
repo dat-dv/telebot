@@ -18,8 +18,16 @@ export interface AppConfig {
   };
 }
 
+function cleanEnv(val: string | undefined, defaultVal = ''): string {
+  if (!val) return defaultVal;
+  return val
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '')
+    .trim();
+}
+
 export default (): AppConfig => {
-  const allowedUserIdsRaw = process.env.TELEGRAM_ALLOWED_USER_IDS || '';
+  const allowedUserIdsRaw = cleanEnv(process.env.TELEGRAM_ALLOWED_USER_IDS);
   const allowedUserIds = allowedUserIdsRaw
     .split(',')
     .map((id) => id.trim())
@@ -27,34 +35,33 @@ export default (): AppConfig => {
     .map((id) => Number(id))
     .filter((id) => !isNaN(id));
 
-  const adminId = process.env.TELEGRAM_ADMIN_ID
-    ? Number(process.env.TELEGRAM_ADMIN_ID)
-    : allowedUserIds[0] || undefined;
+  const rawAdminId = cleanEnv(process.env.TELEGRAM_ADMIN_ID);
+  const adminId = rawAdminId ? Number(rawAdminId) : undefined;
 
   if (adminId && !allowedUserIds.includes(adminId)) {
     allowedUserIds.push(adminId);
   }
 
-  const rawAppUrl = process.env.APP_URL || 'http://localhost:3000';
-  const appUrl = rawAppUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  const rawAppUrl = cleanEnv(process.env.APP_URL, 'http://localhost:3000');
+  const appUrl = rawAppUrl.replace(/\/+$/, '');
 
   return {
-    port: Number(process.env.PORT) || 3000,
+    port: Number(cleanEnv(process.env.PORT, '3000')) || 3000,
     appUrl,
     telegram: {
-      token: process.env.TELEGRAM_BOT_TOKEN || '',
+      token: cleanEnv(process.env.TELEGRAM_BOT_TOKEN),
       allowedUserIds,
       adminId,
     },
     gemini: {
-      apiKey: process.env.GEMINI_API_KEY || '',
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+      apiKey: cleanEnv(process.env.GEMINI_API_KEY),
+      model: cleanEnv(process.env.GEMINI_MODEL, 'gemini-3.5-flash-lite'),
     },
-    timezone: process.env.DEFAULT_TIMEZONE || 'Asia/Ho_Chi_Minh',
+    timezone: cleanEnv(process.env.DEFAULT_TIMEZONE, 'Asia/Ho_Chi_Minh'),
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      credentialsPath: process.env.GOOGLE_OAUTH_CREDENTIALS || './gcp-oauth.keys.json',
+      clientId: cleanEnv(process.env.GOOGLE_CLIENT_ID),
+      clientSecret: cleanEnv(process.env.GOOGLE_CLIENT_SECRET),
+      credentialsPath: cleanEnv(process.env.GOOGLE_OAUTH_CREDENTIALS, './gcp-oauth.keys.json'),
     },
   };
 };
