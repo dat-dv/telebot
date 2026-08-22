@@ -28,6 +28,10 @@ export default (): AppConfig => {
     ? Number(process.env.TELEGRAM_ADMIN_ID)
     : allowedUserIds[0] || undefined;
 
+  if (adminId && !allowedUserIds.includes(adminId)) {
+    allowedUserIds.push(adminId);
+  }
+
   return {
     telegram: {
       token: process.env.TELEGRAM_BOT_TOKEN || '',

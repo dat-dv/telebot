@@ -25,21 +25,14 @@ cp .env.example .env
 Nội dung chi tiết các biến:
 
 ```env
-# 1. TELEGRAM CONFIG
+# 3 BIẾN CỐT LÕI BẮT BUỘC
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ  # Token từ @BotFather
-TELEGRAM_ALLOWED_USER_IDS=12345678                      # Telegram ID được phép dùng ban đầu
-TELEGRAM_ADMIN_ID=12345678                              # Telegram ID của Quản trị viên (Admin tối cao)
+TELEGRAM_ADMIN_ID=12345678                              # Telegram ID của Quản trị viên (lấy từ @userinfobot)
+GEMINI_API_KEY=AIzaSyD...                               # API Key từ Google AI Studio (aistudio.google.com)
 
-# 2. GEMINI AI CONFIG
-GEMINI_API_KEY=AIzaSyD...                               # API Key từ Google AI Studio
-GEMINI_MODEL=gemini-3.5-flash-lite                      # Model chính (mặc định: 500 lượt/ngày miễn phí)
-
-# 3. TIMEZONE CONFIG
-DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh                       # Múi giờ hệ thống (Việt Nam)
-
-# 4. GOOGLE OAUTH CONFIG
-GOOGLE_OAUTH_CREDENTIALS=./gcp-oauth.keys.json          # Đường dẫn file client secret
-GOOGLE_CALENDAR_MCP_TOKEN_PATH=./.gcp-saved-tokens.json  # Đường dẫn file lưu token Admin
+# TÙY CHỌN (Mặc định đã tự cấu hình tối ưu trong code)
+# GEMINI_MODEL=gemini-3.5-flash-lite
+# DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh
 ```
 
 ---
