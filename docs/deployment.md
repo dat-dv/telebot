@@ -1,6 +1,6 @@
 # 🚀 Hướng Dẫn Triển Khai & Vận Hành (Deployment Guide)
 
-Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trường phát triển local, đóng gói Docker, chạy tiến trình nền với PM2 và triển khai tự động CI/CD lên VPS qua Coolify.
+Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trường phát triển local, đóng gói Docker, chạy tiến trình nền với PM2 và triển khai tự động CI/CD lên VPS qua Coolify với mô hình **Zero-File-Mount** (chỉ dùng biến môi trường & SQLite).
 
 ---
 
@@ -25,29 +25,42 @@ cp .env.example .env
 Nội dung chi tiết các biến:
 
 ```env
-# 3 BIẾN CỐT LÕI BẮT BUỘC
-TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ  # Token từ @BotFather
-TELEGRAM_ADMIN_ID=12345678                              # Telegram ID của Quản trị viên (lấy từ @userinfobot)
-GEMINI_API_KEY=AIzaSyD...                               # API Key từ Google AI Studio (aistudio.google.com)
+# ============================================================
+# CẤU HÌNH BẮT BUỘC (ZERO FILE MOUNT)
+# ============================================================
 
-# TÙY CHỌN (Mặc định đã tự cấu hình tối ưu trong code)
+# 1. Token Bot từ @BotFather trên Telegram
+TELEGRAM_BOT_TOKEN=8896966650:AAGOYm_e6WMSLI818xlgkS7TW4mTm3lZJhc
+
+# 2. Telegram User ID của Admin (lấy từ @userinfobot)
+TELEGRAM_ADMIN_ID=123456789
+
+# 3. Gemini API Key từ Google AI Studio (https://aistudio.google.com/apikey)
+GEMINI_API_KEY=AIzaSyD...
+
+# 4. Google OAuth Credentials (từ Google Cloud Console)
+GOOGLE_CLIENT_ID=242273656915-xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-yyy
+
+# ============================================================
+# CẤU HÌNH TÙY CHỌN (ĐÃ CÓ MẶC ĐỊNH SẴN TRONG CODE)
+# ============================================================
 # GEMINI_MODEL=gemini-3.5-flash-lite
 # DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh
 ```
 
 ---
 
-## 3. Xác Thực Google OAuth Lần Đầu (Dành Cho Admin)
+## 3. Quy Trình Đăng Nhập Google 100% Qua Telegram
 
-1. Tải file JSON OAuth Client ID (loại Desktop App) từ Google Cloud Console và lưu tại thư mục gốc với tên `gcp-oauth.keys.json`.
-2. Chạy lệnh xác thực tự động:
-   ```bash
-   npm run auth
+Không cần chạy lệnh terminal `npm run auth` hay sinh file token thủ công:
+1. Mở bot trên Telegram và gõ: `/login` (hoặc bấm nút **"🔗 Đăng nhập Google"**).
+2. Đăng nhập Gmail trên trình duyệt và bấm **Cho phép (Allow)**.
+3. Copy mã xác thực trả về và gửi lại cho bot:
+   ```text
+   /code 4/0AQ...
    ```
-3. Terminal sẽ hiển thị đường link xác thực. Mở link trên trình duyệt, cấp quyền cho ứng dụng.
-4. File `.gcp-saved-tokens.json` sẽ tự động được tạo.
-
-*(Đối với bạn bè/khách mời, họ chỉ cần gõ `/login` và gửi `/code` trực tiếp trên Telegram mà không cần chạy lệnh `npm run auth`)*.
+4. Toàn bộ Token của **Admin** và **Bạn bè** được tự động lưu trữ và quản lý độc lập, bảo mật trong **Database SQLite (bảng `user_tokens`)**!
 
 ---
 
@@ -77,7 +90,6 @@ npm run start:prod
 
 ### 1. Build & Khởi động Container
 ```bash
-# Đảm bảo đã có .env, gcp-oauth.keys.json và .gcp-saved-tokens.json
 docker-compose up -d --build
 ```
 
@@ -91,7 +103,7 @@ docker-compose down
 ```
 
 > [!NOTE]
-> Trong `docker-compose.yml`, thư mục `./data` và các file token được mount dạng volume vào container để lưu trữ bền vững cơ sở dữ liệu người dùng (`data/users.json`) và token riêng của từng người (`data/tokens/`).
+> Trong `docker-compose.yml`, chỉ cần duy nhất một volume mount `./data:/app/data` để lưu trữ bền vững cơ sở dữ liệu SQLite (`data/telebot.sqlite`) chứa toàn bộ Users, Invites và Google Tokens.
 
 ---
 
@@ -99,20 +111,19 @@ docker-compose down
 
 Coolify cho phép triển khai dự án tự động thông qua GitHub App Webhook mỗi khi push code lên nhánh `main`.
 
-### Các bước cấu hình trên Coolify:
+### Các bước cấu hình trên Coolify (Cực kỳ đơn giản):
 
 1. **Tạo Application mới**: Chọn **Public / Private Repository** và liên kết với repo GitHub của bạn.
-2. **Chọn Build Pack**: Chọn **Dockerfile** (Coolify sẽ tự động nhận diện `Dockerfile` multi-stage đã tối ưu).
+2. **Chọn Build Pack**: Chọn **Dockerfile**.
 3. **Cấu hình Environment Variables**:
-   - Thêm đầy đủ các biến môi trường từ `.env` vào mục **Environment Variables** trên Dashboard Coolify (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `DEFAULT_TIMEZONE`...).
-4. **Cấu hình Persistent Storage / File Mounts (Cực kỳ quan trọng)**:
-   - Vào mục **Storages** > **Persistent Directories / File Mounts** trên Coolify:
-     - Tạo mount thư mục `/app/data` (để lưu dữ liệu người dùng & token khách).
-     - Tạo mount file `/app/gcp-oauth.keys.json` với nội dung từ file `gcp-oauth.keys.json`.
-     - Tạo mount file `/app/.gcp-saved-tokens.json` với nội dung từ file `.gcp-saved-tokens.json`.
+   - Dán toàn bộ các biến từ file `.env` vào mục **Environment Variables** (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`...).
+4. **Cấu hình Persistent Storage (Duy nhất 1 mục)**:
+   - Vào mục **Storages** > **Add Volume / Persistent Storage**:
+     - **Destination Path / Mount Path**: `/app/data`
+     - *(Không cần cấu hình bất kỳ File Mount nào khác!)*
 5. **Kích hoạt Auto Deploy**:
    - Bật Webhook trong Coolify.
-   - Mỗi lần bạn thực hiện `git push origin main`, Coolify sẽ tự động build lại Docker image và cập nhật ứng dụng sau 10-20 giây mà không làm gián đoạn bot!
+   - Mỗi lần bạn thực hiện `git push origin main`, Coolify sẽ tự động build lại Docker image và cập nhật ứng dụng sau 10-20 giây!
 
 ---
 
@@ -145,7 +156,7 @@ pm2 monit
 
 | Hiện tượng | Nguyên nhân | Cách khắc phục |
 | :--- | :--- | :--- |
-| Bot không phản hồi tin nhắn | Sai `TELEGRAM_BOT_TOKEN` hoặc Telegram Polling bị đè bởi instance khác. | Kiểm tra log, đảm bảo chỉ có 1 container/process bot đang chạy. |
-| Bạn bè nhắn tin báo `Truy cập bị từ chối` | Bạn chưa được Admin mời qua link `/invite`. | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`. |
-| Bạn bè tạo lịch báo lỗi `Chưa kết nối Google` | Bạn chưa đăng nhập tài khoản Google. | Bảo bạn gõ `/login` và làm theo hướng dẫn nhập `/code`. |
+| Bot báo `Yêu cầu kết nối tài khoản Google` | Chưa đăng nhập Google OAuth. | Bấm nút **"🔗 Đăng nhập Google"** hoặc gõ `/login` rồi gửi `/code <mã>`. |
+| Người lạ nhắn tin báo `Truy cập bị từ chối` | Chưa được Admin mời qua link `/invite`. | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`. |
+| Lỗi `Google OAuth credentials chưa được cấu hình` | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`. |
 | AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key. | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio. |

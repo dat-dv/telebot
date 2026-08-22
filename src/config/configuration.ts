@@ -10,8 +10,9 @@ export interface AppConfig {
   };
   timezone: string;
   google: {
+    clientId: string;
+    clientSecret: string;
     credentialsPath: string;
-    tokenPath: string;
   };
 }
 
@@ -44,8 +45,9 @@ export default (): AppConfig => {
     },
     timezone: process.env.DEFAULT_TIMEZONE || 'Asia/Ho_Chi_Minh',
     google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       credentialsPath: process.env.GOOGLE_OAUTH_CREDENTIALS || './gcp-oauth.keys.json',
-      tokenPath: process.env.GOOGLE_CALENDAR_MCP_TOKEN_PATH || './.gcp-saved-tokens.json',
     },
   };
 };
