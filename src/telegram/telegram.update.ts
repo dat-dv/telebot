@@ -178,6 +178,15 @@ ${googleStatus}
     await this.uiService.sendSafeReply(ctx, userHelpMessage, inlineMarkup);
   }
 
+  @Command('clear')
+  @Command('hide')
+  public async onClearKeyboard(@Ctx() ctx: Context): Promise<void> {
+    await ctx.reply(
+      '✨ Đã tắt hoàn toàn bàn phím dưới đáy màn hình.',
+      this.uiService.getRemoveKeyboard(),
+    );
+  }
+
   @Command('invite')
   public async onInvite(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
@@ -512,6 +521,17 @@ ${googleStatus}
       await ctx.editMessageText('❌ *ĐÃ HỦY LỜI NHẮC NÀY THÀNH CÔNG.*', {
         parse_mode: 'Markdown',
       });
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle dismissing/collapsing interactive buttons
+  @Action(/^dismiss_buttons:(.+)$/)
+  public async onDismissButtonsAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🆗 Đã lưu cài đặt & ẩn nút!');
+    try {
+      await ctx.editMessageReplyMarkup(undefined);
     } catch {
       // ignore
     }

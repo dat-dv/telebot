@@ -124,7 +124,10 @@ export class TelegramUiService {
 
     return Markup.inlineKeyboard([
       [switchBtn],
-      [Markup.button.callback('❌ Hủy Lời Nhắc Này', `cancel_reminder:${reminderId}`)],
+      [
+        Markup.button.callback('❌ Hủy Lời Nhắc', `cancel_reminder:${reminderId}`),
+        Markup.button.callback('🆗 Đã Hiểu (Ẩn Nút)', `dismiss_buttons:${reminderId}`),
+      ],
     ]);
   }
 
@@ -136,12 +139,16 @@ export class TelegramUiService {
     if (htmlLink) {
       buttons.push([Markup.button.url('📅 Mở Trên Google Calendar', htmlLink)]);
     }
+    const actionRow = [];
     if (eventId) {
-      buttons.push([
-        Markup.button.callback('🗑️ Xóa Lịch Hẹn Này', `delete_calendar_event:${eventId}`),
-      ]);
+      actionRow.push(Markup.button.callback('🗑️ Xóa Lịch Hẹn', `delete_calendar_event:${eventId}`));
     }
-    return buttons.length > 0 ? Markup.inlineKeyboard(buttons) : undefined;
+    actionRow.push(
+      Markup.button.callback('🆗 Đã Hiểu (Ẩn Nút)', `dismiss_buttons:${eventId || 'cal'}`),
+    );
+    buttons.push(actionRow);
+
+    return Markup.inlineKeyboard(buttons);
   }
 
   /**
@@ -182,7 +189,7 @@ export class TelegramUiService {
         if (markupToSend) {
           await ctx.reply(chunk, { parse_mode: 'Markdown', ...markupToSend });
         } else {
-          await ctx.reply(chunk, { parse_mode: 'Markdown' });
+          await ctx.reply(chunk, { parse_mode: 'Markdown', ...this.getRemoveKeyboard() });
         }
       } catch (markdownError) {
         const err = markdownError as Error;
@@ -190,7 +197,7 @@ export class TelegramUiService {
         if (markupToSend) {
           await ctx.reply(chunk, markupToSend);
         } else {
-          await ctx.reply(chunk);
+          await ctx.reply(chunk, this.getRemoveKeyboard());
         }
       }
     }
