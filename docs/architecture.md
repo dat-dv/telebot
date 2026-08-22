@@ -11,13 +11,13 @@ Dự án được xây dựng theo mô hình **Modular Monolith** trên nền t�
 1. **Người dùng Telegram**: Gửi yêu cầu qua ngôn ngữ tự nhiên tiếng Việt hoặc qua các lệnh tắt (Slash Commands).
 2. **Tầng Phân Quyền & Quản Lý Người Dùng (`UsersModule` + SQLite)**: Quản lý người dùng, lời mời kích hoạt Deep Link (`/invite`), danh sách trắng động và chống spam qua cơ sở dữ liệu `data/telebot.sqlite`.
 3. **Bộ não Google Gemini AI (`gemini-3.5-flash-lite`)**: Phân tích ngữ cảnh, neo thời gian thực tế, gọi Function Calling đa bước và tự động fallback model.
-4. **Google Workspace (Calendar & Tasks)**: Dịch vụ thực thi dữ liệu qua OAuth2 được cô lập độc lập cho từng người dùng (`user_tokens` table & `data/tokens/<userId>.json`).
+4. **Google Workspace (Calendar & Tasks)**: Dịch vụ thực thi dữ liệu qua OAuth2 được cô lập độc lập cho từng người dùng (`user_tokens` table).
 
 ```mermaid
 graph TD
     User([Người dùng Telegram]) <-->|Message / Slash Command| TG[Telegram Bot Layer]
-    TG -->|AuthGuard| Guard{Được phép & Không spam?}
-    Guard -- No --> Reject[Từ chối / Yêu cầu Invite / Báo Cooldown]
+    TG -->|AuthGuard| Guard{Được phép & Đã Login Google?}
+    Guard -- No --> Reject[Từ chối / Yêu cầu Invite / Bấm Login Google]
     Guard -- Yes --> Handler[Telegram Update Handler]
     
     Handler <-->|Prompt + User Context| Gemini[Gemini AI Service]
@@ -34,67 +34,61 @@ graph TD
 
 ---
 
-## 2. Cấu Trúc Module NestJS
+## 2. Cấu Trúc Module NestJS Tách Biệt & Tinh Gọn
 
-Hệ thống tuân thủ nghiêm ngặt nguyên lý **Separation of Concerns (SoC)** và **Dependency Injection (DI)** của NestJS:
+Hệ thống tuân thủ nghiêm ngặt nguyên lý **Single Responsibility Principle (SRP)** và **Separation of Concerns (SoC)**:
 
 ```text
 src/
-├── app.module.ts               # Root Module kết nối Config, Database, Users, Telegram, Gemini, Google
-├── main.ts                     # Khởi tạo NestJS Context
-├── config/
-│   └── configuration.ts        # Load & validate biến môi trường .env
-├── database/                   # TẦNG CƠ SỞ DỮ LIỆU SQLITE (TYPEORM)
-│   ├── database.module.ts      # Cấu hình TypeOrmModule với better-sqlite3 (data/telebot.sqlite)
-│   └── entities/               # Các bảng cơ sở dữ liệu
-│       ├── user.entity.ts      # Bảng users
-│       ├── invite.entity.ts    # Bảng invites
-│       └── user-token.entity.ts # Bảng user_tokens
-├── users/                      # TẦNG QUẢN LÝ NGƯỜI DÙNG
-│   ├── users.service.ts        # TypeORM Repositories, In-Memory Cache, Cooldown Limiter
+├── app.module.ts                   # Root Module kết nối toàn bộ hệ thống
+├── main.ts                         # Entrypoint & Fail-fast Environment Validator
+│
+├── config/                         # CẤU HÌNH & VALIDATION
+│   ├── configuration.ts            # Load & sanitize biến môi trường .env
+│   └── env.validator.ts            # Quét và in bảng cảnh báo nếu thiếu biến
+│
+├── database/                       # TẦNG CƠ SỞ DỮ LIỆU SQLITE (TYPEORM)
+│   ├── database.module.ts          # TypeOrmModule (data/telebot.sqlite)
+│   └── entities/                   # UserEntity, InviteEntity, UserTokenEntity
+│
+├── users/                          # TẦNG QUẢN LÝ NGƯỜI DÙNG
+│   ├── users.service.ts            # TypeORM Repositories, In-Memory Cache, Cooldown
 │   └── users.module.ts
-├── telegram/                   # TẦNG GIAO TIẾP TELEGRAM
-│   ├── guards/auth.guard.ts    # Kiểm tra Whitelist động, Deep-link invite & Cooldown
-│   ├── telegram.update.ts      # Xử lý Slash Commands (/invite, /login, /code, /status...)
+│
+├── telegram/                       # TẦNG GIAO TIẾP TELEGRAM
+│   ├── services/
+│   │   └── telegram-ui.service.ts  # Tách riêng: Typing Heartbeat, Safe Reply Chunking, Code Extraction
+│   ├── guards/
+│   │   └── auth.guard.ts           # Whitelist Check, Anti-spam & Google Auth Requirement
+│   ├── telegram.update.ts          # Điều phối Slash Commands & Text Message Dispatcher
 │   └── telegram.module.ts
-├── gemini/                     # TẦNG TRÍ TUỆ NHÂN TẠO (AI CORE)
-│   ├── tools/                  # Triển khai các Tool Function Calling (có User Context)
-│   │   ├── tool.interface.ts   # Interface chuẩn GeminiTool & ToolExecutionContext
-│   │   ├── create-calendar.tool.ts
-│   │   ├── list-calendar.tool.ts
-│   │   ├── delete-calendar.tool.ts
-│   │   ├── create-task.tool.ts
-│   │   ├── list-tasks.tool.ts
-│   │   └── complete-task.tool.ts
-│   ├── gemini.service.ts       # Prompt Injection, Fallback Model Chain, Loop Function Call
-│   └── gemini.module.ts
-└── google/                     # TẦNG GOOGLE WORKSPACE APIS (MULTI-TENANT)
-    ├── google-auth.service.ts  # Quản lý OAuth2 per-user trong SQLite + disk, code exchange
-    ├── google-calendar.service.ts # Calendar API per-user + 4 mốc nhắc nhở dồn dập
-    ├── google-tasks.service.ts    # Tasks API per-user (@default tasklist)
+│
+├── gemini/                         # TẦNG TRÍ TUỆ NHÂN TẠO (AI CORE)
+│   ├── helpers/
+│   │   └── gemini-prompt.helper.ts # Tách riêng: System Instruction, Timestamp Anchor
+│   ├── gemini.service.ts           # Multi-turn Tool Loop & Model Fallback Chain
+│   ├── gemini.module.ts
+│   └── tools/                      # 8 Function Tools độc lập
+│
+└── google/                         # TẦNG TÍCH HỢP GOOGLE WORKSPACE
+    ├── templates/
+    │   └── oauth-html.template.ts  # Tách riêng: Giao diện HTML Success / Error UI
+    ├── google-auth.controller.ts   # Web OAuth Callback Endpoint (/oauth2callback)
+    ├── google-auth.service.ts      # Quản lý OAuth2 per-user trong SQLite
+    ├── google-calendar.service.ts  # Tương tác Google Calendar API per-user
+    ├── google-tasks.service.ts     # Tương tác Google Tasks API per-user
     └── google.module.ts
 ```
 
 ---
 
-## 3. Các Nguyên Lý Thiết Kế Cốt Lõi (Core Principles)
+## 3. Các Nguyên Lý Thiết Kế Trọng Yếu
 
-### 1. Cơ Sở Dữ Liệu SQLite Nhúng (Embedded Database with TypeORM)
-- Toàn bộ dữ liệu người dùng, lời mời và token được lưu trong một file duy nhất `data/telebot.sqlite`.
-- **Zero Memory Overhead**: Không tốn thêm RAM như các server DB độc lập, nhưng vẫn sở hữu trọn vẹn tính toàn vẹn giao dịch (ACID).
-- **In-Memory Cache L1**: Các truy vấn xác thực quyền truy cập (`isAllowed`, `isAdmin`) được cache trong bộ nhớ RAM để đảm bảo độ trễ = 0ms.
+### 1. Zero-File-Mount & Portable Secrets
+Toàn bộ thông tin Client ID/Secret được truyền trực tiếp qua biến môi trường hoặc lưu trong SQLite. Không có file token rời rạc giúp triển khai nhanh chóng trên Docker/Coolify.
 
-### 2. Cô Lập Dữ Liệu Đa Người Dùng (Multi-Tenant Token Isolation)
-- Mỗi người dùng có một bản ghi Token Google độc lập trong bảng `user_tokens` và file `data/tokens/<userId>.json`.
-- Mọi thao tác đọc/ghi lịch của User A được thực thi với Token của User A, tuyệt đối không truy cập chéo vào dữ liệu của Admin hay người khác.
+### 2. Multi-Tenant Token Isolation
+Mọi yêu cầu tương tác Google Workspace đều nhận kèm `userId`. `GoogleAuthService` tự động lấy đúng OAuth2Client của người đó từ SQLite, ngăn chặn 100% rủi ro lẫn lộn dữ liệu giữa người dùng.
 
-### 3. Neo Thời Gian Thực Tế (Realtime Timestamp Injection)
-- Mỗi lượt gọi chat, `GeminiService.getCurrentTimeInfo()` lấy thời gian hệ thống chính xác theo múi giờ `Asia/Ho_Chi_Minh` và chèn vào System Instruction làm mốc quy chiếu chuẩn tuyệt đối.
-
-### 4. Chuỗi Fallback Model Tự Động (Resilient AI Model Fallback)
-- Mặc định sử dụng model `gemini-3.5-flash-lite` với chuỗi dự phòng:
-  $$\text{gemini-3.5-flash-lite} \longrightarrow \text{gemini-3.5-flash} \longrightarrow \text{gemini-3.6-flash}$$
-
-### 5. Phòng Thủ Chống Spam & Giữ Kết Nối UX
-- **Cooldown Throttling (2s)**: Chống spam gửi liên tiếp.
-- **Hàng đợi & Typing Heartbeat**: Giữ kết nối mượt mà trên Telegram.
+### 3. Dual-Mode Fallback
+Hệ thống vừa hỗ trợ Web Callback tự động 1-click qua HTTP Server, vừa hỗ trợ sao chép đường link dán trực tiếp vào chat Telegram để đảm bảo không bao giờ bị gián đoạn.
