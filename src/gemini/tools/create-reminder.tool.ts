@@ -6,6 +6,7 @@ import { RemindersService } from '../../reminders/reminders.service';
 export interface CreateReminderArgs {
   title: string;
   remindAt: string; // ISO 8601 string (e.g. 2026-08-23T14:30:00+07:00)
+  notifyType?: 'text' | 'call';
   repeatType?: 'none' | 'daily' | 'weekly';
 }
 
@@ -17,7 +18,7 @@ export class CreateReminderTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: this.name,
     description:
-      'Cài đặt lời nhắc nhở tự động trực tiếp trên Telegram. Bot sẽ chủ động "Ting Ting" gửi tin nhắn cho người dùng vào đúng ngày giờ được yêu cầu. Dùng khi người dùng nói: "15 phút nữa nhắc anh tắt bếp", "8h tối nay nhắc anh gọi cho mẹ", "Nhắc tớ lúc 9h sáng mai uống thuốc".',
+      'Cài đặt lời nhắc nhở tự động trực tiếp trên Telegram hỗ trợ 2 chế độ: Nhắn tin (text) hoặc Gọi nhá máy (call). Dùng khi người dùng nói: "15 phút nữa nhắc anh tắt bếp", "8h tối nay gọi điện nhắc anh uống thuốc", "Gọi nhá máy nhắc tớ sau 30 phút".',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -29,6 +30,11 @@ export class CreateReminderTool implements GeminiTool {
           type: SchemaType.STRING,
           description:
             'Mốc thời gian cần nhắc theo định dạng ISO 8601 kèm múi giờ (VD: "2026-08-23T14:30:00+07:00")',
+        },
+        notifyType: {
+          type: SchemaType.STRING,
+          description:
+            'Hình thức nhắc nhở: "text" (gửi tin nhắn văn bản, mặc định) hoặc "call" (gọi điện nhá máy đổ chuông Telegram).',
         },
         repeatType: {
           type: SchemaType.STRING,
@@ -71,10 +77,13 @@ export class CreateReminderTool implements GeminiTool {
         };
       }
 
+      const notifyType = payload.notifyType === 'call' ? 'call' : 'text';
+
       const reminder = await this.remindersService.createReminder({
         userId,
         title: payload.title,
         remindAt: targetDate,
+        notifyType,
         repeatType: payload.repeatType || 'none',
       });
 
@@ -88,8 +97,11 @@ export class CreateReminderTool implements GeminiTool {
         weekday: 'short',
       }).format(targetDate);
 
+      const typeLabel =
+        notifyType === 'call' ? 'Gọi điện nhá máy (CallMe)' : 'Gửi tin nhắn (TextMe)';
+
       this.logger.log(
-        `Created reminder "${reminder.title}" for user ${userId} at ${formattedTime}`,
+        `Created reminder "${reminder.title}" [${notifyType.toUpperCase()}] for user ${userId} at ${formattedTime}`,
       );
 
       return {
@@ -97,8 +109,9 @@ export class CreateReminderTool implements GeminiTool {
         reminderId: reminder.id,
         title: reminder.title,
         remindAt: reminder.remindAt.toISOString(),
+        notifyType,
         formattedTime,
-        message: `Đã cài đặt lời nhắc "${reminder.title}" thành công. Bot sẽ chủ động nhắn tin cho bạn vào lúc ${formattedTime}.`,
+        message: `Đã cài đặt lời nhắc "${reminder.title}" (${typeLabel}) thành công. Bot sẽ nhắc bạn vào lúc ${formattedTime}.`,
       };
     } catch (err) {
       const error = err as Error;

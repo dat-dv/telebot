@@ -20,6 +20,9 @@ export class ReminderEntity {
   @Column({ name: 'is_triggered', type: 'boolean', default: false })
   isTriggered: boolean;
 
+  @Column({ name: 'notify_type', type: 'varchar', default: 'text' })
+  notifyType: 'text' | 'call';
+
   @Column({ name: 'repeat_type', type: 'varchar', default: 'none' })
   repeatType: 'none' | 'daily' | 'weekly';
 

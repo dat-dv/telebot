@@ -7,6 +7,7 @@ export interface CreateReminderDto {
   userId: number;
   title: string;
   remindAt: Date;
+  notifyType?: 'text' | 'call';
   repeatType?: 'none' | 'daily' | 'weekly';
 }
 
@@ -24,13 +25,14 @@ export class RemindersService {
       userId: dto.userId.toString(),
       title: dto.title.trim(),
       remindAt: dto.remindAt,
+      notifyType: dto.notifyType || 'text',
       repeatType: dto.repeatType || 'none',
       isTriggered: false,
     });
 
     const saved = await this.reminderRepo.save(reminder);
     this.logger.log(
-      `Created reminder "${dto.title}" for user ${dto.userId} at ${dto.remindAt.toISOString()}`,
+      `Created reminder "${dto.title}" [${saved.notifyType.toUpperCase()}] for user ${dto.userId} at ${dto.remindAt.toISOString()}`,
     );
     return saved;
   }

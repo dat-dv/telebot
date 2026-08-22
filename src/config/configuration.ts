@@ -5,6 +5,9 @@ export interface AppConfig {
     token: string;
     allowedUserIds: number[];
     adminId?: number;
+    apiId?: string;
+    apiHash?: string;
+    session?: string;
   };
   gemini: {
     apiKey: string;
@@ -52,6 +55,9 @@ export default (): AppConfig => {
       token: cleanEnv(process.env.TELEGRAM_BOT_TOKEN),
       allowedUserIds,
       adminId,
+      apiId: cleanEnv(process.env.TELEGRAM_API_ID),
+      apiHash: cleanEnv(process.env.TELEGRAM_API_HASH),
+      session: cleanEnv(process.env.TELEGRAM_SESSION),
     },
     gemini: {
       apiKey: cleanEnv(process.env.GEMINI_API_KEY),

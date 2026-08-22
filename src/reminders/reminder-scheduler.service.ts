@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf, Context, Markup } from 'telegraf';
 import { RemindersService } from './reminders.service';
+import { TelegramCallerService } from './telegram-caller.service';
 
 @Injectable()
 export class ReminderSchedulerService {
@@ -10,6 +11,7 @@ export class ReminderSchedulerService {
 
   constructor(
     private readonly remindersService: RemindersService,
+    private readonly callerService: TelegramCallerService,
     @InjectBot() private readonly bot: Telegraf<Context>,
   ) {}
 
@@ -19,7 +21,7 @@ export class ReminderSchedulerService {
       const dueReminders = await this.remindersService.getDueReminders();
       if (dueReminders.length === 0) return;
 
-      this.logger.log(`Found ${dueReminders.length} due reminder(s) to notify.`);
+      this.logger.log(`Found ${dueReminders.length} due reminder(s) to process.`);
 
       for (const reminder of dueReminders) {
         const userId = Number(reminder.userId);
@@ -35,11 +37,35 @@ export class ReminderSchedulerService {
           weekday: 'short',
         }).format(new Date(reminder.remindAt));
 
-        const reminderMessage = `⏰ *TING TING! LỜI NHẮC CỦA BẠN ĐÃ ĐẾN GIỜ!*
+        // 1. If notifyType is 'call', execute GramJS Flash Call first
+        if (reminder.notifyType === 'call') {
+          if (this.callerService.isAvailable()) {
+            this.logger.log(
+              `Triggering GramJS Flash Call for reminder "${reminder.title}" to user ${userId}`,
+            );
+            // Fire flash call in background (rings for 12 seconds)
+            this.callerService.makeFlashCall(userId, 12000).catch((callErr) => {
+              const err = callErr as Error;
+              this.logger.warn(`Flash Call failed: ${err.message}`);
+            });
+          } else {
+            this.logger.log(
+              `GramJS not connected, sending text notification instead for call reminder "${reminder.title}".`,
+            );
+          }
+        }
+
+        // 2. Send Telegram rich message with action buttons
+        const isCallMode = reminder.notifyType === 'call';
+        const reminderHeader = isCallMode
+          ? '📞 *CUỘC GỌI NHẮC NHỞ TỰ ĐỘNG (CALLME)!*'
+          : '⏰ *TING TING! LỜI NHẮC CỦA BẠN ĐÃ ĐẾN GIỜ!*';
+
+        const reminderMessage = `${reminderHeader}
 ━━━━━━━━━━━━━━━━━━━━
 📌 *Nội dung*: *${reminder.title}*
 ⏰ *Thời điểm*: ${timeStr}
-━━━━━━━━━━━━━━━━━━━━
+${isCallMode ? '📞 *Hình thức*: Gọi đổ chuông Telegram (CallMe)\n' : ''}━━━━━━━━━━━━━━━━━━━━
 👉 Bạn có thể đánh dấu đã làm xong hoặc hoãn lại 15 phút bên dưới:`;
 
         const actionKeyboard = Markup.inlineKeyboard([
@@ -56,7 +82,7 @@ export class ReminderSchedulerService {
           });
           await this.remindersService.markTriggered(reminder.id);
           this.logger.log(
-            `Successfully sent proactive reminder "${reminder.title}" to user ${userId}`,
+            `Successfully processed reminder "${reminder.title}" [${reminder.notifyType.toUpperCase()}] for user ${userId}`,
           );
         } catch (tgErr) {
           const err = tgErr as Error;
