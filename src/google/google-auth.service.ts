@@ -103,6 +103,9 @@ export class GoogleAuthService implements OnModuleInit {
   }
 
   public getClientKeys(): { clientId: string; clientSecret: string; redirectUri: string } | null {
+    const appUrl = this.configService.get<string>('appUrl', 'http://localhost:3000');
+    const defaultRedirectUri = `${appUrl.replace(/\/+$/, '')}/oauth2callback`;
+
     // 1. First priority: Environment Variables (GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET)
     const envClientId = this.configService.get<string>('google.clientId');
     const envClientSecret = this.configService.get<string>('google.clientSecret');
@@ -111,7 +114,7 @@ export class GoogleAuthService implements OnModuleInit {
       return {
         clientId: envClientId.trim(),
         clientSecret: envClientSecret.trim(),
-        redirectUri: 'http://localhost:3000/oauth2callback',
+        redirectUri: defaultRedirectUri,
       };
     }
 
@@ -124,7 +127,7 @@ export class GoogleAuthService implements OnModuleInit {
 
         const clientId = keys.client_id;
         const clientSecret = keys.client_secret;
-        const redirectUri = keys.redirect_uris?.[0] || 'http://localhost:3000/oauth2callback';
+        const redirectUri = keys.redirect_uris?.[0] || defaultRedirectUri;
 
         if (clientId && clientSecret) {
           return { clientId, clientSecret, redirectUri };

@@ -11,6 +11,7 @@ Hệ thống tài liệu được thiết kế theo dạng module độc lập (
 ```text
 docs/
 ├── README.md                 # [Bản đồ tài liệu] - Mục lục & Lộ trình tìm hiểu
+├── quick-setup-runbook.md    # [⚡ Checklist 3 Phút] - Hướng dẫn triển khai lại từ A-Z không cần mò mẫm
 ├── architecture.md           # [Kiến trúc] - Sơ đồ hệ thống, SQLite Database & nguyên lý thiết kế
 ├── gemini-tools.md           # [AI & Tools] - 8 Function Declarations, System Instruction & viết Tool mới
 ├── google-integration.md     # [Google Workspace] - Full Scopes, OAuth2, Calendar, Tasks & lưu Token SQLite
@@ -25,6 +26,7 @@ docs/
 
 | Bạn muốn... | Tài liệu cần đọc | Nội dung chính |
 | :--- | :--- | :--- |
+| **⚡ Triển khai nhanh lại từ đầu trong 3 phút** | [quick-setup-runbook.md](/docs/quick-setup-runbook.md) | Checklist 5 bước "Cầm tay chỉ việc", lấy Token, lấy Key, Deploy Coolify. |
 | **Hiểu tổng quan kiến trúc & SQLite** | [architecture.md](/docs/architecture.md) | Sơ đồ tuần tự, SQLite Database (`telebot.sqlite`), cô lập Token đa người dùng. |
 | **Tìm hiểu 8 công cụ AI & viết Tool mới** | [gemini-tools.md](/docs/gemini-tools.md) | 8 Tools hiện có (Calendar, Tasks, Login, Invite), interface `GeminiTool`, `ToolExecutionContext`. |
 | **Tích hợp thêm API Google (Gmail, Drive...)** | [google-integration.md](/docs/google-integration.md) | Trọn bộ Scopes Google Workspace đã cấp quyền, quản lý Token trong SQLite, Calendar / Tasks API. |
@@ -36,7 +38,6 @@ docs/
 
 ## ⚡ Lộ Trình Cho Developer Mới (Quick Onboarding)
 
-1. **Bước 1**: Đọc [Kiến trúc hệ thống](/docs/architecture.md) để nắm được bức tranh tổng thể các tầng Module trong NestJS và SQLite.
-2. **Bước 2**: Thiết lập môi trường Local theo hướng dẫn tại [Triển khai & Vận hành](/docs/deployment.md#4-chạy-ở-môi-trường-local).
-3. **Bước 3**: Lấy key Telegram Bot, Google Client ID & Secret theo [Tích hợp Google Workspace](/docs/google-integration.md).
-4. **Bước 4**: Thử tạo một tính năng mới theo hướng dẫn tại [AI & Function Calling](/docs/gemini-tools.md).
+1. **Bước 1**: Đọc [Cẩm nang 3 phút](file:///Users/datdoan/Documents/projects/telebot/docs/quick-setup-runbook.md) để nắm nhanh 5 bước chuẩn bị và chạy bot ngay.
+2. **Bước 2**: Đọc [Kiến trúc hệ thống](file:///Users/datdoan/Documents/projects/telebot/docs/architecture.md) để hiểu sâu hơn về các tầng module.
+3. **Bước 3**: Khám phá 8 công cụ AI và tự tạo tool mới tại [AI & Function Calling](file:///Users/datdoan/Documents/projects/telebot/docs/gemini-tools.md).

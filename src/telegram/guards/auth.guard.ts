@@ -21,7 +21,7 @@ export class AuthGuard implements CanActivate {
     if (!userId) return false;
 
     const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
+    const text = message && 'text' in message ? message.text.trim() : '';
 
     // Allow /start with invite code to proceed to handler for validation
     if (text.startsWith('/start invite_')) {
@@ -70,7 +70,7 @@ export class AuthGuard implements CanActivate {
     // 3. PRIVATE GUARD: Require Google Login for all regular chats & non-auth commands
     const isGoogleAuth = this.googleAuthService.isAuthorized(userId);
     if (!isGoogleAuth) {
-      const isAuthCommand =
+      const isAuthCommandOrPayload =
         text.startsWith('/start') ||
         text.startsWith('/login') ||
         text.startsWith('/auth') ||
@@ -80,9 +80,12 @@ export class AuthGuard implements CanActivate {
         text.startsWith('/invite') ||
         text.startsWith('/users') ||
         text.startsWith('/allow') ||
-        text.startsWith('/ban');
+        text.startsWith('/ban') ||
+        text.includes('code=') ||
+        text.includes('oauth2callback') ||
+        text.startsWith('4/');
 
-      if (!isAuthCommand) {
+      if (!isAuthCommandOrPayload) {
         this.logger.warn(`User ${userId} attempted to use bot without Google authentication.`);
 
         let authUrl = '';
@@ -92,7 +95,7 @@ export class AuthGuard implements CanActivate {
           // ignore
         }
 
-        const promptMessage = `🔐 *YÊU CẦU KẾT NỐI TÀI KHOẢN GOOGLE*\n\nĐể sử dụng trợ lý AI (Google Calendar & Google Tasks), bạn cần kết nối tài khoản Google của mình trước.\n\n1️⃣ Nhấn vào nút **"🔗 Đăng nhập Google"** bên dưới.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (Authorization Code) hiện ra và gửi lại cho bot:\n\`/code <mã_xác_thực>\``;
+        const promptMessage = `🔐 *YÊU CẦU KẾT NỐI TÀI KHOẢN GOOGLE*\n\nĐể sử dụng trợ lý AI (Google Calendar & Google Tasks), bạn cần kết nối tài khoản Google của mình trước.\n\n1️⃣ Nhấn vào nút **"🔗 Đăng nhập Google"** bên dưới.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (hoặc dán toàn bộ đường link sau khi đăng nhập) gửi lại cho bot nhé!`;
 
         try {
           if (authUrl) {

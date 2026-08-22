@@ -1,4 +1,6 @@
 export interface AppConfig {
+  port: number;
+  appUrl: string;
   telegram: {
     token: string;
     allowedUserIds: number[];
@@ -33,7 +35,12 @@ export default (): AppConfig => {
     allowedUserIds.push(adminId);
   }
 
+  const rawAppUrl = process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = rawAppUrl.replace(/\/+$/, ''); // Remove trailing slashes
+
   return {
+    port: Number(process.env.PORT) || 3000,
+    appUrl,
     telegram: {
       token: process.env.TELEGRAM_BOT_TOKEN || '',
       allowedUserIds,

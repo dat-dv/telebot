@@ -60,7 +60,7 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
           Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng nhập Google', authUrl)]]),
         );
         await ctx.reply(
-          '💡 *Mẹo:* Sau khi đăng nhập và bấm Cho phép, trình duyệt sẽ cung cấp mã xác thực. Hãy copy mã đó và gửi theo cú pháp:\n`/code <mã_xác_thực>` để hoàn tất nhé!',
+          '💡 *Mẹo:* Sau khi đăng nhập và bấm Cho phép, bạn chỉ cần copy mã xác thực hoặc dán thẳng toàn bộ đường link trình duyệt vào đây là xong nhé!',
           { parse_mode: 'Markdown' },
         );
       } else {
@@ -167,7 +167,7 @@ ${googleStatus}
         ? '*(Hiện tại bạn ĐÃ kết nối Google, bấm nút bên dưới nếu muốn đăng nhập lại tài khoản khác)*'
         : '*(Hiện tại bạn CHƯA kết nối tài khoản Google)*';
 
-      const msg = `🔐 *KẾT NỐI GOOGLE CALENDAR & TASKS*\n\n${statusText}\n\n1️⃣ Nhấn vào nút bên dưới để mở trang đăng nhập Google.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (Authorization Code) hiện trên màn hình và gửi lại cho bot bằng lệnh:\n\`/code <mã_xác_thực>\``;
+      const msg = `🔐 *KẾT NỐI GOOGLE CALENDAR & TASKS*\n\n${statusText}\n\n1️⃣ Nhấn vào nút bên dưới để mở trang đăng nhập Google.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (hoặc dán thẳng đường link sau khi đăng nhập) gửi lại cho bot nhé!`;
 
       await ctx.reply(
         msg,
@@ -179,19 +179,32 @@ ${googleStatus}
     }
   }
 
-  @Command('code')
-  public async onCode(@Ctx() ctx: Context): Promise<void> {
-    const userId = ctx.from?.id;
-    if (!userId) return;
+  private extractAuthCode(input: string): string {
+    let cleaned = input.trim();
+    // If user pasted redirect callback URL (e.g. http://localhost:3000/oauth2callback?code=4/0ATs...)
+    if (cleaned.includes('code=')) {
+      try {
+        const urlToParse = cleaned.startsWith('http') ? cleaned : `http://localhost/${cleaned}`;
+        const parsed = new URL(urlToParse);
+        const code = parsed.searchParams.get('code');
+        if (code) return code.trim();
+      } catch {
+        const match = cleaned.match(/code=([^&]+)/);
+        if (match && match[1]) return decodeURIComponent(match[1]).trim();
+      }
+    }
+    // Remove command prefix e.g. /code
+    cleaned = cleaned.replace(/^\/code\s*/i, '').trim();
+    return cleaned;
+  }
 
-    const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
-    const code = text.replace(/^\/code\s*/i, '').trim();
-
+  private async handleCodeExchange(ctx: Context, userId: number, rawInput: string): Promise<void> {
+    const code = this.extractAuthCode(rawInput);
     if (!code) {
-      await ctx.reply('ℹ️ Vui lòng nhập mã xác thực sau lệnh. Ví dụ:\n`/code 4/0AQ...`', {
-        parse_mode: 'Markdown',
-      });
+      await ctx.reply(
+        'ℹ️ Vui lòng nhập mã xác thực hoặc dán đường link. Ví dụ:\n`/code 4/0AQ...`',
+        { parse_mode: 'Markdown' },
+      );
       return;
     }
 
@@ -201,7 +214,7 @@ ${googleStatus}
       });
 
       await ctx.reply(
-        '🎉 *KẾT NỐI THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể nhắn tin cho bot để quản lý lịch trình và việc cần làm rồi nhé!',
+        '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể nhắn tin cho bot để quản lý lịch trình và việc cần làm rồi nhé!',
         { parse_mode: 'Markdown' },
       );
     } catch (err) {
@@ -211,6 +224,16 @@ ${googleStatus}
         { parse_mode: 'Markdown' },
       );
     }
+  }
+
+  @Command('code')
+  public async onCode(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const message = ctx.message;
+    const text = message && 'text' in message ? message.text : '';
+    await this.handleCodeExchange(ctx, userId, text);
   }
 
   @Command('status')
@@ -370,8 +393,19 @@ ${googleStatus}
   public async onTextMessage(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
+    const text = message && 'text' in message ? message.text.trim() : '';
     if (!text) return;
+
+    // Auto-detect if user simply pasted the redirect callback URL or raw auth code
+    if (
+      !this.googleAuthService.isAuthorized(userId) &&
+      (text.includes('oauth2callback') ||
+        text.includes('code=') ||
+        (text.startsWith('4/') && text.length > 25))
+    ) {
+      await this.handleCodeExchange(ctx, userId, text);
+      return;
+    }
 
     this.logger.log(`Received text message from ${userId}: "${text}"`);
 
