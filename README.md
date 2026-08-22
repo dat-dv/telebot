@@ -164,3 +164,17 @@ pm2 startup
 - **Đánh dấu hoàn thành**:
 
   > _"Tớ đã làm xong việc mua quà sinh nhật rồi"_ ➜ Bot tìm task tương ứng và đánh dấu `completed`.
+
+---
+
+## 📚 Tài Liệu & Hướng Dẫn Phát Triển
+
+Dự án có bộ tài liệu module chi tiết tại thư mục [`docs/`](/docs/README.md):
+
+- 🗺️ **[Documentation Hub](file:///Users/datdoan/Documents/projects/telebot/docs/README.md)**: Bản đồ & lộ trình tra cứu toàn bộ tài liệu dự án.
+- 🏛️ **[Kiến trúc hệ thống](file:///Users/datdoan/Documents/projects/telebot/docs/architecture.md)**: Sơ đồ luồng dữ liệu, sequence diagram và nguyên lý thiết kế.
+- 🤖 **[Gemini AI & Function Calling](file:///Users/datdoan/Documents/projects/telebot/docs/gemini-tools.md)**: Hướng dẫn chi tiết cách viết và đăng ký Tool mới cho Gemini.
+- 📅 **[Tích hợp Google Workspace](file:///Users/datdoan/Documents/projects/telebot/docs/google-integration.md)**: Cơ chế OAuth2, Calendar, Tasks & mở rộng Gmail/Drive.
+- 💬 **[Giao diện Telegram Bot](file:///Users/datdoan/Documents/projects/telebot/docs/telegram-bot.md)**: Xử lý Slash Commands, Auth Guard & tối ưu trải nghiệm (UX).
+- 🚀 **[Triển khai & Vận hành](file:///Users/datdoan/Documents/projects/telebot/docs/deployment.md)**: Cấu hình Docker, PM2, triển khai tự động CI/CD với Coolify.
+- 🛠️ **[Quy chuẩn phát triển](file:///Users/datdoan/Documents/projects/telebot/docs/development-workflow.md)**: Coding conventions, ESLint/Prettier, Husky hooks & quy trình kiểm thử.
