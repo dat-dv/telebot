@@ -2,6 +2,7 @@ import { Update, Start, Help, Command, On, Ctx } from 'nestjs-telegraf';
 import { UseGuards, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
 import { AuthGuard } from './guards/auth.guard';
+import { TelegramUiService } from './services/telegram-ui.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from '../google/google-auth.service';
@@ -15,6 +16,7 @@ export class TelegramUpdate {
     private readonly geminiService: GeminiService,
     private readonly usersService: UsersService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly uiService: TelegramUiService,
   ) {}
 
   @Start()
@@ -93,7 +95,7 @@ ${googleStatus}
 
 💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_). AI sẽ tự động phân tích và phục vụ riêng cho bạn!`;
 
-    await this.sendSafeReply(ctx, welcomeMessage);
+    await this.uiService.sendSafeReply(ctx, welcomeMessage);
   }
 
   @Help()
@@ -134,7 +136,7 @@ ${googleStatus}
 • \`/ban <id>\` - Thu hồi quyền của một Telegram ID`;
     }
 
-    await this.sendSafeReply(ctx, helpMessage);
+    await this.uiService.sendSafeReply(ctx, helpMessage);
   }
 
   @Command('invite')
@@ -179,27 +181,8 @@ ${googleStatus}
     }
   }
 
-  private extractAuthCode(input: string): string {
-    let cleaned = input.trim();
-    // If user pasted redirect callback URL (e.g. http://localhost:3000/oauth2callback?code=4/0ATs...)
-    if (cleaned.includes('code=')) {
-      try {
-        const urlToParse = cleaned.startsWith('http') ? cleaned : `http://localhost/${cleaned}`;
-        const parsed = new URL(urlToParse);
-        const code = parsed.searchParams.get('code');
-        if (code) return code.trim();
-      } catch {
-        const match = cleaned.match(/code=([^&]+)/);
-        if (match && match[1]) return decodeURIComponent(match[1]).trim();
-      }
-    }
-    // Remove command prefix e.g. /code
-    cleaned = cleaned.replace(/^\/code\s*/i, '').trim();
-    return cleaned;
-  }
-
   private async handleCodeExchange(ctx: Context, userId: number, rawInput: string): Promise<void> {
-    const code = this.extractAuthCode(rawInput);
+    const code = this.uiService.extractAuthCode(rawInput);
     if (!code) {
       await ctx.reply(
         'ℹ️ Vui lòng nhập mã xác thực hoặc dán đường link. Ví dụ:\n`/code 4/0AQ...`',
@@ -209,7 +192,7 @@ ${googleStatus}
     }
 
     try {
-      await this.withTyping(ctx, async () => {
+      await this.uiService.withTyping(ctx, async () => {
         await this.googleAuthService.exchangeCodeForTokens(userId, code);
       });
 
@@ -338,15 +321,19 @@ ${googleStatus}
   @Command('today')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
-    const summary = await this.withTyping(ctx, () => this.geminiService.getTodaySummary(userId));
-    await this.sendSafeReply(ctx, summary);
+    const summary = await this.uiService.withTyping(ctx, () =>
+      this.geminiService.getTodaySummary(userId),
+    );
+    await this.uiService.sendSafeReply(ctx, summary);
   }
 
   @Command('week')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
-    const summary = await this.withTyping(ctx, () => this.geminiService.getWeekSummary(userId));
-    await this.sendSafeReply(ctx, summary);
+    const summary = await this.uiService.withTyping(ctx, () =>
+      this.geminiService.getWeekSummary(userId),
+    );
+    await this.uiService.sendSafeReply(ctx, summary);
   }
 
   @Command('calendar')
@@ -365,8 +352,10 @@ ${googleStatus}
     }
 
     const prompt = `Hãy tạo một sự kiện trên Google Calendar dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt, [], userId));
-    await this.sendSafeReply(ctx, response);
+    const response = await this.uiService.withTyping(ctx, () =>
+      this.geminiService.chat(prompt, [], userId),
+    );
+    await this.uiService.sendSafeReply(ctx, response);
   }
 
   @Command('task')
@@ -385,8 +374,10 @@ ${googleStatus}
     }
 
     const prompt = `Hãy thêm một công việc mới vào Google Tasks dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(prompt, [], userId));
-    await this.sendSafeReply(ctx, response);
+    const response = await this.uiService.withTyping(ctx, () =>
+      this.geminiService.chat(prompt, [], userId),
+    );
+    await this.uiService.sendSafeReply(ctx, response);
   }
 
   @On('text')
@@ -409,61 +400,9 @@ ${googleStatus}
 
     this.logger.log(`Received text message from ${userId}: "${text}"`);
 
-    const response = await this.withTyping(ctx, () => this.geminiService.chat(text, [], userId));
-    await this.sendSafeReply(ctx, response);
-  }
-
-  /**
-   * Helper that executes an asynchronous action while maintaining a continuous
-   * Telegram 'typing' status action (refreshed every 4 seconds) so the user
-   * always sees that the bot is actively processing.
-   */
-  private async withTyping<T>(ctx: Context, action: () => Promise<T>): Promise<T> {
-    ctx.sendChatAction('typing').catch(() => {});
-
-    const interval = setInterval(() => {
-      ctx.sendChatAction('typing').catch(() => {});
-    }, 4000);
-
-    try {
-      return await action();
-    } finally {
-      clearInterval(interval);
-    }
-  }
-
-  /**
-   * Helper safely sending replies with fallback for Markdown parsing errors & chunking large texts
-   */
-  private async sendSafeReply(ctx: Context, text: string): Promise<void> {
-    const MAX_LENGTH = 4000;
-    const chunks: string[] = [];
-
-    let remaining = text;
-    while (remaining.length > 0) {
-      if (remaining.length <= MAX_LENGTH) {
-        chunks.push(remaining);
-        break;
-      }
-      let chunk = remaining.slice(0, MAX_LENGTH);
-      const lastNewline = chunk.lastIndexOf('\n');
-      if (lastNewline > 0) {
-        chunk = remaining.slice(0, lastNewline);
-        remaining = remaining.slice(lastNewline + 1);
-      } else {
-        remaining = remaining.slice(MAX_LENGTH);
-      }
-      chunks.push(chunk);
-    }
-
-    for (const chunk of chunks) {
-      try {
-        await ctx.reply(chunk, { parse_mode: 'Markdown' });
-      } catch (markdownError) {
-        const err = markdownError as Error;
-        this.logger.warn(`Markdown reply failed, falling back to plain text: ${err.message}`);
-        await ctx.reply(chunk);
-      }
-    }
+    const response = await this.uiService.withTyping(ctx, () =>
+      this.geminiService.chat(text, [], userId),
+    );
+    await this.uiService.sendSafeReply(ctx, response);
   }
 }
