@@ -24,16 +24,23 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    // Check Whitelist Access
+    // STRICT: Check Whitelist Access
     if (!this.usersService.isAllowed(userId)) {
       this.logger.warn(
         `Unauthorized access attempt from user ID: ${userId} (@${ctx.from?.username || 'unknown'})`,
       );
+
+      const hasAdmin: boolean = this.usersService.hasAdminConfigured();
+      let replyMessage = '';
+
+      if (!hasAdmin) {
+        replyMessage = `🔒 *HỆ THỐNG ĐANG Ở CHẾ ĐỘ BẢO MẬT NGHIÊM NGẶT!*\n\nBot hiện chưa có Quản trị viên (Admin) nào được thiết lập.\n🆔 **User ID của bạn**: \`${userId}\`\n\n👉 Vui lòng điền ID này vào biến \`TELEGRAM_ADMIN_ID\` trên server để kích hoạt quyền Admin.`;
+      } else {
+        replyMessage = `⛔ *Truy cập bị từ chối!*\n\nBạn chưa có quyền sử dụng trợ lý này.\n🆔 **User ID của bạn**: \`${userId}\`\n\n📌 Vui lòng liên hệ Quản trị viên (Admin) để nhận đường link mời kích hoạt (\`/invite\`).`;
+      }
+
       try {
-        await ctx.reply(
-          `⛔ *Truy cập bị từ chối!*\n\nBạn chưa có quyền sử dụng trợ lý này.\n🆔 **User ID của bạn**: \`${userId}\`\n\n📌 Vui lòng liên hệ Quản trị viên (Admin) để nhận đường link mời kích hoạt (\`/invite\`).`,
-          { parse_mode: 'Markdown' },
-        );
+        await ctx.reply(replyMessage, { parse_mode: 'Markdown' });
       } catch (err: unknown) {
         const error = err as Error;
         this.logger.error(`Failed to send unauthorized reply: ${error.message}`);

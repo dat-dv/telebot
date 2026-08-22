@@ -105,6 +105,16 @@ export class UsersService implements OnModuleInit {
     }
   }
 
+  public hasAdminConfigured(): boolean {
+    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : null;
+    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+    return !!(
+      adminIdEnv ||
+      allowedIds.length > 0 ||
+      Object.values(this.db.users).some((u) => u.role === 'admin')
+    );
+  }
+
   public isAdmin(userId: number): boolean {
     const user = this.db.users[userId];
     if (user?.role === 'admin') return true;
@@ -119,18 +129,24 @@ export class UsersService implements OnModuleInit {
   }
 
   public isAllowed(userId: number): boolean {
-    // If no users configured at all and no allowed list, allow (public mode)
-    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
-    const hasConfiguredUsers = Object.keys(this.db.users).length > 0 || allowedIds.length > 0;
-    if (!hasConfiguredUsers) {
+    // 1. If user is Admin -> Allowed
+    if (this.isAdmin(userId)) {
       return true;
     }
 
+    // 2. If user is in database (added via invite code or allow command) -> Allowed
     if (this.db.users[userId]) {
       return true;
     }
 
-    return allowedIds.includes(userId);
+    // 3. If user is in TELEGRAM_ALLOWED_USER_IDS -> Allowed
+    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+    if (allowedIds.includes(userId)) {
+      return true;
+    }
+
+    // STRICT: Absolutely NO public mode. If not admin and not explicitly added/invited -> Block!
+    return false;
   }
 
   public createInvite(adminId: number): InviteCode {
