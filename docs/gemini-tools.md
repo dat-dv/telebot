@@ -16,20 +16,23 @@ Trái tim của trợ lý AI nằm tại [`src/gemini/gemini.service.ts`](file:/
 
 ---
 
-## 2. Danh Sách 10 Công Cụ AI Đang Hoạt Động
+## 2. Danh Sách 13 Công Cụ AI Đang Hoạt Động
 
 | STT | Tên Tool (Function Name) | Class Triển Khai | Chức Năng & Quyền Hạn |
 | :--- | :--- | :--- | :--- |
-| 1 | `create_calendar_event` | `CreateCalendarTool` | Tạo lịch hẹn Google Calendar + 4 mốc chuông popup báo dồn dập `[60p, 30p, 10p, 0p]`. |
-| 2 | `list_calendar_events` | `ListCalendarTool` | Tra cứu, xem danh sách sự kiện lịch trong ngày, tuần, tháng. |
-| 3 | `delete_calendar_event` | `DeleteCalendarTool` | Tìm và xóa sự kiện trên Google Calendar. |
-| 4 | `create_task` | `CreateTaskTool` | Tạo công việc To-Do mới trên Google Tasks có deadline. |
-| 5 | `list_tasks` | `ListTasksTool` | Tra cứu danh sách việc cần làm (chưa hoàn thành / tất cả). |
-| 6 | `complete_task` | `CompleteTaskTool` | Đánh dấu hoàn thành việc cần làm trên Google Tasks. |
-| 7 | `login_google` | `LoginGoogleTool` | Tạo link xác thực Google OAuth cá nhân hóa cho người dùng khi họ hỏi cách đăng nhập. |
-| 8 | `create_invite_link` | `InviteUserTool` | **(Admin Only)** Cho phép Admin ra lệnh bằng văn bản để AI tạo link mời bạn bè (`t.me/bot?start=invite_...`). |
-| 9 | `list_users` | `ListUsersTool` | **(Admin Only)** Cho phép Admin hỏi AI danh sách thành viên/người dùng và trạng thái kết nối Google. |
-| 10 | `ban_user` | `BanUserTool` | **(Admin Only)** Cho phép Admin ra lệnh cho AI khóa tài khoản và xóa token Google của một Telegram ID. |
+| 1 | `create_reminder` | `CreateReminderTool` | **(MỚI)** Tạo lời nhắc nhở tự động trên Telegram. Bot chủ động "Ting Ting" gửi tin nhắn đúng từng phút. |
+| 2 | `list_reminders` | `ListRemindersTool` | **(MỚI)** Tra cứu danh sách các lời nhắc tự động Telegram đang chờ kích hoạt. |
+| 3 | `delete_reminder` | `DeleteReminderTool` | **(MỚI)** Hủy hoặc xóa một lời nhắc tự động Telegram theo tên hoặc ID. |
+| 4 | `create_calendar_event` | `CreateCalendarTool` | Tạo lịch hẹn Google Calendar + 4 mốc chuông popup báo dồn dập `[60p, 30p, 10p, 0p]`. |
+| 5 | `list_calendar_events` | `ListCalendarTool` | Tra cứu, xem danh sách sự kiện lịch trong ngày, tuần, tháng. |
+| 6 | `delete_calendar_event` | `DeleteCalendarTool` | Tìm và xóa sự kiện trên Google Calendar. |
+| 7 | `create_task` | `CreateTaskTool` | Tạo công việc To-Do mới trên Google Tasks có deadline. |
+| 8 | `list_tasks` | `ListTasksTool` | Tra cứu danh sách việc cần làm (chưa hoàn thành / tất cả). |
+| 9 | `complete_task` | `CompleteTaskTool` | Đánh dấu hoàn thành việc cần làm trên Google Tasks. |
+| 10 | `login_google` | `LoginGoogleTool` | Tạo link xác thực Google OAuth cá nhân hóa cho người dùng khi họ hỏi cách đăng nhập. |
+| 11 | `create_invite_link` | `InviteUserTool` | **(Admin Only)** Cho phép Admin ra lệnh bằng văn bản để AI tạo link mời bạn bè (`t.me/bot?start=invite_...`). |
+| 12 | `list_users` | `ListUsersTool` | **(Admin Only)** Cho phép Admin hỏi AI danh sách thành viên/người dùng và trạng thái kết nối Google. |
+| 13 | `ban_user` | `BanUserTool` | **(Admin Only)** Cho phép Admin ra lệnh cho AI khóa tài khoản và xóa token Google của một Telegram ID. |
 
 ---
 

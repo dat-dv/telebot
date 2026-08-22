@@ -18,6 +18,9 @@ import { LoginGoogleTool } from './tools/login-google.tool';
 import { InviteUserTool } from './tools/invite-user.tool';
 import { ListUsersTool } from './tools/list-users.tool';
 import { BanUserTool } from './tools/ban-user.tool';
+import { CreateReminderTool } from './tools/create-reminder.tool';
+import { ListRemindersTool } from './tools/list-reminders.tool';
+import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 
 @Injectable()
@@ -40,6 +43,9 @@ export class GeminiService {
     private readonly inviteUserTool: InviteUserTool,
     private readonly listUsersTool: ListUsersTool,
     private readonly banUserTool: BanUserTool,
+    private readonly createReminderTool: CreateReminderTool,
+    private readonly listRemindersTool: ListRemindersTool,
+    private readonly deleteReminderTool: DeleteReminderTool,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
     const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
@@ -51,7 +57,7 @@ export class GeminiService {
 
     this.genAI = new GoogleGenerativeAI(apiKey);
 
-    // Register all tools (10 Tools)
+    // Register all tools (13 Tools total)
     const tools: GeminiTool[] = [
       this.createCalendarTool,
       this.listCalendarTool,
@@ -63,6 +69,9 @@ export class GeminiService {
       this.inviteUserTool,
       this.listUsersTool,
       this.banUserTool,
+      this.createReminderTool,
+      this.listRemindersTool,
+      this.deleteReminderTool,
     ];
 
     for (const tool of tools) {

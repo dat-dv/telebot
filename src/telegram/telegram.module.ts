@@ -7,6 +7,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { GeminiModule } from '../gemini/gemini.module';
 import { GoogleModule } from '../google/google.module';
 import { UsersModule } from '../users/users.module';
+import { RemindersModule } from '../reminders/reminders.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from '../users/users.module';
     GeminiModule,
     GoogleModule,
     UsersModule,
+    RemindersModule,
   ],
   providers: [TelegramUpdate, TelegramUiService, AuthGuard],
   exports: [TelegramUiService],

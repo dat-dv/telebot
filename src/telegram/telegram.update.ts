@@ -8,6 +8,7 @@ import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from '../google/google-auth.service';
 import { GoogleTasksService } from '../google/google-tasks.service';
 import { GoogleCalendarService } from '../google/google-calendar.service';
+import { RemindersService } from '../reminders/reminders.service';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -20,6 +21,7 @@ export class TelegramUpdate {
     private readonly googleAuthService: GoogleAuthService,
     private readonly tasksService: GoogleTasksService,
     private readonly calendarService: GoogleCalendarService,
+    private readonly remindersService: RemindersService,
     private readonly uiService: TelegramUiService,
   ) {}
 
@@ -86,11 +88,12 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
       ? '✅ *Tài khoản Google*: Đã kết nối'
       : '⚠️ *Tài khoản Google*: Chưa kết nối (Gõ `/login` để liên kết)';
 
-    const welcomeMessage = `👋 Xin chào *${fromName}*! Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar* và *Google Tasks*.
+    const welcomeMessage = `👋 Xin chào *${fromName}*! Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar*, *Google Tasks* và *Hệ Thống Nhắc Nhở Tự Động*.
 
 ${googleStatus}
 
 📱 *Bạn có thể bấm các nút bên dưới hoặc nhắn tin tự nhiên:*
+• _"15 phút nữa nhắc anh tắt bếp"_
 • _"Chiều mai 14h họp dự án với sếp"_
 • _"Nhắc anh mua quà sinh nhật cho vợ vào ngày mai"_
 • _"Hôm nay anh có lịch gì không?"_`;
@@ -108,11 +111,10 @@ ${googleStatus}
     if (isAdmin) {
       const adminHelpMessage = `👑 *HƯỚNG DẪN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)*
 
-1️⃣ *Quản Lý Lịch Hẹn & Công Việc Cá Nhân:*
-• _"Mai 14h họp kickoff dự án với khách hàng"_
-• _"Thứ 6 tuần này từ 9h đến 11h đi khám sức khỏe"_
-• _"Thêm việc chuẩn bị tài liệu thuyết trình vào to-do list"_
-• Tự động cài 4 mốc chuông popup dồn dập (60p, 30p, 10p, 0p) 🔔
+1️⃣ *Quản Lý Lịch Hẹn, Nhắc Nhở & Công Việc Cá Nhân:*
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot tự động bắn tin nhắn nhắc nhở
+• 📅 _"Mai 14h họp kickoff dự án với khách hàng"_ ➔ Lên lịch Calendar + 4 chuông báo
+• 📝 _"Thêm việc chuẩn bị tài liệu thuyết trình"_ ➔ Lưu to-do Tasks
 
 2️⃣ *Đặc Quyền Quản Trị Hệ Thống (Chat Với AI Hoặc Phím Nhanh):*
 • 🎟️ *Tạo Link Mời*: Bấm nút dưới bàn phím hoặc nhắn _"Tạo link mời bạn"_ (link có hạn 24h)
@@ -131,20 +133,22 @@ ${googleStatus}
     // Regular Member Help Message
     const userHelpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ CÁ NHÂN*
 
-1️⃣ *Quản lý Google Calendar (Lịch hẹn / Cuộc họp cố định giờ)*
+1️⃣ *Nhắc Nhở Tự Động Telegram (Bot Tự Động Bắn Tin Nhắn Nhắc)*
+• _"15 phút nữa nhắc anh tắt bếp"_
+• _"8h tối nay nhắc anh gọi điện cho mẹ"_
+• _"Nhắc tớ 9h30 sáng mai uống thuốc"_
+
+2️⃣ *Quản lý Google Calendar (Lịch hẹn / Cuộc họp cố định giờ)*
 • _"Mai 14h họp dự án tại phòng họp A"_
 • _"Thứ 6 tuần này từ 9h đến 11h đi khám sức khỏe"_
-• _"Hôm nay tớ có lịch gì không?"_
-• _"Xóa lịch họp lúc 14h chiều mai"_
 • Tự động cài 4 mốc chuông báo dồn dập (60p, 30p, 10p, 0p) 🔔
 
-2️⃣ *Quản lý Google Tasks (To-Do List / Việc cần làm)*
+3️⃣ *Quản lý Google Tasks (To-Do List / Việc cần làm)*
 • _"Thêm việc chuẩn bị slide báo cáo"_
 • _"Nhắc tớ đi siêu thị mua trứng và sữa trước chủ nhật"_
-• _"Xem danh sách việc cần làm của tớ"_
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
-3️⃣ *Phím Bấm Nhanh 1-Chạm (Dưới Bàn Phím):*
+4️⃣ *Phím Bấm Nhanh 1-Chạm (Dưới Bàn Phím):*
 • 📅 *Lịch Hôm Nay* - Tóm tắt toàn bộ lịch trình hôm nay
 • 📝 *Việc Cần Làm* - Mở to-do list & bấm nút tick hoàn thành ngay
 • 📊 *Xem 7 Ngày Tới* - Tổng quan lịch 7 ngày tới
@@ -442,6 +446,48 @@ ${googleStatus}
     } catch (err) {
       const error = err as Error;
       await ctx.answerCbQuery(`Lỗi: ${error.message}`);
+    }
+  }
+
+  // Handle interactive inline button: Done Reminder
+  @Action(/^done_reminder:(.+)$/)
+  public async onDoneReminderAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const reminderId = match ? match[1] : undefined;
+
+    if (reminderId) {
+      await this.remindersService.deleteReminder(reminderId);
+    }
+
+    await ctx.answerCbQuery('✅ Tuyệt vời! Đã hoàn thành lời nhắc.');
+    try {
+      await ctx.editMessageText('✅ *ĐÃ HOÀN THÀNH LỜI NHẮC!*\n\nCảm ơn bạn đã xác nhận.', {
+        parse_mode: 'Markdown',
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle interactive inline button: Snooze Reminder
+  @Action(/^snooze_reminder:(\d+):(.+)$/)
+  public async onSnoozeReminderAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const minutes = match ? Number(match[1]) : 15;
+    const reminderId = match ? match[2] : undefined;
+
+    if (reminderId) {
+      await this.remindersService.snoozeReminder(reminderId, minutes);
+    }
+
+    await ctx.answerCbQuery(`⏳ Đã hoãn lại ${minutes} phút!`);
+    try {
+      await ctx.editMessageText(
+        `⏳ *ĐÃ HOÃN LỜI NHẮC THÊM ${minutes} PHÚT!*\n\nBot sẽ tự động "Ting Ting" nhắc lại cho bạn sau ${minutes} phút nữa nhé.`,
+        { parse_mode: 'Markdown' },
+      );
+    } catch {
+      // ignore
     }
   }
 

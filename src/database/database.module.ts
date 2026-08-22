@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { UserEntity } from './entities/user.entity';
 import { InviteEntity } from './entities/invite.entity';
 import { UserTokenEntity } from './entities/user-token.entity';
+import { ReminderEntity } from './entities/reminder.entity';
 
 @Module({
   imports: [
@@ -18,13 +19,13 @@ import { UserTokenEntity } from './entities/user-token.entity';
         return {
           type: 'better-sqlite3',
           database: dbPath,
-          entities: [UserEntity, InviteEntity, UserTokenEntity],
+          entities: [UserEntity, InviteEntity, UserTokenEntity, ReminderEntity],
           synchronize: true,
           logging: false,
         };
       },
     }),
-    TypeOrmModule.forFeature([UserEntity, InviteEntity, UserTokenEntity]),
+    TypeOrmModule.forFeature([UserEntity, InviteEntity, UserTokenEntity, ReminderEntity]),
   ],
   exports: [TypeOrmModule],
 })

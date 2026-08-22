@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { GoogleModule } from './google/google.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { RemindersModule } from './reminders/reminders.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TelegramModule } from './telegram/telegram.module';
     DatabaseModule,
     UsersModule,
     GoogleModule,
+    RemindersModule,
     GeminiModule,
     TelegramModule,
   ],
