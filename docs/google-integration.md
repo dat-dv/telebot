@@ -1,6 +1,6 @@
 # 📅 Tích Hợp Google Workspace & Quản Lý Token Trong SQLite (OAuth2)
 
-Tài liệu này mô tả chi tiết cách thức xác thực Google OAuth 2.0 theo từng người dùng độc lập, cấu hình Client Credentials qua biến môi trường (Zero-File-Mount) và lưu trữ Token trong **Database SQLite** (`user_tokens`).
+Tài liệu này mô tả chi tiết cách thức xác thực Google OAuth 2.0 theo từng người dùng độc lập, danh sách toàn bộ các Scopes Google Workspace đã kích hoạt sẵn, cấu hình Client Credentials qua biến môi trường (Zero-File-Mount) và lưu trữ Token trong **Database SQLite** (`user_tokens`).
 
 ---
 
@@ -29,7 +29,47 @@ graph TD
 
 ---
 
-## 2. Luồng Đăng Nhập Cho Người Dùng Mới (`/login` & `/code`)
+## 2. Toàn Bộ Quyền Google Workspace Đã Kích Hoạt Sẵn (Full Scopes)
+
+Hệ thống đã khai báo sẵn toàn bộ các quyền của hệ sinh thái Google Workspace miễn phí trong `src/google/google-auth.service.ts`:
+
+```typescript
+export const GOOGLE_SCOPES = [
+  // 1. Thông tin cơ bản người dùng (User Profile & Email)
+  'openid',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+
+  // 2. Google Calendar (Toàn quyền quản lý lịch trình & sự kiện)
+  'https://www.googleapis.com/auth/calendar',
+
+  // 3. Google Tasks (Toàn quyền quản lý To-Do list & công việc)
+  'https://www.googleapis.com/auth/tasks',
+
+  // 4. Gmail (Đọc, gửi, soạn thảo và quản lý hộp thư)
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.send',
+
+  // 5. Google Drive (Tìm kiếm, tải lên và quản lý tệp tin)
+  'https://www.googleapis.com/auth/drive',
+
+  // 6. Google Sheets (Đọc & ghi bảng tính, theo dõi chi tiêu, dữ liệu)
+  'https://www.googleapis.com/auth/spreadsheets',
+
+  // 7. Google Docs (Tạo và chỉnh sửa tài liệu văn bản)
+  'https://www.googleapis.com/auth/documents',
+
+  // 8. Google Contacts / People (Tìm kiếm danh bạ, số điện thoại, email)
+  'https://www.googleapis.com/auth/contacts',
+];
+```
+
+> [!TIP]
+> Nhờ việc khai báo đầy đủ các scope này ngay từ đầu, người dùng chỉ cần đăng nhập **1 lần duy nhất**. Khi bạn phát triển thêm các tính năng gửi Gmail, đọc Google Sheets hay tra cứu danh bạ sau này, người dùng **không cần phải đăng nhập lại**!
+
+---
+
+## 3. Luồng Đăng Nhập Cho Người Dùng Mới (`/login` & `/code`)
 
 1. Người dùng gõ `/login` hoặc bấm nút **"🔗 Đăng nhập Google"** trên Telegram (hoặc AI tự gọi tool `login_google`).
 2. `GoogleAuthService.generateAuthUrl(userId)` sinh URL xác thực Google với tham số `state: userId`.
@@ -43,7 +83,7 @@ graph TD
 
 ---
 
-## 3. Dịch Vụ Google Calendar (`GoogleCalendarService`)
+## 4. Dịch Vụ Google Calendar (`GoogleCalendarService`)
 
 File vị trí: [`src/google/google-calendar.service.ts`](file:///Users/datdoan/Documents/projects/telebot/src/google/google-calendar.service.ts).
 
@@ -55,7 +95,7 @@ File vị trí: [`src/google/google-calendar.service.ts`](file:///Users/datdoan/
 
 ---
 
-## 4. Dịch Vụ Google Tasks (`GoogleTasksService`)
+## 5. Dịch Vụ Google Tasks (`GoogleTasksService`)
 
 File vị trí: [`src/google/google-tasks.service.ts`](file:///Users/datdoan/Documents/projects/telebot/src/google/google-tasks.service.ts).
 
