@@ -17,6 +17,14 @@ import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 
+export interface ChatResponse {
+  text: string;
+  lastTool?: {
+    name: string;
+    result: Record<string, unknown>;
+  };
+}
+
 @Injectable()
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
@@ -93,7 +101,7 @@ export class GeminiService {
     chatHistory: Content[] = [],
     userId?: number,
     botUsername?: string,
-  ): Promise<string> {
+  ): Promise<ChatResponse> {
     const candidateModels = [
       this.primaryModelName,
       'gemini-3.5-flash-lite',
@@ -115,6 +123,7 @@ export class GeminiService {
 
         let response = await chatSession.sendMessage(userMessage);
         let functionCalls = response.response.functionCalls();
+        let lastTool: { name: string; result: Record<string, unknown> } | undefined;
 
         // Multi-turn loop to execute function calls sequentially
         while (functionCalls && functionCalls.length > 0) {
@@ -143,6 +152,8 @@ export class GeminiService {
             }
           }
 
+          lastTool = { name: call.name, result: functionResponse };
+
           // Send tool execution continuation to model
           try {
             response = await chatSession.sendMessage(
@@ -159,12 +170,15 @@ export class GeminiService {
               (functionResponse.message as string) ||
               (functionResponse.error as string) ||
               JSON.stringify(functionResponse);
-            return directMsg;
+            return { text: directMsg, lastTool };
           }
         }
 
         const replyText = response.response.text();
-        return replyText || 'Tôi đã xử lý yêu cầu của bạn.';
+        return {
+          text: replyText || 'Tôi đã xử lý yêu cầu của bạn.',
+          lastTool,
+        };
       } catch (err) {
         lastError = err as Error;
         this.logger.warn(
@@ -174,18 +188,22 @@ export class GeminiService {
     }
 
     this.logger.error(`All model candidates failed. Last error: ${lastError?.message}`);
-    return 'Xin lỗi, hệ thống AI hiện đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau vài giây.';
+    return {
+      text: 'Xin lỗi, hệ thống AI hiện đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau vài giây.',
+    };
   }
 
   public async getTodaySummary(userId?: number, botUsername?: string): Promise<string> {
     const prompt =
       'Hãy tổng hợp toàn bộ các sự kiện trên Google Calendar và các công việc trên Google Tasks cần làm trong ngày HÔM NAY. Trình bày ngắn gọn, đẹp mắt, chia rõ ràng 2 phần: 📅 Lịch Hẹn & 📝 Việc Cần Làm.';
-    return this.chat(prompt, [], userId, botUsername);
+    const res = await this.chat(prompt, [], userId, botUsername);
+    return res.text;
   }
 
   public async getWeekSummary(userId?: number, botUsername?: string): Promise<string> {
     const prompt =
       'Hãy tổng hợp toàn bộ các sự kiện trên Google Calendar và các công việc trên Google Tasks trong 7 ngày tới (kể từ hôm nay). Trình bày theo từng ngày rõ ràng, chuyên nghiệp.';
-    return this.chat(prompt, [], userId, botUsername);
+    const res = await this.chat(prompt, [], userId, botUsername);
+    return res.text;
   }
 }

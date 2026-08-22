@@ -104,6 +104,47 @@ export class TelegramUiService {
   }
 
   /**
+   * Builds interactive buttons attached under a newly created reminder
+   * allowing the user to switch between TextMe / CallMe or Cancel the reminder.
+   */
+  public buildReminderConfirmationMarkup(
+    reminderId: string,
+    currentNotifyType: 'text' | 'call' = 'text',
+  ) {
+    const isCall = currentNotifyType === 'call';
+    const switchBtn = isCall
+      ? Markup.button.callback(
+          '💬 Đổi Sang Nhắn Tin (TextMe)',
+          `switch_reminder:text:${reminderId}`,
+        )
+      : Markup.button.callback(
+          '📞 Đổi Sang Gọi Nhá Máy (CallMe)',
+          `switch_reminder:call:${reminderId}`,
+        );
+
+    return Markup.inlineKeyboard([
+      [switchBtn],
+      [Markup.button.callback('❌ Hủy Lời Nhắc Này', `cancel_reminder:${reminderId}`)],
+    ]);
+  }
+
+  /**
+   * Builds interactive buttons attached under a newly created Google Calendar event
+   */
+  public buildCalendarConfirmationMarkup(eventId?: string, htmlLink?: string) {
+    const buttons = [];
+    if (htmlLink) {
+      buttons.push([Markup.button.url('📅 Mở Trên Google Calendar', htmlLink)]);
+    }
+    if (eventId) {
+      buttons.push([
+        Markup.button.callback('🗑️ Xóa Lịch Hẹn Này', `delete_calendar_event:${eventId}`),
+      ]);
+    }
+    return buttons.length > 0 ? Markup.inlineKeyboard(buttons) : undefined;
+  }
+
+  /**
    * Safely sends replies with automatic chunking for long messages (>4000 chars),
    * fallback to plain text if Telegram Markdown parsing fails, and optional markup.
    */

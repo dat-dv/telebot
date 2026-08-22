@@ -100,6 +100,21 @@ export class RemindersService {
     return saved;
   }
 
+  public async updateNotifyType(
+    reminderId: string,
+    notifyType: 'text' | 'call',
+  ): Promise<ReminderEntity | null> {
+    const reminder = await this.reminderRepo.findOne({ where: { id: reminderId } });
+    if (!reminder) return null;
+
+    reminder.notifyType = notifyType;
+    const saved = await this.reminderRepo.save(reminder);
+    this.logger.log(
+      `Updated reminder "${reminder.title}" notifyType to ${notifyType.toUpperCase()}`,
+    );
+    return saved;
+  }
+
   public async deleteReminder(reminderId: string, userId?: number): Promise<boolean> {
     const whereCondition: Record<string, unknown> = { id: reminderId };
     if (userId) {

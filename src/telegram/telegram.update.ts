@@ -84,18 +84,20 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
     // Normal /start
     const isGoogleConnected = this.googleAuthService.isAuthorized(userId);
     const googleStatus = isGoogleConnected
-      ? '✅ *Tài khoản Google*: Đã kết nối'
-      : '⚠️ *Tài khoản Google*: Chưa kết nối (bấm nút bên dưới để liên kết)';
+      ? '✅ *Tài khoản Google*: Đã kết nối (Sẵn sàng)'
+      : '⚠️ *Tài khoản Google*: Chưa kết nối (Bấm nút bên dưới)';
 
-    const welcomeMessage = `👋 Xin chào *${fromName}*! Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar*, *Google Tasks* và *Hệ Thống Nhắc Nhở Tự Động*.
+    const welcomeMessage = `👋 Xin chào *${fromName}*!
+━━━━━━━━━━━━━━━━━━━━
+Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar*, *Google Tasks* & *Nhắc Nhở Tự Động*.
 
 ${googleStatus}
-
-📱 *Bạn có thể bấm các nút bên dưới hoặc nhắn tin tự nhiên:*
-• _"15 phút nữa nhắc anh tắt bếp"_
-• _"Chiều mai 14h họp dự án với sếp"_
-• _"Nhắc anh mua quà sinh nhật cho vợ vào ngày mai"_
-• _"Hôm nay anh có lịch gì không?"_`;
+━━━━━━━━━━━━━━━━━━━━
+📱 *Bạn có thể bấm các nút chức năng bên dưới hoặc nhắn tin tự nhiên:*
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_
+• 📅 _"Chiều mai 14h họp dự án với sếp"_
+• 📝 _"Nhắc anh mua quà sinh nhật cho vợ"_
+• 📊 _"Hôm nay anh có lịch gì không?"_`;
 
     const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
       isAdmin,
@@ -103,8 +105,6 @@ ${googleStatus}
       authUrl,
     );
 
-    // Remove bottom keyboard from screen and attach inline buttons
-    await ctx.reply('✨', this.uiService.getRemoveKeyboard());
     await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
   }
 
@@ -130,18 +130,27 @@ ${googleStatus}
 
     if (isAdmin) {
       const adminHelpMessage = `👑 *HƯỚNG DẪN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)*
+━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ *Quản Lý Lịch Hẹn, Nhắc Nhở & Công Việc Cá Nhân:*
-• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot tự động bắn tin nhắn nhắc nhở (hoặc gọi nhá máy)
-• 📅 _"Mai 14h họp kickoff dự án với khách hàng"_ ➔ Lên lịch Calendar + 4 chuông báo
-• 📝 _"Thêm việc chuẩn bị tài liệu thuyết trình"_ ➔ Lưu to-do Tasks
+1️⃣ *LỜI NHẮC & GỌI ĐIỆN TỰ ĐỘNG (REMINDERS)*
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot gửi tin nhắn
+• 📞 _"8h tối nay gọi nhá máy nhắc anh"_ ➔ Bot gọi đổ chuông
 
-2️⃣ *Đặc Quyền Quản Trị Hệ Thống (Chat Với AI Hoặc Phím Nút):*
-• 🎟️ *Tạo Link Mời*: Bấm nút bên dưới hoặc nhắn _"Tạo link mời bạn"_ (link có hạn 24h)
-• 👥 *Xem Danh Sách*: Bấm nút bên dưới hoặc nhắn _"Xem danh sách user"_
-• 🚫 *Khóa Tài Khoản*: Gõ \`/ban <id>\` hoặc nhắn _"Ban user <id>"_ để khóa & xóa sạch Google Token
+2️⃣ *LỊCH HẸN GOOGLE CALENDAR*
+• 📅 _"Mai 14h họp kickoff dự án với khách hàng"_
+• 🔔 Tự động cài 4 mốc chuông báo popup dồn dập
 
-💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi gì chỉ cần nhắn lại cho AI!`;
+3️⃣ *DANH SÁCH VIỆC CẦN LÀM (TO-DO TASKS)*
+• 📝 _"Thêm việc chuẩn bị tài liệu thuyết trình"_
+• 📋 Bấm nút xem danh sách & tick hoàn thành 1-chạm
+
+4️⃣ *CÔNG CỤ QUẢN TRỊ HỆ THỐNG*
+• 🎟️ *Tạo Link Mời*: Bấm nút bên dưới (hoặc nhắn _"Tạo link mời"_)
+• 👥 *Xem Danh Sách*: Bấm nút bên dưới (hoặc nhắn _"Xem danh sách user"_)
+• 🚫 *Khóa Tài Khoản*: Gõ \`/ban <id>\` (hoặc nhắn _"Ban user <id>"_)
+
+━━━━━━━━━━━━━━━━━━━━
+💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi chỉ cần nhắn lại cho AI!`;
 
       await this.uiService.sendSafeReply(ctx, adminHelpMessage, inlineMarkup);
       return;
@@ -149,22 +158,21 @@ ${googleStatus}
 
     // Regular Member Help Message
     const userHelpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ CÁ NHÂN*
+━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ *Nhắc Nhở Tự Động Telegram (Bot Tự Động Bắn Tin Nhắn Hoặc Gọi Nhá Máy)*
-• _"15 phút nữa nhắc anh tắt bếp"_
-• _"8h tối nay gọi nhá máy nhắc anh uống thuốc"_
-• _"Nhắc tớ 9h30 sáng mai uống thuốc"_
+1️⃣ *LỜI NHẮC & GỌI ĐIỆN TỰ ĐỘNG (REMINDERS)*
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot gửi tin nhắn
+• 📞 _"8h tối nay gọi nhá máy nhắc tớ"_ ➔ Bot gọi đổ chuông
 
-2️⃣ *Quản lý Google Calendar (Lịch hẹn / Cuộc họp cố định giờ)*
-• _"Mai 14h họp dự án tại phòng họp A"_
-• _"Thứ 6 tuần này từ 9h đến 11h đi khám sức khỏe"_
-• Tự động cài 4 mốc chuông báo dồn dập (60p, 30p, 10p, 0p) 🔔
+2️⃣ *LỊCH HẸN GOOGLE CALENDAR*
+• 📅 _"Mai 14h họp dự án tại phòng họp A"_
+• 🔔 Tự động cài 4 mốc chuông báo popup dồn dập
 
-3️⃣ *Quản lý Google Tasks (To-Do List / Việc cần làm)*
-• _"Thêm việc chuẩn bị slide báo cáo"_
-• _"Nhắc tớ đi siêu thị mua trứng và sữa trước chủ nhật"_
-• _"Đánh dấu đã hoàn thành việc mua sách"_
+3️⃣ *DANH SÁCH VIỆC CẦN LÀM (TO-DO TASKS)*
+• 📝 _"Thêm việc chuẩn bị slide báo cáo"_
+• 📋 Mở to-do list & bấm nút tick hoàn thành 1-chạm
 
+━━━━━━━━━━━━━━━━━━━━
 💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi chỉ cần nhắn lại cho bot!`;
 
     await this.uiService.sendSafeReply(ctx, userHelpMessage, inlineMarkup);
@@ -459,6 +467,80 @@ ${googleStatus}
     }
   }
 
+  // Handle switching reminder mode: TextMe <-> CallMe
+  @Action(/^switch_reminder:(text|call):(.+)$/)
+  public async onSwitchReminderAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const targetType = match ? (match[1] as 'text' | 'call') : 'text';
+    const reminderId = match ? match[2] : undefined;
+
+    if (!reminderId) {
+      await ctx.answerCbQuery('Không tìm thấy ID lời nhắc.');
+      return;
+    }
+
+    await this.remindersService.updateNotifyType(reminderId, targetType);
+
+    const isCall = targetType === 'call';
+    await ctx.answerCbQuery(
+      isCall
+        ? '📞 Đã chuyển sang hình thức: Gọi Nhá Máy (CallMe)!'
+        : '💬 Đã chuyển sang hình thức: Nhắn Tin (TextMe)!',
+    );
+
+    const updatedMarkup = this.uiService.buildReminderConfirmationMarkup(reminderId, targetType);
+
+    try {
+      await ctx.editMessageReplyMarkup(updatedMarkup.reply_markup);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle canceling reminder
+  @Action(/^cancel_reminder:(.+)$/)
+  public async onCancelReminderAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const reminderId = match ? match[1] : undefined;
+
+    if (reminderId) {
+      await this.remindersService.deleteReminder(reminderId);
+    }
+
+    await ctx.answerCbQuery('🗑️ Đã hủy lời nhắc thành công.');
+    try {
+      await ctx.editMessageText('❌ *ĐÃ HỦY LỜI NHẮC NÀY THÀNH CÔNG.*', {
+        parse_mode: 'Markdown',
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle deleting calendar event
+  @Action(/^delete_calendar_event:(.+)$/)
+  public async onDeleteCalendarEventAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const eventId = match ? match[1] : undefined;
+    const userId = ctx.from?.id;
+
+    if (!eventId || !userId) {
+      await ctx.answerCbQuery('Không tìm thấy thông tin sự kiện.');
+      return;
+    }
+
+    try {
+      await this.calendarService.deleteEvent(eventId, userId);
+      await ctx.answerCbQuery('🗑️ Đã xóa sự kiện lịch thành công!');
+      await ctx.editMessageText('❌ *ĐÃ XÓA SỰ KIỆN NÀY KHỎI GOOGLE CALENDAR.*', {
+        parse_mode: 'Markdown',
+      });
+    } catch (err) {
+      const error = err as Error;
+      await ctx.answerCbQuery(`Lỗi: ${error.message}`);
+    }
+  }
+
   // Handle interactive inline button: Done Reminder
   @Action(/^done_reminder:(.+)$/)
   public async onDoneReminderAction(@Ctx() ctx: Context): Promise<void> {
@@ -558,9 +640,28 @@ ${googleStatus}
     this.logger.log(`Received text message from ${userId}: "${text}"`);
 
     const botUsername = ctx.botInfo?.username;
-    const response = await this.uiService.withTyping(ctx, () =>
+    const chatResult = await this.uiService.withTyping(ctx, () =>
       this.geminiService.chat(text, [], userId, botUsername),
     );
-    await this.uiService.sendSafeReply(ctx, response);
+
+    let extraMarkup: ReturnType<typeof Markup.inlineKeyboard> | undefined = undefined;
+
+    if (chatResult.lastTool) {
+      const { name, result } = chatResult.lastTool;
+
+      if (name === 'create_reminder' && result.success && result.reminderId) {
+        extraMarkup = this.uiService.buildReminderConfirmationMarkup(
+          result.reminderId as string,
+          (result.notifyType as 'text' | 'call') || 'text',
+        );
+      } else if (name === 'create_calendar_event' && result.success) {
+        extraMarkup = this.uiService.buildCalendarConfirmationMarkup(
+          result.eventId as string,
+          result.htmlLink as string,
+        );
+      }
+    }
+
+    await this.uiService.sendSafeReply(ctx, chatResult.text, extraMarkup);
   }
 }
