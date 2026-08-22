@@ -1,0 +1,25 @@
+# Compiled output
+/dist
+/node_modules
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment files & Secrets
+.env
+.gcp-saved-tokens.json
+gcp-oauth.keys.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo

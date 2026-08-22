@@ -1,0 +1,58 @@
+{
+  "name": "nestjs-telegram-assistant",
+  "version": "1.0.0",
+  "description": "Personal AI Assistant Telegram Bot with NestJS, Telegraf, Google Gemini, and Google Workspace",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\"",
+    "lint": "eslint \"{src,apps,libs,test,scripts}/**/*.ts\" --fix",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "auth": "tsx scripts/auth.ts",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@nestjs/common": "^10.4.15",
+    "@nestjs/config": "^3.3.0",
+    "@nestjs/core": "^10.4.15",
+    "@nestjs/platform-express": "^10.4.15",
+    "@nestjs/schedule": "^4.1.2",
+    "dotenv": "^16.4.7",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^144.0.0",
+    "nestjs-telegraf": "^2.9.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9",
+    "@nestjs/schematics": "^10.2.3",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.9.6",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}

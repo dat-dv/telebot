@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  telebot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-assistant-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./.gcp-saved-tokens.json:/app/.gcp-saved-tokens.json
+      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json
