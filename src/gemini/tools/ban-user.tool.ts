@@ -64,10 +64,17 @@ export class BanUserTool implements GeminiTool {
       };
     }
 
+    if (targetId === userId) {
+      return {
+        success: false,
+        error: '⚠️ Bạn không thể tự khóa tài khoản của chính mình.',
+      };
+    }
+
     if (this.usersService.isAdmin(targetId)) {
       return {
         success: false,
-        error: '⚠️ Không thể khóa tài khoản của Quản trị viên (Admin).',
+        error: '⚠️ Không thể khóa tài khoản của Quản trị viên (Admin) khác.',
       };
     }
 

@@ -267,6 +267,10 @@ export class UsersService implements OnModuleInit {
   }
 
   public async banUser(userId: number): Promise<boolean> {
+    if (this.isAdmin(userId)) {
+      this.logger.warn(`Attempted to ban admin user ${userId}. Operation aborted.`);
+      return false;
+    }
     const strId = userId.toString();
     const existing = await this.userRepo.findOne({ where: { id: strId } });
     if (existing) {

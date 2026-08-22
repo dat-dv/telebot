@@ -105,35 +105,52 @@ ${googleStatus}
     const isAdmin = userId ? this.usersService.isAdmin(userId) : false;
     const menuKeyboard = this.uiService.getMainMenuKeyboard(isAdmin);
 
-    let helpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ AI CÁ NHÂN*
+    if (isAdmin) {
+      const adminHelpMessage = `👑 *HƯỚNG DẪN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)*
 
-1️⃣ *Quản lý Google Calendar (Lịch hẹn / Họp có giờ cố định)*
-• _"Mai 14h họp kickoff dự án tại phòng họp A"_
+1️⃣ *Quản Lý Lịch Hẹn & Công Việc Cá Nhân:*
+• _"Mai 14h họp kickoff dự án với khách hàng"_
+• _"Thứ 6 tuần này từ 9h đến 11h đi khám sức khỏe"_
+• _"Thêm việc chuẩn bị tài liệu thuyết trình vào to-do list"_
+• Tự động cài 4 mốc chuông popup dồn dập (60p, 30p, 10p, 0p) 🔔
+
+2️⃣ *Đặc Quyền Quản Trị Hệ Thống (Chat Với AI Hoặc Phím Nhanh):*
+• 🎟️ *Tạo Link Mời*: Bấm nút dưới bàn phím hoặc nhắn _"Tạo link mời bạn"_ (link có hạn 24h)
+• 👥 *Xem Danh Sách*: Bấm nút dưới bàn phím hoặc nhắn _"Xem danh sách user"_
+• 🚫 *Khóa Tài Khoản*: Gõ \`/ban <id>\` hoặc nhắn _"Ban user <id>"_ để khóa & xóa sạch Google Token
+
+3️⃣ *Phím Bấm Thao Tác Nhanh (Dưới Bàn Phím):*
+• 📅 Lịch Hôm Nay | 📝 Việc Cần Làm
+• 📊 Xem 7 Ngày Tới | ⚙️ Trạng Thái
+• 👥 Danh Sách User | 🎟️ Tạo Link Mời`;
+
+      await this.uiService.sendSafeReply(ctx, adminHelpMessage, menuKeyboard);
+      return;
+    }
+
+    // Regular Member Help Message
+    const userHelpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ CÁ NHÂN*
+
+1️⃣ *Quản lý Google Calendar (Lịch hẹn / Cuộc họp cố định giờ)*
+• _"Mai 14h họp dự án tại phòng họp A"_
 • _"Thứ 6 tuần này từ 9h đến 11h đi khám sức khỏe"_
 • _"Hôm nay tớ có lịch gì không?"_
 • _"Xóa lịch họp lúc 14h chiều mai"_
-• Tự động cài 4 mốc chuông popup báo dồn dập (60p, 30p, 10p, 0p) 🔔
+• Tự động cài 4 mốc chuông báo dồn dập (60p, 30p, 10p, 0p) 🔔
 
 2️⃣ *Quản lý Google Tasks (To-Do List / Việc cần làm)*
-• _"Thêm việc chuẩn bị tài liệu thuyết trình"_
+• _"Thêm việc chuẩn bị slide báo cáo"_
 • _"Nhắc tớ đi siêu thị mua trứng và sữa trước chủ nhật"_
 • _"Xem danh sách việc cần làm của tớ"_
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
-3️⃣ *Các Phím Chức Năng Nhanh (Dưới Bàn Phím):*
-• 📅 *Lịch Hôm Nay* - Xem toàn bộ lịch trình hôm nay
-• 📝 *Việc Cần Làm* - Xem to-do list & bấm nút tick hoàn thành ngay
-• 📊 *Xem 7 Ngày Tới* - Tổng quan lịch 7 ngày
-• ⚙️ *Trạng Thái* - Kiểm tra kết nối tài khoản`;
+3️⃣ *Phím Bấm Nhanh 1-Chạm (Dưới Bàn Phím):*
+• 📅 *Lịch Hôm Nay* - Tóm tắt toàn bộ lịch trình hôm nay
+• 📝 *Việc Cần Làm* - Mở to-do list & bấm nút tick hoàn thành ngay
+• 📊 *Xem 7 Ngày Tới* - Tổng quan lịch 7 ngày tới
+• ⚙️ *Trạng Thái* - Kiểm tra tình trạng kết nối Google`;
 
-    if (isAdmin) {
-      helpMessage += `\n\n👑 *DÀNH CHO QUẢN TRỊ VIÊN (ADMIN):*
-• 👥 *Danh Sách User* - Xem thành viên đang hoạt động
-• 🎟️ *Tạo Link Mời* - Sinh link mời 24h cho bạn bè (hoặc nhắn _"Tạo link mời"_ cho AI)
-• \`/ban <id>\` - Thu hồi quyền & hủy token của một Telegram ID`;
-    }
-
-    await this.uiService.sendSafeReply(ctx, helpMessage, menuKeyboard);
+    await this.uiService.sendSafeReply(ctx, userHelpMessage, menuKeyboard);
   }
 
   @Command('invite')
@@ -292,8 +309,15 @@ ${googleStatus}
       return;
     }
 
+    if (targetId === userId) {
+      await ctx.reply('⚠️ Bạn không thể tự khóa tài khoản của chính mình.', {
+        parse_mode: 'Markdown',
+      });
+      return;
+    }
+
     if (this.usersService.isAdmin(targetId)) {
-      await ctx.reply('⚠️ Không thể khóa tài khoản Quản trị viên (Admin).', {
+      await ctx.reply('⚠️ Không thể khóa tài khoản của Quản trị viên (Admin) khác.', {
         parse_mode: 'Markdown',
       });
       return;
