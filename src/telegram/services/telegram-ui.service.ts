@@ -25,19 +25,39 @@ export class TelegramUiService {
   }
 
   /**
-   * Persistent Reply Keyboard menu at the bottom of Telegram input screen
+   * Removes any persistent reply keyboard from the user's screen
    */
-  public getMainMenuKeyboard(isAdmin = false) {
-    const buttons: string[][] = [
-      ['📅 Lịch Hôm Nay', '📝 Việc Cần Làm'],
-      ['📊 Xem 7 Ngày Tới', '⚙️ Trạng Thái'],
+  public getRemoveKeyboard() {
+    return Markup.removeKeyboard();
+  }
+
+  /**
+   * Builds clean Inline Keyboard attached directly under start / help messages
+   */
+  public buildMainMenuInlineMarkup(isAdmin = false, isGoogleConnected = false, authUrl = '') {
+    if (!isGoogleConnected && authUrl) {
+      return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
+    }
+
+    const rows = [
+      [
+        Markup.button.callback('📅 Lịch Hôm Nay', 'action:refresh_today'),
+        Markup.button.callback('📝 Việc Cần Làm', 'action:view_tasks'),
+      ],
+      [
+        Markup.button.callback('📊 Xem 7 Ngày Tới', 'action:view_week'),
+        Markup.button.callback('⚙️ Trạng Thái', 'action:refresh_status'),
+      ],
     ];
 
     if (isAdmin) {
-      buttons.push(['👥 Danh Sách User', '🎟️ Tạo Link Mời']);
+      rows.push([
+        Markup.button.callback('👥 Danh Sách User', 'action:refresh_users'),
+        Markup.button.callback('🎟️ Tạo Link Mời', 'action:create_invite'),
+      ]);
     }
 
-    return Markup.keyboard(buttons).resize().persistent();
+    return Markup.inlineKeyboard(rows);
   }
 
   /**

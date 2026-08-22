@@ -1,4 +1,4 @@
-import { Update, Start, Help, Command, On, Hears, Action, Ctx } from 'nestjs-telegraf';
+import { Update, Start, Help, Command, On, Action, Ctx } from 'nestjs-telegraf';
 import { UseGuards, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
 import { AuthGuard } from './guards/auth.guard';
@@ -32,9 +32,15 @@ export class TelegramUpdate {
 
     const fromName = ctx.from?.first_name || 'bạn';
     const isAdmin = this.usersService.isAdmin(userId);
-    const menuKeyboard = this.uiService.getMainMenuKeyboard(isAdmin);
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
+
+    let authUrl = '';
+    try {
+      authUrl = this.googleAuthService.generateAuthUrl(userId);
+    } catch {
+      // ignore
+    }
 
     // Handle deep link invite: /start invite_<code>
     if (text.startsWith('/start invite_')) {
@@ -48,13 +54,6 @@ export class TelegramUpdate {
       if (!consumeResult.success) {
         await ctx.reply(`⚠️ ${consumeResult.message}`, { parse_mode: 'Markdown' });
         return;
-      }
-
-      let authUrl = '';
-      try {
-        authUrl = this.googleAuthService.generateAuthUrl(userId);
-      } catch {
-        // ignore
       }
 
       const activatedMessage = `🎉 *CHÚC MỪNG ${fromName.toUpperCase()} ĐÃ KÍCH HOẠT THÀNH CÔNG!*
@@ -71,12 +70,12 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
         );
         await ctx.reply(
           '💡 *Lưu ý:* Sau khi đăng nhập và bấm **Cho phép** trên trình duyệt, tài khoản của bạn sẽ tự động được kích hoạt ngay lập tức!',
-          { parse_mode: 'Markdown', ...menuKeyboard },
+          { parse_mode: 'Markdown', ...this.uiService.getRemoveKeyboard() },
         );
       } else {
         await ctx.reply(
           activatedMessage + '\n\nGõ lệnh `/login` để nhận đường link kết nối Google nhé!',
-          { parse_mode: 'Markdown', ...menuKeyboard },
+          { parse_mode: 'Markdown', ...this.uiService.getRemoveKeyboard() },
         );
       }
       return;
@@ -86,7 +85,7 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
     const isGoogleConnected = this.googleAuthService.isAuthorized(userId);
     const googleStatus = isGoogleConnected
       ? '✅ *Tài khoản Google*: Đã kết nối'
-      : '⚠️ *Tài khoản Google*: Chưa kết nối (Gõ `/login` để liên kết)';
+      : '⚠️ *Tài khoản Google*: Chưa kết nối (bấm nút bên dưới để liên kết)';
 
     const welcomeMessage = `👋 Xin chào *${fromName}*! Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar*, *Google Tasks* và *Hệ Thống Nhắc Nhở Tự Động*.
 
@@ -98,7 +97,15 @@ ${googleStatus}
 • _"Nhắc anh mua quà sinh nhật cho vợ vào ngày mai"_
 • _"Hôm nay anh có lịch gì không?"_`;
 
-    await this.uiService.sendSafeReply(ctx, welcomeMessage, menuKeyboard);
+    const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
+      isAdmin,
+      isGoogleConnected,
+      authUrl,
+    );
+
+    // Remove bottom keyboard from screen and attach inline buttons
+    await ctx.reply('✨', this.uiService.getRemoveKeyboard());
+    await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
   }
 
   @Help()
@@ -106,36 +113,46 @@ ${googleStatus}
   public async onHelp(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const isAdmin = userId ? this.usersService.isAdmin(userId) : false;
-    const menuKeyboard = this.uiService.getMainMenuKeyboard(isAdmin);
+    const isGoogleConnected = userId ? this.googleAuthService.isAuthorized(userId) : false;
+
+    let authUrl = '';
+    try {
+      if (userId) authUrl = this.googleAuthService.generateAuthUrl(userId);
+    } catch {
+      // ignore
+    }
+
+    const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
+      isAdmin,
+      isGoogleConnected,
+      authUrl,
+    );
 
     if (isAdmin) {
       const adminHelpMessage = `👑 *HƯỚNG DẪN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)*
 
 1️⃣ *Quản Lý Lịch Hẹn, Nhắc Nhở & Công Việc Cá Nhân:*
-• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot tự động bắn tin nhắn nhắc nhở
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot tự động bắn tin nhắn nhắc nhở (hoặc gọi nhá máy)
 • 📅 _"Mai 14h họp kickoff dự án với khách hàng"_ ➔ Lên lịch Calendar + 4 chuông báo
 • 📝 _"Thêm việc chuẩn bị tài liệu thuyết trình"_ ➔ Lưu to-do Tasks
 
-2️⃣ *Đặc Quyền Quản Trị Hệ Thống (Chat Với AI Hoặc Phím Nhanh):*
-• 🎟️ *Tạo Link Mời*: Bấm nút dưới bàn phím hoặc nhắn _"Tạo link mời bạn"_ (link có hạn 24h)
-• 👥 *Xem Danh Sách*: Bấm nút dưới bàn phím hoặc nhắn _"Xem danh sách user"_
+2️⃣ *Đặc Quyền Quản Trị Hệ Thống (Chat Với AI Hoặc Phím Nút):*
+• 🎟️ *Tạo Link Mời*: Bấm nút bên dưới hoặc nhắn _"Tạo link mời bạn"_ (link có hạn 24h)
+• 👥 *Xem Danh Sách*: Bấm nút bên dưới hoặc nhắn _"Xem danh sách user"_
 • 🚫 *Khóa Tài Khoản*: Gõ \`/ban <id>\` hoặc nhắn _"Ban user <id>"_ để khóa & xóa sạch Google Token
 
-3️⃣ *Phím Bấm Thao Tác Nhanh (Dưới Bàn Phím):*
-• 📅 Lịch Hôm Nay | 📝 Việc Cần Làm
-• 📊 Xem 7 Ngày Tới | ⚙️ Trạng Thái
-• 👥 Danh Sách User | 🎟️ Tạo Link Mời`;
+💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi gì chỉ cần nhắn lại cho AI!`;
 
-      await this.uiService.sendSafeReply(ctx, adminHelpMessage, menuKeyboard);
+      await this.uiService.sendSafeReply(ctx, adminHelpMessage, inlineMarkup);
       return;
     }
 
     // Regular Member Help Message
     const userHelpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ CÁ NHÂN*
 
-1️⃣ *Nhắc Nhở Tự Động Telegram (Bot Tự Động Bắn Tin Nhắn Nhắc)*
+1️⃣ *Nhắc Nhở Tự Động Telegram (Bot Tự Động Bắn Tin Nhắn Hoặc Gọi Nhá Máy)*
 • _"15 phút nữa nhắc anh tắt bếp"_
-• _"8h tối nay nhắc anh gọi điện cho mẹ"_
+• _"8h tối nay gọi nhá máy nhắc anh uống thuốc"_
 • _"Nhắc tớ 9h30 sáng mai uống thuốc"_
 
 2️⃣ *Quản lý Google Calendar (Lịch hẹn / Cuộc họp cố định giờ)*
@@ -148,17 +165,12 @@ ${googleStatus}
 • _"Nhắc tớ đi siêu thị mua trứng và sữa trước chủ nhật"_
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
-4️⃣ *Phím Bấm Nhanh 1-Chạm (Dưới Bàn Phím):*
-• 📅 *Lịch Hôm Nay* - Tóm tắt toàn bộ lịch trình hôm nay
-• 📝 *Việc Cần Làm* - Mở to-do list & bấm nút tick hoàn thành ngay
-• 📊 *Xem 7 Ngày Tới* - Tổng quan lịch 7 ngày tới
-• ⚙️ *Trạng Thái* - Kiểm tra tình trạng kết nối Google`;
+💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi chỉ cần nhắn lại cho bot!`;
 
-    await this.uiService.sendSafeReply(ctx, userHelpMessage, menuKeyboard);
+    await this.uiService.sendSafeReply(ctx, userHelpMessage, inlineMarkup);
   }
 
   @Command('invite')
-  @Hears('🎟️ Tạo Link Mời')
   public async onInvite(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId || !this.usersService.isAdmin(userId)) {
@@ -218,9 +230,11 @@ ${googleStatus}
       });
 
       const isAdmin = this.usersService.isAdmin(userId);
+      const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(isAdmin, true);
+
       await ctx.reply(
-        '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể sử dụng các nút bấm bên dưới hoặc nhắn tin tự nhiên cho bot nhé!',
-        { parse_mode: 'Markdown', ...this.uiService.getMainMenuKeyboard(isAdmin) },
+        '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bạn có thể sử dụng các nút bấm bên dưới hoặc nhắn tin tự nhiên cho bot nhé!',
+        { parse_mode: 'Markdown', ...inlineMarkup },
       );
     } catch (err) {
       const error = err as Error;
@@ -232,7 +246,6 @@ ${googleStatus}
   }
 
   @Command('status')
-  @Hears('⚙️ Trạng Thái')
   public async onStatus(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
@@ -245,9 +258,9 @@ ${googleStatus}
 
 👤 *Người dùng*: *${fromName}* (\`${userId}\`)
 👑 *Vai trò*: ${isAdmin ? '👑 Quản trị viên (Admin)' : '👤 Người dùng (Member)'}
-🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối (Calendar & Tasks sẵn sàng)' : '❌ Chưa kết nối (gõ `/login` để liên kết)'}
+🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối (Calendar & Tasks sẵn sàng)' : '❌ Chưa kết nối (bấm nút bên dưới để liên kết)'}
 
-💡 *Mẹo:* Bạn có thể chạm vào các nút ở bàn phím bên dưới để xem nhanh lịch trình hoặc việc cần làm.`;
+💡 *Mẹo:* Bạn có thể chạm vào các nút bên dưới để xem nhanh lịch trình hoặc việc cần làm.`;
 
     const inlineButtons = isGoogleConnected
       ? [[Markup.button.callback('🔄 Kiểm tra lại', 'action:refresh_status')]]
@@ -267,7 +280,6 @@ ${googleStatus}
   }
 
   @Command('users')
-  @Hears('👥 Danh Sách User')
   public async onListUsers(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId || !this.usersService.isAdmin(userId)) {
@@ -345,7 +357,6 @@ ${googleStatus}
   }
 
   @Command('today')
-  @Hears('📅 Lịch Hôm Nay')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const botUsername = ctx.botInfo?.username;
@@ -356,17 +367,16 @@ ${googleStatus}
   }
 
   @Command('week')
-  @Hears('📊 Xem 7 Ngày Tới')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
       this.geminiService.getWeekSummary(userId, botUsername),
     );
-    await this.uiService.sendSafeReply(ctx, summary);
+    await this.uiService.sendSafeReply(ctx, summary, this.uiService.buildTodayActionsMarkup());
   }
 
-  @Hears('📝 Việc Cần Làm')
+  @Command('tasks')
   public async onTasksChecklist(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
@@ -495,6 +505,12 @@ ${googleStatus}
   public async onRefreshTodayAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('🔄 Đang cập nhật lịch trình...');
     await this.onToday(ctx);
+  }
+
+  @Action('action:view_week')
+  public async onViewWeekAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('📊 Đang tải lịch 7 ngày tới...');
+    await this.onWeek(ctx);
   }
 
   @Action('action:view_tasks')
