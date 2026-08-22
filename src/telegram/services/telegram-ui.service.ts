@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 
 @Injectable()
 export class TelegramUiService {
@@ -25,10 +25,73 @@ export class TelegramUiService {
   }
 
   /**
-   * Safely sends replies with automatic chunking for long messages (>4000 chars)
-   * and fallback to plain text if Telegram Markdown parsing fails.
+   * Persistent Reply Keyboard menu at the bottom of Telegram input screen
    */
-  public async sendSafeReply(ctx: Context, text: string): Promise<void> {
+  public getMainMenuKeyboard(isAdmin = false) {
+    const buttons: string[][] = [
+      ['📅 Lịch Hôm Nay', '📝 Việc Cần Làm'],
+      ['📊 Xem 7 Ngày Tới', '⚙️ Trạng Thái'],
+    ];
+
+    if (isAdmin) {
+      buttons.push(['👥 Danh Sách User', '🎟️ Tạo Link Mời']);
+    }
+
+    return Markup.keyboard(buttons).resize().persistent();
+  }
+
+  /**
+   * Builds interactive Inline Keyboards for to-do list tasks
+   * allowing users to click a single button to complete each task!
+   */
+  public buildTaskChecklistMarkup(tasks: Array<{ id?: string | null; title?: string | null }>) {
+    const validTasks = tasks.filter((t) => t.id && t.title);
+    if (validTasks.length === 0) return undefined;
+
+    const inlineButtons = validTasks.slice(0, 8).map((t, idx) => {
+      const cleanTitle = (t.title || 'Task').trim();
+      const shortTitle = cleanTitle.length > 22 ? `${cleanTitle.slice(0, 20)}...` : cleanTitle;
+      return [
+        Markup.button.callback(`✅ Xong #${idx + 1}: ${shortTitle}`, `complete_task:${t.id}`),
+      ];
+    });
+
+    return Markup.inlineKeyboard(inlineButtons);
+  }
+
+  /**
+   * Builds interactive buttons for today summary
+   */
+  public buildTodayActionsMarkup() {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('🔄 Cập nhật lại', 'action:refresh_today'),
+        Markup.button.callback('📝 Xem việc cần làm', 'action:view_tasks'),
+      ],
+    ]);
+  }
+
+  /**
+   * Builds interactive action buttons for Admin user list
+   */
+  public buildAdminUsersMarkup() {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('🎟️ Tạo Link Mời Mới', 'action:create_invite'),
+        Markup.button.callback('🔄 Làm mới danh sách', 'action:refresh_users'),
+      ],
+    ]);
+  }
+
+  /**
+   * Safely sends replies with automatic chunking for long messages (>4000 chars),
+   * fallback to plain text if Telegram Markdown parsing fails, and optional markup.
+   */
+  public async sendSafeReply(
+    ctx: Context,
+    text: string,
+    extraMarkup?: ReturnType<typeof Markup.inlineKeyboard> | ReturnType<typeof Markup.keyboard>,
+  ): Promise<void> {
     const MAX_LENGTH = 4000;
     const chunks: string[] = [];
 
@@ -49,13 +112,25 @@ export class TelegramUiService {
       chunks.push(chunk);
     }
 
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const isLastChunk = i === chunks.length - 1;
+      const chunk = chunks[i];
+      const markupToSend = isLastChunk ? extraMarkup : undefined;
+
       try {
-        await ctx.reply(chunk, { parse_mode: 'Markdown' });
+        if (markupToSend) {
+          await ctx.reply(chunk, { parse_mode: 'Markdown', ...markupToSend });
+        } else {
+          await ctx.reply(chunk, { parse_mode: 'Markdown' });
+        }
       } catch (markdownError) {
         const err = markdownError as Error;
         this.logger.warn(`Markdown reply failed, falling back to plain text: ${err.message}`);
-        await ctx.reply(chunk);
+        if (markupToSend) {
+          await ctx.reply(chunk, markupToSend);
+        } else {
+          await ctx.reply(chunk);
+        }
       }
     }
   }

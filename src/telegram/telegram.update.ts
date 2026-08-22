@@ -1,4 +1,4 @@
-import { Update, Start, Help, Command, On, Ctx } from 'nestjs-telegraf';
+import { Update, Start, Help, Command, On, Hears, Action, Ctx } from 'nestjs-telegraf';
 import { UseGuards, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
 import { AuthGuard } from './guards/auth.guard';
@@ -6,6 +6,8 @@ import { TelegramUiService } from './services/telegram-ui.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from '../google/google-auth.service';
+import { GoogleTasksService } from '../google/google-tasks.service';
+import { GoogleCalendarService } from '../google/google-calendar.service';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -16,6 +18,8 @@ export class TelegramUpdate {
     private readonly geminiService: GeminiService,
     private readonly usersService: UsersService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly tasksService: GoogleTasksService,
+    private readonly calendarService: GoogleCalendarService,
     private readonly uiService: TelegramUiService,
   ) {}
 
@@ -25,6 +29,8 @@ export class TelegramUpdate {
     if (!userId) return;
 
     const fromName = ctx.from?.first_name || 'bạn';
+    const isAdmin = this.usersService.isAdmin(userId);
+    const menuKeyboard = this.uiService.getMainMenuKeyboard(isAdmin);
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
 
@@ -63,12 +69,12 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
         );
         await ctx.reply(
           '💡 *Lưu ý:* Sau khi đăng nhập và bấm **Cho phép** trên trình duyệt, tài khoản của bạn sẽ tự động được kích hoạt ngay lập tức!',
-          { parse_mode: 'Markdown' },
+          { parse_mode: 'Markdown', ...menuKeyboard },
         );
       } else {
         await ctx.reply(
           activatedMessage + '\n\nGõ lệnh `/login` để nhận đường link kết nối Google nhé!',
-          { parse_mode: 'Markdown' },
+          { parse_mode: 'Markdown', ...menuKeyboard },
         );
       }
       return;
@@ -84,18 +90,12 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
 
 ${googleStatus}
 
-🚀 *Các lệnh nhanh hỗ trợ:*
-• \`/today\` - Tóm tắt toàn bộ lịch hẹn & to-do list hôm nay
-• \`/week\` - Tổng quan lịch trình & việc cần làm 7 ngày tới
-• \`/calendar <nội dung>\` - Lên lịch hẹn mới nhanh chóng
-• \`/task <nội dung>\` - Thêm công việc to-do mới
-• \`/status\` - Kiểm tra trạng thái tài khoản
-• \`/help\` - Xem hướng dẫn chi tiết
-• \`/login\` - Đổi tài khoản Google khác (nếu cần)
+📱 *Bạn có thể bấm các nút bên dưới hoặc nhắn tin tự nhiên:*
+• _"Chiều mai 14h họp dự án với sếp"_
+• _"Nhắc anh mua quà sinh nhật cho vợ vào ngày mai"_
+• _"Hôm nay anh có lịch gì không?"_`;
 
-💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_). AI sẽ tự động phân tích và phục vụ riêng cho bạn!`;
-
-    await this.uiService.sendSafeReply(ctx, welcomeMessage);
+    await this.uiService.sendSafeReply(ctx, welcomeMessage, menuKeyboard);
   }
 
   @Help()
@@ -103,6 +103,7 @@ ${googleStatus}
   public async onHelp(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const isAdmin = userId ? this.usersService.isAdmin(userId) : false;
+    const menuKeyboard = this.uiService.getMainMenuKeyboard(isAdmin);
 
     let helpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ AI CÁ NHÂN*
 
@@ -119,25 +120,24 @@ ${googleStatus}
 • _"Xem danh sách việc cần làm của tớ"_
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
-3️⃣ *Các Lệnh Tiện Ích:*
-• \`/today\` - Xem tất cả lịch và task hôm nay
-• \`/week\` - Xem tổng thể 7 ngày sắp tới
-• \`/status\` - Kiểm tra trạng thái tài khoản & Google
-• \`/calendar <lời nhắc>\` - Tạo lịch hẹn nhanh
-• \`/task <công việc>\` - Thêm to-do nhanh
-• \`/login\` - Đổi hoặc kết nối lại tài khoản Google khác`;
+3️⃣ *Các Phím Chức Năng Nhanh (Dưới Bàn Phím):*
+• 📅 *Lịch Hôm Nay* - Xem toàn bộ lịch trình hôm nay
+• 📝 *Việc Cần Làm* - Xem to-do list & bấm nút tick hoàn thành ngay
+• 📊 *Xem 7 Ngày Tới* - Tổng quan lịch 7 ngày
+• ⚙️ *Trạng Thái* - Kiểm tra kết nối tài khoản`;
 
     if (isAdmin) {
-      helpMessage += `\n\n👑 *LỆNH DÀNH CHO QUẢN TRỊ VIÊN (ADMIN):*
-• \`/invite\` - Tạo link mời người dùng mới (hoặc nhắn _"Tạo link mời bạn"_ cho AI)
-• \`/users\` - Xem danh sách người dùng đang hoạt động
+      helpMessage += `\n\n👑 *DÀNH CHO QUẢN TRỊ VIÊN (ADMIN):*
+• 👥 *Danh Sách User* - Xem thành viên đang hoạt động
+• 🎟️ *Tạo Link Mời* - Sinh link mời 24h cho bạn bè (hoặc nhắn _"Tạo link mời"_ cho AI)
 • \`/ban <id>\` - Thu hồi quyền & hủy token của một Telegram ID`;
     }
 
-    await this.uiService.sendSafeReply(ctx, helpMessage);
+    await this.uiService.sendSafeReply(ctx, helpMessage, menuKeyboard);
   }
 
   @Command('invite')
+  @Hears('🎟️ Tạo Link Mời')
   public async onInvite(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId || !this.usersService.isAdmin(userId)) {
@@ -149,9 +149,12 @@ ${googleStatus}
     const botUsername = ctx.botInfo.username;
     const inviteLink = `https://t.me/${botUsername}?start=${invite.code}`;
 
-    const msg = `🎟️ *TẠO LINK MỜI THÀNH CÔNG!*\n\nBạn có thể gửi đường link này cho bạn bè/đồng nghiệp:\n👉 \`${inviteLink}\`\n\n⏳ *Lưu ý:* Link có hiệu lực trong **24 giờ** và **chỉ dùng được 1 lần**. Khi bạn của bạn nhấn link, họ sẽ tự động được mở khóa và có trợ lý riêng!`;
+    const msg = `🎟️ *TẠO LINK MỜI THÀNH CÔNG!*\n\nBạn có thể gửi đường link này cho bạn bè/đồng nghiệp:\n👉 \`${inviteLink}\`\n\n⏳ *Lưu ý:* Link có hiệu lực trong **24 giờ** và **chỉ dùng được 1 lần**. Khi bạn bè nhấn link, họ sẽ được kích hoạt trợ lý riêng tự động!`;
 
-    await ctx.reply(msg, { parse_mode: 'Markdown' });
+    await ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([[Markup.button.url('👉 Thử Mở Link Mời', inviteLink)]]),
+    });
   }
 
   @Command('login')
@@ -164,10 +167,10 @@ ${googleStatus}
       const authUrl = this.googleAuthService.generateAuthUrl(userId);
       const isConnected = this.googleAuthService.isAuthorized(userId);
       const statusText = isConnected
-        ? '*(Hiện tại bạn ĐÃ kết nối Google, bấm nút bên dưới nếu muốn đăng nhập lại tài khoản khác)*'
+        ? '*(Hiện tại bạn ĐÃ kết nối Google, bấm nút bên dưới nếu muốn đổi sang tài khoản khác)*'
         : '*(Hiện tại bạn CHƯA kết nối tài khoản Google)*';
 
-      const msg = `🔐 *KẾT NỐI GOOGLE CALENDAR & TASKS*\n\n${statusText}\n\n1️⃣ Nhấn vào nút bên dưới để mở trang đăng nhập Google.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (hoặc dán thẳng đường link sau khi đăng nhập) gửi lại cho bot nhé!`;
+      const msg = `🔐 *KẾT NỐI GOOGLE CALENDAR & TASKS*\n\n${statusText}\n\n1️⃣ Nhấn vào nút bên dưới để mở trang đăng nhập Google.\n2️⃣ Chọn tài khoản Gmail và bấm **Cho phép (Allow)**.\n3️⃣ Hệ thống sẽ tự động kết nối trong 1 giây!`;
 
       await ctx.reply(
         msg,
@@ -182,10 +185,9 @@ ${googleStatus}
   private async handleCodeExchange(ctx: Context, userId: number, rawInput: string): Promise<void> {
     const code = this.uiService.extractAuthCode(rawInput);
     if (!code) {
-      await ctx.reply(
-        'ℹ️ Vui lòng nhập mã xác thực hoặc dán đường link. Ví dụ:\n`/code 4/0AQ...`',
-        { parse_mode: 'Markdown' },
-      );
+      await ctx.reply('ℹ️ Vui lòng bấm vào nút đăng nhập Google để cấp quyền.', {
+        parse_mode: 'Markdown',
+      });
       return;
     }
 
@@ -194,9 +196,10 @@ ${googleStatus}
         await this.googleAuthService.exchangeCodeForTokens(userId, code);
       });
 
+      const isAdmin = this.usersService.isAdmin(userId);
       await ctx.reply(
-        '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể nhắn tin cho bot để quản lý lịch trình và việc cần làm rồi nhé!',
-        { parse_mode: 'Markdown' },
+        '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bây giờ bạn có thể sử dụng các nút bấm bên dưới hoặc nhắn tin tự nhiên cho bot nhé!',
+        { parse_mode: 'Markdown', ...this.uiService.getMainMenuKeyboard(isAdmin) },
       );
     } catch (err) {
       const error = err as Error;
@@ -208,6 +211,7 @@ ${googleStatus}
   }
 
   @Command('status')
+  @Hears('⚙️ Trạng Thái')
   public async onStatus(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
@@ -222,12 +226,27 @@ ${googleStatus}
 👑 *Vai trò*: ${isAdmin ? '👑 Quản trị viên (Admin)' : '👤 Người dùng (Member)'}
 🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối (Calendar & Tasks sẵn sàng)' : '❌ Chưa kết nối (gõ `/login` để liên kết)'}
 
-💡 Gõ \`/help\` để xem danh sách các câu lệnh và hướng dẫn sử dụng.`;
+💡 *Mẹo:* Bạn có thể chạm vào các nút ở bàn phím bên dưới để xem nhanh lịch trình hoặc việc cần làm.`;
 
-    await ctx.reply(msg, { parse_mode: 'Markdown' });
+    const inlineButtons = isGoogleConnected
+      ? [[Markup.button.callback('🔄 Kiểm tra lại', 'action:refresh_status')]]
+      : [
+          [
+            Markup.button.url(
+              '🔗 Đăng nhập Google ngay',
+              this.googleAuthService.generateAuthUrl(userId),
+            ),
+          ],
+        ];
+
+    await ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(inlineButtons),
+    });
   }
 
   @Command('users')
+  @Hears('👥 Danh Sách User')
   public async onListUsers(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId || !this.usersService.isAdmin(userId)) {
@@ -249,7 +268,10 @@ ${googleStatus}
       listText += `• *${name}* (\`${u.id}\`) - ${u.role === 'admin' ? '👑 Admin' : '👤 Member'} | Google: ${isAuth ? '✅' : '❌'}\n`;
     }
 
-    await ctx.reply(listText, { parse_mode: 'Markdown' });
+    await ctx.reply(listText, {
+      parse_mode: 'Markdown',
+      ...this.uiService.buildAdminUsersMarkup(),
+    });
   }
 
   @Command('ban')
@@ -295,16 +317,18 @@ ${googleStatus}
   }
 
   @Command('today')
+  @Hears('📅 Lịch Hôm Nay')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
       this.geminiService.getTodaySummary(userId, botUsername),
     );
-    await this.uiService.sendSafeReply(ctx, summary);
+    await this.uiService.sendSafeReply(ctx, summary, this.uiService.buildTodayActionsMarkup());
   }
 
   @Command('week')
+  @Hears('📊 Xem 7 Ngày Tới')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const botUsername = ctx.botInfo?.username;
@@ -314,50 +338,117 @@ ${googleStatus}
     await this.uiService.sendSafeReply(ctx, summary);
   }
 
-  @Command('calendar')
-  public async onCalendar(@Ctx() ctx: Context): Promise<void> {
+  @Hears('📝 Việc Cần Làm')
+  public async onTasksChecklist(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
-    const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
-    const query = text.replace(/^\/calendar(@\w+)?\s*/i, '').trim();
+    if (!userId) return;
 
-    if (!query) {
-      await ctx.reply(
-        'ℹ️ Vui lòng nhập nội dung lịch hẹn sau lệnh. Ví dụ:\n`/calendar Họp khách hàng lúc 15h chiều mai tại Quận 1`',
-        { parse_mode: 'Markdown' },
+    try {
+      const tasks = await this.uiService.withTyping(ctx, () =>
+        this.tasksService.listTasks({ showCompleted: false, maxResults: 15 }, userId),
       );
-      return;
-    }
 
-    const botUsername = ctx.botInfo?.username;
-    const prompt = `Hãy tạo một sự kiện trên Google Calendar dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(prompt, [], userId, botUsername),
-    );
-    await this.uiService.sendSafeReply(ctx, response);
+      if (tasks.length === 0) {
+        await ctx.reply(
+          '🎉 *Tuyệt vời!* Bạn hiện không có công việc to-do nào chưa hoàn thành.\n\nNhắn cho tôi: _"Nhắc anh chuẩn bị báo cáo ngày mai"_ để thêm việc mới nhé!',
+          { parse_mode: 'Markdown' },
+        );
+        return;
+      }
+
+      let taskListText = `📝 *DANH SÁCH VIỆC CẦN LÀM (${tasks.length}):*\n\n`;
+      tasks.slice(0, 10).forEach((t, index) => {
+        const dueText = t.due ? ` _(Hạn: ${t.due.slice(0, 10)})_` : '';
+        taskListText += `▫️ *#${index + 1}*: ${t.title}${dueText}\n`;
+      });
+      taskListText += `\n👉 *Bấm vào các nút bên dưới để đánh dấu đã làm xong:*`;
+
+      const checklistMarkup = this.uiService.buildTaskChecklistMarkup(tasks);
+      await ctx.reply(taskListText, {
+        parse_mode: 'Markdown',
+        ...checklistMarkup,
+      });
+    } catch (err) {
+      const error = err as Error;
+      await ctx.reply(`⚠️ Không thể lấy danh sách công việc: ${error.message}`);
+    }
   }
 
-  @Command('task')
-  public async onTask(@Ctx() ctx: Context): Promise<void> {
+  // Handle interactive inline button: complete task
+  @Action(/^complete_task:(.+)$/)
+  public async onCompleteTaskAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const taskId = match ? match[1] : undefined;
     const userId = ctx.from?.id;
-    const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
-    const query = text.replace(/^\/task(@\w+)?\s*/i, '').trim();
 
-    if (!query) {
-      await ctx.reply(
-        'ℹ️ Vui lòng nhập nội dung công việc sau lệnh. Ví dụ:\n`/task Mua tài liệu ôn thi cuối kỳ`',
-        { parse_mode: 'Markdown' },
-      );
+    if (!taskId || !userId) {
+      await ctx.answerCbQuery('Không tìm thấy ID công việc.');
       return;
     }
 
-    const botUsername = ctx.botInfo?.username;
-    const prompt = `Hãy thêm một công việc mới vào Google Tasks dựa trên yêu cầu sau: "${query}"`;
-    const response = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(prompt, [], userId, botUsername),
-    );
-    await this.uiService.sendSafeReply(ctx, response);
+    try {
+      await this.tasksService.completeTask(taskId, '@default', userId);
+      await ctx.answerCbQuery('✅ Đã đánh dấu hoàn thành công việc!');
+
+      // Fetch remaining tasks and update message
+      const remainingTasks = await this.tasksService.listTasks(
+        { showCompleted: false, maxResults: 15 },
+        userId,
+      );
+
+      if (remainingTasks.length === 0) {
+        await ctx.editMessageText(
+          '🎉 *Chúc mừng bạn đã hoàn thành tất cả công việc to-do!*\n\nNhắn tin bất kỳ lúc nào để thêm việc mới nhé.',
+          { parse_mode: 'Markdown' },
+        );
+      } else {
+        let taskListText = `📝 *DANH SÁCH VIỆC CẦN LÀM (${remainingTasks.length}):*\n\n`;
+        remainingTasks.slice(0, 10).forEach((t, index) => {
+          const dueText = t.due ? ` _(Hạn: ${t.due.slice(0, 10)})_` : '';
+          taskListText += `▫️ *#${index + 1}*: ${t.title}${dueText}\n`;
+        });
+        taskListText += `\n👉 *Bấm vào các nút bên dưới để đánh dấu đã làm xong:*`;
+
+        const checklistMarkup = this.uiService.buildTaskChecklistMarkup(remainingTasks);
+        await ctx.editMessageText(taskListText, {
+          parse_mode: 'Markdown',
+          ...checklistMarkup,
+        });
+      }
+    } catch (err) {
+      const error = err as Error;
+      await ctx.answerCbQuery(`Lỗi: ${error.message}`);
+    }
+  }
+
+  @Action('action:refresh_today')
+  public async onRefreshTodayAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🔄 Đang cập nhật lịch trình...');
+    await this.onToday(ctx);
+  }
+
+  @Action('action:view_tasks')
+  public async onViewTasksAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('📝 Đang tải danh sách công việc...');
+    await this.onTasksChecklist(ctx);
+  }
+
+  @Action('action:create_invite')
+  public async onCreateInviteAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🎟️ Đang tạo link mời...');
+    await this.onInvite(ctx);
+  }
+
+  @Action('action:refresh_users')
+  public async onRefreshUsersAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🔄 Đang làm mới danh sách user...');
+    await this.onListUsers(ctx);
+  }
+
+  @Action('action:refresh_status')
+  public async onRefreshStatusAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🔄 Đang làm mới trạng thái...');
+    await this.onStatus(ctx);
   }
 
   @On('text')
