@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  GoogleGenerativeAI,
-  GenerativeModel,
-  ChatSession,
-  Part,
-  Content,
-} from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel, ChatSession, Content } from '@google/generative-ai';
 import { GeminiTool } from './tools/tool.interface';
 import { CreateCalendarTool } from './tools/create-calendar.tool';
 import { ListCalendarTool } from './tools/list-calendar.tool';
@@ -103,8 +97,8 @@ export class GeminiService {
     const candidateModels = [
       this.primaryModelName,
       'gemini-3.5-flash-lite',
-      'gemini-3.5-flash',
       'gemini-3.6-flash',
+      'gemini-flash-lite-latest',
     ];
 
     // Remove duplicates while keeping order
@@ -149,17 +143,24 @@ export class GeminiService {
             }
           }
 
-          const functionResponseParts: Part[] = [
-            {
-              functionResponse: {
-                name: call.name,
-                response: functionResponse,
-              },
-            },
-          ];
-
-          response = await chatSession.sendMessage(functionResponseParts);
-          functionCalls = response.response.functionCalls();
+          // Send tool execution continuation to model
+          try {
+            response = await chatSession.sendMessage(
+              `[Kết quả thực thi công cụ ${call.name}]: ${JSON.stringify(functionResponse)}. Hãy gửi phản hồi tự nhiên, đầy đủ cho người dùng theo đúng thẻ xác nhận.`,
+            );
+            functionCalls = response.response.functionCalls();
+          } catch (contErr) {
+            const err = contErr as Error;
+            this.logger.warn(
+              `Tool continuation chat message failed: ${err.message}. Using direct tool message.`,
+            );
+            // Fallback directly to tool message or formatted error
+            const directMsg =
+              (functionResponse.message as string) ||
+              (functionResponse.error as string) ||
+              JSON.stringify(functionResponse);
+            return directMsg;
+          }
         }
 
         const replyText = response.response.text();
