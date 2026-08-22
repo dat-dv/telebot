@@ -2,6 +2,7 @@ import { FunctionDeclaration } from '@google/generative-ai';
 
 export interface ToolExecutionContext {
   userId?: number;
+  botUsername?: string;
 }
 
 export interface GeminiTool {

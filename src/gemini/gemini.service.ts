@@ -16,6 +16,8 @@ import { ListTasksTool } from './tools/list-tasks.tool';
 import { CompleteTaskTool } from './tools/complete-task.tool';
 import { LoginGoogleTool } from './tools/login-google.tool';
 import { InviteUserTool } from './tools/invite-user.tool';
+import { ListUsersTool } from './tools/list-users.tool';
+import { BanUserTool } from './tools/ban-user.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 
 @Injectable()
@@ -36,6 +38,8 @@ export class GeminiService {
     private readonly completeTaskTool: CompleteTaskTool,
     private readonly loginGoogleTool: LoginGoogleTool,
     private readonly inviteUserTool: InviteUserTool,
+    private readonly listUsersTool: ListUsersTool,
+    private readonly banUserTool: BanUserTool,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
     const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
@@ -47,7 +51,7 @@ export class GeminiService {
 
     this.genAI = new GoogleGenerativeAI(apiKey);
 
-    // Register all tools
+    // Register all tools (10 Tools)
     const tools: GeminiTool[] = [
       this.createCalendarTool,
       this.listCalendarTool,
@@ -57,6 +61,8 @@ export class GeminiService {
       this.completeTaskTool,
       this.loginGoogleTool,
       this.inviteUserTool,
+      this.listUsersTool,
+      this.banUserTool,
     ];
 
     for (const tool of tools) {
@@ -83,6 +89,7 @@ export class GeminiService {
     userMessage: string,
     chatHistory: Content[] = [],
     userId?: number,
+    botUsername?: string,
   ): Promise<string> {
     const candidateModels = [
       this.primaryModelName,
@@ -122,6 +129,7 @@ export class GeminiService {
             try {
               functionResponse = await tool.execute(call.args as Record<string, unknown>, {
                 userId,
+                botUsername,
               });
             } catch (toolExecError) {
               const err = toolExecError as Error;
@@ -159,15 +167,15 @@ export class GeminiService {
     return 'Xin lỗi, hệ thống AI hiện đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau vài giây.';
   }
 
-  public async getTodaySummary(userId?: number): Promise<string> {
+  public async getTodaySummary(userId?: number, botUsername?: string): Promise<string> {
     const prompt =
       'Hãy tổng hợp toàn bộ các sự kiện trên Google Calendar và các công việc trên Google Tasks cần làm trong ngày HÔM NAY. Trình bày ngắn gọn, đẹp mắt, chia rõ ràng 2 phần: 📅 Lịch Hẹn & 📝 Việc Cần Làm.';
-    return this.chat(prompt, [], userId);
+    return this.chat(prompt, [], userId, botUsername);
   }
 
-  public async getWeekSummary(userId?: number): Promise<string> {
+  public async getWeekSummary(userId?: number, botUsername?: string): Promise<string> {
     const prompt =
       'Hãy tổng hợp toàn bộ các sự kiện trên Google Calendar và các công việc trên Google Tasks trong 7 ngày tới (kể từ hôm nay). Trình bày theo từng ngày rõ ràng, chuyên nghiệp.';
-    return this.chat(prompt, [], userId);
+    return this.chat(prompt, [], userId, botUsername);
   }
 }

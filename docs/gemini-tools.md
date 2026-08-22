@@ -16,7 +16,7 @@ Trái tim của trợ lý AI nằm tại [`src/gemini/gemini.service.ts`](file:/
 
 ---
 
-## 2. Danh Sách 8 Công Cụ AI Đang Hoạt Động
+## 2. Danh Sách 10 Công Cụ AI Đang Hoạt Động
 
 | STT | Tên Tool (Function Name) | Class Triển Khai | Chức Năng & Quyền Hạn |
 | :--- | :--- | :--- | :--- |
@@ -26,8 +26,10 @@ Trái tim của trợ lý AI nằm tại [`src/gemini/gemini.service.ts`](file:/
 | 4 | `create_task` | `CreateTaskTool` | Tạo công việc To-Do mới trên Google Tasks có deadline. |
 | 5 | `list_tasks` | `ListTasksTool` | Tra cứu danh sách việc cần làm (chưa hoàn thành / tất cả). |
 | 6 | `complete_task` | `CompleteTaskTool` | Đánh dấu hoàn thành việc cần làm trên Google Tasks. |
-| 7 | `login_google` | `LoginGoogleTool` | **(MỚI)** Tạo link xác thực Google OAuth cá nhân hóa cho người dùng khi họ hỏi cách đăng nhập. |
-| 8 | `create_invite_link` | `InviteUserTool` | **(MỚI - Admin Only)** Cho phép Admin ra lệnh bằng giọng nói/văn bản để AI tạo link mời bạn bè (`t.me/bot?start=invite_...`). |
+| 7 | `login_google` | `LoginGoogleTool` | Tạo link xác thực Google OAuth cá nhân hóa cho người dùng khi họ hỏi cách đăng nhập. |
+| 8 | `create_invite_link` | `InviteUserTool` | **(Admin Only)** Cho phép Admin ra lệnh bằng văn bản để AI tạo link mời bạn bè (`t.me/bot?start=invite_...`). |
+| 9 | `list_users` | `ListUsersTool` | **(Admin Only)** Cho phép Admin hỏi AI danh sách thành viên/người dùng và trạng thái kết nối Google. |
+| 10 | `ban_user` | `BanUserTool` | **(Admin Only)** Cho phép Admin ra lệnh cho AI khóa tài khoản và xóa token Google của một Telegram ID. |
 
 ---
 

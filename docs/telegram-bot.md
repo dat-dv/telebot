@@ -46,9 +46,8 @@ sequenceDiagram
 ### 👥 Dành Cho Mọi Người Dùng:
 | Lệnh | Handler | Chức Năng |
 | :--- | :--- | :--- |
-| `/start` | `@Start()` | Khởi động bot, xử lý link kích hoạt mời (`/start invite_...`) hoặc hướng dẫn kết nối Google. |
-| `/login`, `/auth` | `@Command('login')` | Gửi link OAuth cá nhân kèm nút bấm Inline để đăng nhập tài khoản Google. |
-| `/code <mã>` | `@Command('code')` | Nhập mã xác thực Google trả về từ trình duyệt để kích hoạt Calendar & Tasks. |
+| `/start` | `@Start()` | Khởi động bot, xử lý link kích hoạt mời (`/start invite_...`) hoặc kết nối Google tự động 1-click. |
+| `/login`, `/auth` | `@Command('login')` | Gửi link OAuth cá nhân kèm nút bấm Inline để đổi hoặc kết nối lại tài khoản Google. |
 | `/status` | `@Command('status')` | Kiểm tra thông tin tài khoản, vai trò và tình trạng kết nối Google Workspace. |
 | `/today` | `@Command('today')` | Kích hoạt AI tổng hợp toàn bộ lịch hẹn & to-do trong ngày hôm nay của người gửi. |
 | `/week` | `@Command('week')` | Kích hoạt AI tổng hợp lịch trình và việc cần làm 7 ngày tới của người gửi. |
@@ -59,10 +58,9 @@ sequenceDiagram
 ### 👑 Dành Riêng Cho Quản Trị Viên (Admin):
 | Lệnh | Handler | Chức Năng |
 | :--- | :--- | :--- |
-| `/invite` | `@Command('invite')` | Sinh link mời 1 lần (dùng trong 24h) để gửi cho bạn bè/đồng nghiệp. |
+| `/invite` | `@Command('invite')` | Sinh link mời 1 lần (dùng trong 24h) để gửi cho bạn bè/đồng nghiệp (hoặc nhắn cho AI). |
 | `/users` | `@Command('users')` | Xem danh sách toàn bộ người dùng trong hệ thống và trạng thái kết nối Google. |
-| `/allow <telegram_id>` | `@Command('allow')` | Mở khóa trực tiếp cho một Telegram ID mà không cần link mời. |
-| `/ban <telegram_id>` | `@Command('ban')` | Thu hồi quyền sử dụng ngay lập tức của một Telegram ID. |
+| `/ban <telegram_id>` | `@Command('ban')` | Thu hồi quyền sử dụng ngay lập tức và hủy toàn bộ Token Google của một Telegram ID. |
 
 ---
 

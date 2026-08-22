@@ -10,6 +10,8 @@ import { ListTasksTool } from './tools/list-tasks.tool';
 import { CompleteTaskTool } from './tools/complete-task.tool';
 import { LoginGoogleTool } from './tools/login-google.tool';
 import { InviteUserTool } from './tools/invite-user.tool';
+import { ListUsersTool } from './tools/list-users.tool';
+import { BanUserTool } from './tools/ban-user.tool';
 
 @Module({
   imports: [GoogleModule, UsersModule],
@@ -23,6 +25,8 @@ import { InviteUserTool } from './tools/invite-user.tool';
     CompleteTaskTool,
     LoginGoogleTool,
     InviteUserTool,
+    ListUsersTool,
+    BanUserTool,
   ],
   exports: [GeminiService],
 })

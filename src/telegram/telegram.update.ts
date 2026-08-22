@@ -62,7 +62,7 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
           Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng nhập Google', authUrl)]]),
         );
         await ctx.reply(
-          '💡 *Mẹo:* Sau khi đăng nhập và bấm Cho phép, bạn chỉ cần copy mã xác thực hoặc dán thẳng toàn bộ đường link trình duyệt vào đây là xong nhé!',
+          '💡 *Lưu ý:* Sau khi đăng nhập và bấm **Cho phép** trên trình duyệt, tài khoản của bạn sẽ tự động được kích hoạt ngay lập tức!',
           { parse_mode: 'Markdown' },
         );
       } else {
@@ -89,9 +89,9 @@ ${googleStatus}
 • \`/week\` - Tổng quan lịch trình & việc cần làm 7 ngày tới
 • \`/calendar <nội dung>\` - Lên lịch hẹn mới nhanh chóng
 • \`/task <nội dung>\` - Thêm công việc to-do mới
-• \`/login\` - Kết nối tài khoản Google cá nhân
 • \`/status\` - Kiểm tra trạng thái tài khoản
 • \`/help\` - Xem hướng dẫn chi tiết
+• \`/login\` - Đổi tài khoản Google khác (nếu cần)
 
 💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_). AI sẽ tự động phân tích và phục vụ riêng cho bạn!`;
 
@@ -120,20 +120,18 @@ ${googleStatus}
 • _"Đánh dấu đã hoàn thành việc mua sách"_
 
 3️⃣ *Các Lệnh Tiện Ích:*
-• \`/login\` hoặc \`/auth\` - Lấy link kết nối Google Calendar riêng của bạn
-• \`/code <mã>\` - Hoàn tất kết nối Google bằng mã Authorization
-• \`/status\` - Kiểm tra trạng thái tài khoản & Google
 • \`/today\` - Xem tất cả lịch và task hôm nay
 • \`/week\` - Xem tổng thể 7 ngày sắp tới
+• \`/status\` - Kiểm tra trạng thái tài khoản & Google
 • \`/calendar <lời nhắc>\` - Tạo lịch hẹn nhanh
-• \`/task <công việc>\` - Thêm to-do nhanh`;
+• \`/task <công việc>\` - Thêm to-do nhanh
+• \`/login\` - Đổi hoặc kết nối lại tài khoản Google khác`;
 
     if (isAdmin) {
       helpMessage += `\n\n👑 *LỆNH DÀNH CHO QUẢN TRỊ VIÊN (ADMIN):*
-• \`/invite\` - Tạo link mời người dùng mới (có hạn 24h)
+• \`/invite\` - Tạo link mời người dùng mới (hoặc nhắn _"Tạo link mời bạn"_ cho AI)
 • \`/users\` - Xem danh sách người dùng đang hoạt động
-• \`/allow <id>\` - Cấp quyền trực tiếp cho một Telegram ID
-• \`/ban <id>\` - Thu hồi quyền của một Telegram ID`;
+• \`/ban <id>\` - Thu hồi quyền & hủy token của một Telegram ID`;
     }
 
     await this.uiService.sendSafeReply(ctx, helpMessage);
@@ -209,16 +207,6 @@ ${googleStatus}
     }
   }
 
-  @Command('code')
-  public async onCode(@Ctx() ctx: Context): Promise<void> {
-    const userId = ctx.from?.id;
-    if (!userId) return;
-
-    const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
-    await this.handleCodeExchange(ctx, userId, text);
-  }
-
   @Command('status')
   public async onStatus(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
@@ -264,30 +252,6 @@ ${googleStatus}
     await ctx.reply(listText, { parse_mode: 'Markdown' });
   }
 
-  @Command('allow')
-  public async onAllowUser(@Ctx() ctx: Context): Promise<void> {
-    const userId = ctx.from?.id;
-    if (!userId || !this.usersService.isAdmin(userId)) {
-      await ctx.reply('⛔ Chỉ Quản trị viên mới có thể cấp quyền.');
-      return;
-    }
-
-    const message = ctx.message;
-    const text = message && 'text' in message ? message.text : '';
-    const targetIdStr = text.replace(/^\/allow\s*/i, '').trim();
-    const targetId = Number(targetIdStr);
-
-    if (!targetId || isNaN(targetId)) {
-      await ctx.reply('ℹ️ Cú pháp: `/allow <telegram_user_id>`', { parse_mode: 'Markdown' });
-      return;
-    }
-
-    await this.usersService.allowUser(targetId);
-    await ctx.reply(`✅ Đã cấp quyền sử dụng cho User ID \`${targetId}\`.`, {
-      parse_mode: 'Markdown',
-    });
-  }
-
   @Command('ban')
   public async onBanUser(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
@@ -306,13 +270,25 @@ ${googleStatus}
       return;
     }
 
-    const success = await this.usersService.banUser(targetId);
-    if (success) {
-      await ctx.reply(`🚫 Đã thu hồi quyền sử dụng của User ID \`${targetId}\`.`, {
+    if (this.usersService.isAdmin(targetId)) {
+      await ctx.reply('⚠️ Không thể khóa tài khoản Quản trị viên (Admin).', {
         parse_mode: 'Markdown',
       });
+      return;
+    }
+
+    const success = await this.usersService.banUser(targetId);
+    await this.googleAuthService.revokeUserTokens(targetId);
+
+    if (success) {
+      await ctx.reply(
+        `🚫 Đã khóa vĩnh viễn quyền truy cập và hủy toàn bộ Token Google của User ID \`${targetId}\`.`,
+        {
+          parse_mode: 'Markdown',
+        },
+      );
     } else {
-      await ctx.reply(`⚠️ Không tìm thấy User ID \`${targetId}\` trong danh sách.`, {
+      await ctx.reply(`⚠️ Không tìm thấy User ID \`${targetId}\` trong danh sách người dùng.`, {
         parse_mode: 'Markdown',
       });
     }
@@ -321,8 +297,9 @@ ${googleStatus}
   @Command('today')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.getTodaySummary(userId),
+      this.geminiService.getTodaySummary(userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, summary);
   }
@@ -330,8 +307,9 @@ ${googleStatus}
   @Command('week')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.getWeekSummary(userId),
+      this.geminiService.getWeekSummary(userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, summary);
   }
@@ -351,9 +329,10 @@ ${googleStatus}
       return;
     }
 
+    const botUsername = ctx.botInfo?.username;
     const prompt = `Hãy tạo một sự kiện trên Google Calendar dựa trên yêu cầu sau: "${query}"`;
     const response = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(prompt, [], userId),
+      this.geminiService.chat(prompt, [], userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, response);
   }
@@ -373,9 +352,10 @@ ${googleStatus}
       return;
     }
 
+    const botUsername = ctx.botInfo?.username;
     const prompt = `Hãy thêm một công việc mới vào Google Tasks dựa trên yêu cầu sau: "${query}"`;
     const response = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(prompt, [], userId),
+      this.geminiService.chat(prompt, [], userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, response);
   }
@@ -400,8 +380,9 @@ ${googleStatus}
 
     this.logger.log(`Received text message from ${userId}: "${text}"`);
 
+    const botUsername = ctx.botInfo?.username;
     const response = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(text, [], userId),
+      this.geminiService.chat(text, [], userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, response);
   }

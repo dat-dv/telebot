@@ -261,4 +261,16 @@ export class GoogleAuthService implements OnModuleInit {
       this.logger.error(`Failed to save tokens for user ${userId}: ${error.message}`);
     }
   }
+
+  public async revokeUserTokens(userId: number): Promise<void> {
+    const strId = userId.toString();
+    try {
+      await this.tokenRepo.delete({ userId: strId });
+      this.userClients.delete(strId);
+      this.logger.log(`Revoked and deleted Google OAuth tokens for user ${userId} from SQLite.`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to delete tokens for user ${userId}: ${error.message}`);
+    }
+  }
 }

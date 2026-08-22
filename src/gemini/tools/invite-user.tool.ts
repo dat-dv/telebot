@@ -11,13 +11,13 @@ export class InviteUserTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: 'create_invite_link',
     description:
-      'Tạo đường link mời 1 lần (hạn 24 giờ) để mời bạn bè hoặc người thân sử dụng bot. CHỈ QUẢN TRỊ VIÊN (ADMIN) MỚI CÓ QUYỀN GỌI CÔNG CỤ NÀY.',
+      'Tạo đường link mời 1 lần (có hạn 24 giờ) để mời bạn bè hoặc người thân sử dụng bot. Dùng khi người dùng (Admin) nói: "Tạo link mời", "Cho anh 1 link invite", "Mời bạn bè", "Tạo lời mời". CHỈ QUẢN TRỊ VIÊN (ADMIN) MỚI CÓ QUYỀN GỌI CÔNG CỤ NÀY.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
         note: {
           type: SchemaType.STRING,
-          description: 'Ghi chú về người được mời (tùy chọn)',
+          description: 'Ghi chú về người được mời hoặc mục đích mời (tùy chọn)',
         },
       },
     },
@@ -50,16 +50,17 @@ export class InviteUserTool implements GeminiTool {
 
     try {
       const invite = await this.usersService.createInvite(userId);
+      const botUsername = context?.botUsername || 'datdoan_assistant_bot';
+      const inviteLink = `https://t.me/${botUsername}?start=${invite.code}`;
+
       this.logger.log(`Admin ${userId} generated invite code ${invite.code} via Gemini Tool`);
 
       return {
         success: true,
         inviteCode: invite.code,
+        inviteLink,
         expiresAt: invite.expiresAt,
-        instruction:
-          'Đã tạo mã mời thành công. Hãy gửi đường link định dạng: https://t.me/<bot_username>?start=' +
-          invite.code +
-          ' cho bạn bè. Link có hiệu lực trong 24 giờ và dùng được 1 lần.',
+        instruction: `Đã tạo mã mời thành công!\nĐường link mời: ${inviteLink}\nLink có hiệu lực trong 24 giờ và dùng được 1 lần. Hãy gửi đường link này cho bạn bè, họ bấm vào là sẽ được kích hoạt trợ lý riêng ngay!`,
       };
     } catch (err) {
       const error = err as Error;
