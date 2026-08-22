@@ -7,17 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: telegram-assistant-bot
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - TELEGRAM_BOT_TOKEN
-      - TELEGRAM_ADMIN_ID
-      - GEMINI_API_KEY
-      - GEMINI_MODEL
-      - GOOGLE_CLIENT_ID
-      - GOOGLE_CLIENT_SECRET
-      - APP_URL
-      - PORT
-      - DEFAULT_TIMEZONE
+    env_file:
+      - .env
     volumes:
       - ./data:/app/data
