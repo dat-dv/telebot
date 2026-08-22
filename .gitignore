@@ -14,6 +14,12 @@ lerna-debug.log*
 .gcp-saved-tokens.json
 gcp-oauth.keys.json
 
+# Database & Runtime Data
+/data/*.sqlite*
+/data/tokens/
+/data/users.json
+!/data/.gitkeep
+
 # OS files
 .DS_Store
 Thumbs.db

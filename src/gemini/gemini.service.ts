@@ -14,6 +14,8 @@ import { DeleteCalendarTool } from './tools/delete-calendar.tool';
 import { CreateTaskTool } from './tools/create-task.tool';
 import { ListTasksTool } from './tools/list-tasks.tool';
 import { CompleteTaskTool } from './tools/complete-task.tool';
+import { LoginGoogleTool } from './tools/login-google.tool';
+import { InviteUserTool } from './tools/invite-user.tool';
 
 @Injectable()
 export class GeminiService {
@@ -31,6 +33,8 @@ export class GeminiService {
     private readonly createTaskTool: CreateTaskTool,
     private readonly listTasksTool: ListTasksTool,
     private readonly completeTaskTool: CompleteTaskTool,
+    private readonly loginGoogleTool: LoginGoogleTool,
+    private readonly inviteUserTool: InviteUserTool,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
     const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
@@ -50,6 +54,8 @@ export class GeminiService {
       this.createTaskTool,
       this.listTasksTool,
       this.completeTaskTool,
+      this.loginGoogleTool,
+      this.inviteUserTool,
     ];
 
     for (const tool of tools) {

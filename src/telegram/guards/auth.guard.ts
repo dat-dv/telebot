@@ -1,13 +1,17 @@
 import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { TelegrafExecutionContext } from 'nestjs-telegraf';
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { UsersService } from '../../users/users.service';
+import { GoogleAuthService } from '../../google/google-auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
 
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly googleAuthService: GoogleAuthService,
+  ) {}
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const telegrafCtx = TelegrafExecutionContext.create(context);
@@ -24,13 +28,13 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    // STRICT: Check Whitelist Access
+    // 1. STRICT: Check Whitelist Access
     if (!this.usersService.isAllowed(userId)) {
       this.logger.warn(
         `Unauthorized access attempt from user ID: ${userId} (@${ctx.from?.username || 'unknown'})`,
       );
 
-      const hasAdmin: boolean = this.usersService.hasAdminConfigured();
+      const hasAdmin = this.usersService.hasAdminConfigured();
       let replyMessage = '';
 
       if (!hasAdmin) {
@@ -48,23 +52,65 @@ export class AuthGuard implements CanActivate {
       return false;
     }
 
-    // Check Rate Limiting & Cooldown
-    const rateCheck = this.usersService.checkRateLimit(userId);
-    if (!rateCheck.allowed) {
-      this.logger.warn(`Rate limit triggered for user ${userId}: ${rateCheck.reason}`);
+    // 2. Anti-spam cooldown (2s)
+    const cooldownCheck = this.usersService.checkCooldown(userId);
+    if (!cooldownCheck.allowed) {
+      this.logger.warn(`Cooldown triggered for user ${userId}: ${cooldownCheck.reason}`);
       try {
-        await ctx.reply(rateCheck.reason || '⏳ Bạn đang gửi tin nhắn quá nhanh.', {
+        await ctx.reply(cooldownCheck.reason || '⏳ Bạn đang gửi tin nhắn quá nhanh.', {
           parse_mode: 'Markdown',
         });
       } catch (err: unknown) {
         const error = err as Error;
-        this.logger.error(`Failed to send rate limit reply: ${error.message}`);
+        this.logger.error(`Failed to send cooldown reply: ${error.message}`);
       }
       return false;
     }
 
-    // Record 1 request usage
-    this.usersService.recordUsage(userId);
+    // 3. PRIVATE GUARD: Require Google Login for all regular chats & non-auth commands
+    const isGoogleAuth = this.googleAuthService.isAuthorized(userId);
+    if (!isGoogleAuth) {
+      const isAuthCommand =
+        text.startsWith('/start') ||
+        text.startsWith('/login') ||
+        text.startsWith('/auth') ||
+        text.startsWith('/code') ||
+        text.startsWith('/help') ||
+        text.startsWith('/status') ||
+        text.startsWith('/invite') ||
+        text.startsWith('/users') ||
+        text.startsWith('/allow') ||
+        text.startsWith('/ban');
+
+      if (!isAuthCommand) {
+        this.logger.warn(`User ${userId} attempted to use bot without Google authentication.`);
+
+        let authUrl = '';
+        try {
+          authUrl = this.googleAuthService.generateAuthUrl(userId);
+        } catch {
+          // ignore
+        }
+
+        const promptMessage = `🔐 *YÊU CẦU KẾT NỐI TÀI KHOẢN GOOGLE*\n\nĐể sử dụng trợ lý AI (Google Calendar & Google Tasks), bạn cần kết nối tài khoản Google của mình trước.\n\n1️⃣ Nhấn vào nút **"🔗 Đăng nhập Google"** bên dưới.\n2️⃣ Chọn tài khoản Gmail của bạn và nhấn **Cho phép (Allow)**.\n3️⃣ Copy mã xác thực (Authorization Code) hiện ra và gửi lại cho bot:\n\`/code <mã_xác_thực>\``;
+
+        try {
+          if (authUrl) {
+            await ctx.reply(
+              promptMessage,
+              Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng nhập Google', authUrl)]]),
+            );
+          } else {
+            await ctx.reply(promptMessage, { parse_mode: 'Markdown' });
+          }
+        } catch (err: unknown) {
+          const error = err as Error;
+          this.logger.error(`Failed to send login prompt: ${error.message}`);
+        }
+        return false;
+      }
+    }
+
     return true;
   }
 }

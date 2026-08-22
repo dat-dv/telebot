@@ -1,177 +1,185 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
-import { InviteCode, UserProfile, UsersDatabase } from './user.entity';
+import { UserEntity } from '../database/entities/user.entity';
+import { InviteEntity } from '../database/entities/invite.entity';
+
+interface LegacyUserJson {
+  id: number;
+  username?: string;
+  firstName?: string;
+  role: 'admin' | 'user';
+  createdAt?: string;
+}
+
+interface LegacyDatabaseJson {
+  users?: Record<string, LegacyUserJson>;
+}
 
 @Injectable()
 export class UsersService implements OnModuleInit {
   private readonly logger = new Logger(UsersService.name);
-  private readonly dbFilePath: string;
-  private db: UsersDatabase = {
-    users: {},
-    invites: {},
-    usage: {},
-  };
-
-  private readonly defaultDailyLimit = 100;
-  private readonly adminDailyLimit = 500;
   private readonly cooldownSeconds = 2;
 
-  constructor(private readonly configService: ConfigService) {
-    const dataDir = path.resolve(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    this.dbFilePath = path.join(dataDir, 'users.json');
+  // In-memory cache for ultra-fast, zero-latency synchronous checks
+  private allowedUserIdsCache: Set<string> = new Set();
+  private adminUserIdsCache: Set<string> = new Set();
+
+  // In-memory timestamp tracker for cooldown
+  private lastRequestTimes: Map<string, number> = new Map();
+
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>,
+    @InjectRepository(InviteEntity)
+    private readonly inviteRepo: Repository<InviteEntity>,
+  ) {}
+
+  public async onModuleInit(): Promise<void> {
+    await this.migrateLegacyJson();
+    await this.seedInitialUsers();
+    await this.refreshMemoryCache();
   }
 
-  public onModuleInit(): void {
-    this.loadDatabase();
-    this.seedInitialUsers();
-  }
-
-  private loadDatabase(): void {
+  private async refreshMemoryCache(): Promise<void> {
     try {
-      if (fs.existsSync(this.dbFilePath)) {
-        const raw = fs.readFileSync(this.dbFilePath, 'utf8').trim();
-        if (raw) {
-          this.db = JSON.parse(raw) as UsersDatabase;
-          this.logger.log(`Loaded ${Object.keys(this.db.users).length} users from storage.`);
-          return;
+      const users = await this.userRepo.find();
+      this.allowedUserIdsCache.clear();
+      this.adminUserIdsCache.clear();
+
+      for (const u of users) {
+        this.allowedUserIdsCache.add(u.id);
+        if (u.role === 'admin') {
+          this.adminUserIdsCache.add(u.id);
         }
       }
+
+      // Also include env admin & allowed IDs
+      const adminIdEnv = process.env.TELEGRAM_ADMIN_ID;
+      if (adminIdEnv) {
+        this.adminUserIdsCache.add(adminIdEnv.trim());
+        this.allowedUserIdsCache.add(adminIdEnv.trim());
+      }
+
+      const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+      for (const id of allowedIds) {
+        this.allowedUserIdsCache.add(id.toString());
+      }
+
+      this.logger.log(
+        `SQLite Database initialized with ${users.length} registered users (Admins: ${this.adminUserIdsCache.size}).`,
+      );
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Failed to load users database: ${error.message}`);
-    }
-
-    this.saveDatabase();
-  }
-
-  private saveDatabase(): void {
-    try {
-      fs.writeFileSync(this.dbFilePath, JSON.stringify(this.db, null, 2), 'utf8');
-    } catch (err) {
-      const error = err as Error;
-      this.logger.error(`Failed to save users database: ${error.message}`);
+      this.logger.error(`Error refreshing memory cache: ${error.message}`);
     }
   }
 
-  private getTodayDateString(): string {
-    const timezone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    return formatter.format(now); // "YYYY-MM-DD"
+  private async migrateLegacyJson(): Promise<void> {
+    const legacyPath = path.resolve(process.cwd(), 'data', 'users.json');
+    if (fs.existsSync(legacyPath)) {
+      try {
+        const raw = fs.readFileSync(legacyPath, 'utf8').trim();
+        if (raw) {
+          const jsonDb = JSON.parse(raw) as LegacyDatabaseJson;
+          if (jsonDb.users) {
+            const userList: LegacyUserJson[] = Object.values(jsonDb.users);
+            for (const u of userList) {
+              const strId = u.id.toString();
+              const existing = await this.userRepo.findOne({ where: { id: strId } });
+              if (!existing) {
+                const newUser = this.userRepo.create({
+                  id: strId,
+                  username: u.username,
+                  firstName: u.firstName,
+                  role: u.role || 'user',
+                  createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+                });
+                await this.userRepo.save(newUser);
+              }
+            }
+            this.logger.log('Successfully migrated legacy users.json data to SQLite.');
+          }
+        }
+      } catch (err) {
+        const error = err as Error;
+        this.logger.warn(`Could not migrate legacy users.json: ${error.message}`);
+      }
+    }
   }
 
-  private seedInitialUsers(): void {
+  private async seedInitialUsers(): Promise<void> {
+    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? process.env.TELEGRAM_ADMIN_ID.trim() : null;
     const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
-    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : null;
 
-    let modified = false;
+    if (adminIdEnv) {
+      const existing = await this.userRepo.findOne({ where: { id: adminIdEnv } });
+      if (!existing) {
+        const adminUser = this.userRepo.create({
+          id: adminIdEnv,
+          role: 'admin',
+          createdAt: new Date(),
+        });
+        await this.userRepo.save(adminUser);
+      }
+    }
 
     if (allowedIds && allowedIds.length > 0) {
-      for (const [index, id] of allowedIds.entries()) {
-        if (!this.db.users[id]) {
-          const isFirstOrAdmin = adminIdEnv ? id === adminIdEnv : index === 0;
-          this.db.users[id] = {
-            id,
+      for (const [index, idNum] of allowedIds.entries()) {
+        const idStr = idNum.toString();
+        const existing = await this.userRepo.findOne({ where: { id: idStr } });
+        if (!existing) {
+          const isFirstOrAdmin = adminIdEnv ? idStr === adminIdEnv : index === 0;
+          const user = this.userRepo.create({
+            id: idStr,
             role: isFirstOrAdmin ? 'admin' : 'user',
-            createdAt: new Date().toISOString(),
-          };
-          modified = true;
+            createdAt: new Date(),
+          });
+          await this.userRepo.save(user);
         }
       }
-    }
-
-    if (adminIdEnv && !this.db.users[adminIdEnv]) {
-      this.db.users[adminIdEnv] = {
-        id: adminIdEnv,
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-      };
-      modified = true;
-    }
-
-    if (modified) {
-      this.saveDatabase();
     }
   }
 
   public hasAdminConfigured(): boolean {
-    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : null;
-    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
-    return !!(
-      adminIdEnv ||
-      allowedIds.length > 0 ||
-      Object.values(this.db.users).some((u) => u.role === 'admin')
-    );
+    return this.adminUserIdsCache.size > 0;
   }
 
   public isAdmin(userId: number): boolean {
-    const user = this.db.users[userId];
-    if (user?.role === 'admin') return true;
-
-    // Check if explicitly matches TELEGRAM_ADMIN_ID env
-    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : null;
-    if (adminIdEnv && userId === adminIdEnv) return true;
-
-    // Or if first ID in TELEGRAM_ALLOWED_USER_IDS
-    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
-    return allowedIds.length > 0 && allowedIds[0] === userId;
+    return this.adminUserIdsCache.has(userId.toString());
   }
 
   public isAllowed(userId: number): boolean {
-    // 1. If user is Admin -> Allowed
-    if (this.isAdmin(userId)) {
-      return true;
-    }
-
-    // 2. If user is in database (added via invite code or allow command) -> Allowed
-    if (this.db.users[userId]) {
-      return true;
-    }
-
-    // 3. If user is in TELEGRAM_ALLOWED_USER_IDS -> Allowed
-    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
-    if (allowedIds.includes(userId)) {
-      return true;
-    }
-
-    // STRICT: Absolutely NO public mode. If not admin and not explicitly added/invited -> Block!
-    return false;
+    const strId = userId.toString();
+    return this.allowedUserIdsCache.has(strId);
   }
 
-  public createInvite(adminId: number): InviteCode {
+  public async createInvite(adminId: number): Promise<InviteEntity> {
     const code = 'invite_' + crypto.randomBytes(6).toString('hex');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
-    const invite: InviteCode = {
+    const invite = this.inviteRepo.create({
       code,
-      createdBy: adminId,
-      createdAt: now.toISOString(),
+      createdBy: adminId.toString(),
+      createdAt: now,
       expiresAt,
-    };
+    });
 
-    this.db.invites[code] = invite;
-    this.saveDatabase();
-
-    return invite;
+    const saved = await this.inviteRepo.save(invite);
+    return saved;
   }
 
-  public consumeInvite(
+  public async consumeInvite(
     code: string,
     user: { id: number; username?: string; firstName?: string },
-  ): { success: boolean; message: string } {
-    const invite = this.db.invites[code];
+  ): Promise<{ success: boolean; message: string }> {
+    const invite = await this.inviteRepo.findOne({ where: { code } });
     if (!invite) {
       return { success: false, message: 'Mã mời không tồn tại hoặc đã hết hạn.' };
     }
@@ -184,23 +192,31 @@ export class UsersService implements OnModuleInit {
       return { success: false, message: 'Mã mời này đã hết hạn sử dụng (quá 24 giờ).' };
     }
 
+    const strId = user.id.toString();
+
     // Mark as used
-    invite.usedBy = user.id;
+    invite.usedBy = strId;
     invite.usedAt = new Date().toISOString();
+    await this.inviteRepo.save(invite);
 
     // Add user to database
-    this.db.users[user.id] = {
-      id: user.id,
-      username: user.username,
-      firstName: user.firstName,
-      role: 'user',
-      createdAt: new Date().toISOString(),
-    };
+    let existingUser = await this.userRepo.findOne({ where: { id: strId } });
+    if (!existingUser) {
+      existingUser = this.userRepo.create({
+        id: strId,
+        username: user.username,
+        firstName: user.firstName,
+        role: 'user',
+        createdAt: new Date(),
+      });
+    } else {
+      existingUser.username = user.username;
+      existingUser.firstName = user.firstName;
+    }
+    await this.userRepo.save(existingUser);
 
-    this.saveDatabase();
-    this.logger.log(
-      `User ${user.id} (${user.firstName}) successfully joined via invite code ${code}`,
-    );
+    this.allowedUserIdsCache.add(strId);
+    this.logger.log(`User ${user.id} (${user.firstName}) joined via invite code ${code}`);
 
     return {
       success: true,
@@ -208,29 +224,19 @@ export class UsersService implements OnModuleInit {
     };
   }
 
-  public checkRateLimit(userId: number): {
+  public checkCooldown(userId: number): {
     allowed: boolean;
     reason?: string;
     waitSeconds?: number;
   } {
+    const strId = userId.toString();
     const now = Date.now();
-    const todayStr = this.getTodayDateString();
+    const isUserAdmin = this.isAdmin(userId);
 
-    let usage = this.db.usage[userId];
-    if (!usage || usage.lastResetDate !== todayStr) {
-      const limit = this.isAdmin(userId) ? this.adminDailyLimit : this.defaultDailyLimit;
-      usage = {
-        usedToday: 0,
-        dailyLimit: limit,
-        lastRequestTime: 0,
-        lastResetDate: todayStr,
-      };
-      this.db.usage[userId] = usage;
-    }
+    const lastTime = this.lastRequestTimes.get(strId) || 0;
+    const timeSinceLast = (now - lastTime) / 1000;
 
-    // 1. Check Cooldown (Throttling)
-    const timeSinceLast = (now - usage.lastRequestTime) / 1000;
-    if (timeSinceLast < this.cooldownSeconds && !this.isAdmin(userId)) {
+    if (timeSinceLast < this.cooldownSeconds && !isUserAdmin) {
       const waitSeconds = Math.ceil(this.cooldownSeconds - timeSinceLast);
       return {
         allowed: false,
@@ -239,80 +245,40 @@ export class UsersService implements OnModuleInit {
       };
     }
 
-    // 2. Check Daily Limit
-    if (usage.usedToday >= usage.dailyLimit && !this.isAdmin(userId)) {
-      return {
-        allowed: false,
-        reason: `📊 Bạn đã sử dụng hết hạn mức ${usage.dailyLimit} tin nhắn của ngày hôm nay.\nHạn mức sẽ được làm mới lại vào 07:00 sáng mai nhé!`,
-      };
-    }
-
+    this.lastRequestTimes.set(strId, now);
     return { allowed: true };
   }
 
-  public recordUsage(userId: number): void {
-    const todayStr = this.getTodayDateString();
-    let usage = this.db.usage[userId];
-    if (!usage || usage.lastResetDate !== todayStr) {
-      const limit = this.isAdmin(userId) ? this.adminDailyLimit : this.defaultDailyLimit;
-      usage = {
-        usedToday: 0,
-        dailyLimit: limit,
-        lastRequestTime: Date.now(),
-        lastResetDate: todayStr,
-      };
+  public async allowUser(userId: number, role: 'admin' | 'user' = 'user'): Promise<void> {
+    const strId = userId.toString();
+    let existing = await this.userRepo.findOne({ where: { id: strId } });
+    if (!existing) {
+      existing = this.userRepo.create({
+        id: strId,
+        role,
+        createdAt: new Date(),
+      });
+    } else {
+      existing.role = role;
     }
-
-    usage.usedToday += 1;
-    usage.lastRequestTime = Date.now();
-    this.db.usage[userId] = usage;
-    this.saveDatabase();
+    await this.userRepo.save(existing);
+    this.allowedUserIdsCache.add(strId);
+    if (role === 'admin') this.adminUserIdsCache.add(strId);
   }
 
-  public getUserUsage(userId: number): {
-    usedToday: number;
-    dailyLimit: number;
-    remaining: number;
-  } {
-    const todayStr = this.getTodayDateString();
-    let usage = this.db.usage[userId];
-    if (!usage || usage.lastResetDate !== todayStr) {
-      const limit = this.isAdmin(userId) ? this.adminDailyLimit : this.defaultDailyLimit;
-      usage = {
-        usedToday: 0,
-        dailyLimit: limit,
-        lastRequestTime: 0,
-        lastResetDate: todayStr,
-      };
-      this.db.usage[userId] = usage;
-    }
-
-    return {
-      usedToday: usage.usedToday,
-      dailyLimit: usage.dailyLimit,
-      remaining: Math.max(0, usage.dailyLimit - usage.usedToday),
-    };
-  }
-
-  public allowUser(userId: number, role: 'admin' | 'user' = 'user'): void {
-    this.db.users[userId] = {
-      id: userId,
-      role,
-      createdAt: new Date().toISOString(),
-    };
-    this.saveDatabase();
-  }
-
-  public banUser(userId: number): boolean {
-    if (this.db.users[userId]) {
-      Reflect.deleteProperty(this.db.users, userId);
-      this.saveDatabase();
+  public async banUser(userId: number): Promise<boolean> {
+    const strId = userId.toString();
+    const existing = await this.userRepo.findOne({ where: { id: strId } });
+    if (existing) {
+      await this.userRepo.remove(existing);
+      this.allowedUserIdsCache.delete(strId);
+      this.adminUserIdsCache.delete(strId);
       return true;
     }
     return false;
   }
 
-  public getUsers(): UserProfile[] {
-    return Object.values(this.db.users);
+  public async getUsers(): Promise<UserEntity[]> {
+    return this.userRepo.find();
   }
 }

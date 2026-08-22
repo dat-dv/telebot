@@ -29,7 +29,7 @@ export class TelegramUpdate {
     // Handle deep link invite: /start invite_<code>
     if (text.startsWith('/start invite_')) {
       const inviteCode = text.replace('/start ', '').trim();
-      const consumeResult = this.usersService.consumeInvite(inviteCode, {
+      const consumeResult = await this.usersService.consumeInvite(inviteCode, {
         id: userId,
         username: ctx.from?.username,
         firstName: ctx.from?.first_name,
@@ -88,7 +88,7 @@ ${googleStatus}
 • \`/calendar <nội dung>\` - Lên lịch hẹn mới nhanh chóng
 • \`/task <nội dung>\` - Thêm công việc to-do mới
 • \`/login\` - Kết nối tài khoản Google cá nhân
-• \`/usage\` - Kiểm tra số lượt gọi còn lại trong ngày
+• \`/status\` - Kiểm tra trạng thái tài khoản
 • \`/help\` - Xem hướng dẫn chi tiết
 
 💬 Hoặc bạn chỉ cần *nhắn tin tự nhiên* bất kỳ lúc nào (ví dụ: _"Chiều mai 3h nhắc tớ họp dự án với team nhé"_). AI sẽ tự động phân tích và phục vụ riêng cho bạn!`;
@@ -120,7 +120,7 @@ ${googleStatus}
 3️⃣ *Các Lệnh Tiện Ích:*
 • \`/login\` hoặc \`/auth\` - Lấy link kết nối Google Calendar riêng của bạn
 • \`/code <mã>\` - Hoàn tất kết nối Google bằng mã Authorization
-• \`/usage\` hoặc \`/status\` - Kiểm tra hạn mức tin nhắn hôm nay
+• \`/status\` - Kiểm tra trạng thái tài khoản & Google
 • \`/today\` - Xem tất cả lịch và task hôm nay
 • \`/week\` - Xem tổng thể 7 ngày sắp tới
 • \`/calendar <lời nhắc>\` - Tạo lịch hẹn nhanh
@@ -145,7 +145,7 @@ ${googleStatus}
       return;
     }
 
-    const invite = this.usersService.createInvite(userId);
+    const invite = await this.usersService.createInvite(userId);
     const botUsername = ctx.botInfo.username;
     const inviteLink = `https://t.me/${botUsername}?start=${invite.code}`;
 
@@ -214,23 +214,21 @@ ${googleStatus}
   }
 
   @Command('status')
-  @Command('usage')
-  public async onUsage(@Ctx() ctx: Context): Promise<void> {
+  public async onStatus(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
 
-    const usage = this.usersService.getUserUsage(userId);
+    const fromName = ctx.from?.first_name || 'bạn';
     const isGoogleConnected = this.googleAuthService.isAuthorized(userId);
     const isAdmin = this.usersService.isAdmin(userId);
 
-    const msg = `📊 *THỐNG KÊ HOẠT ĐỘNG HÔM NAY*
+    const msg = `📊 *TRẠNG THÁI TÀI KHOẢN*
 
-👤 *Vai trò*: ${isAdmin ? '👑 Quản trị viên (Admin)' : '👤 Người dùng (Member)'}
-🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối' : '❌ Chưa kết nối (gõ `/login`)'}
-📈 *Lượt tin nhắn đã dùng*: **${usage.usedToday} / ${usage.dailyLimit}**
-✨ *Lượt còn lại hôm nay*: **${usage.remaining}**
+👤 *Người dùng*: *${fromName}* (\`${userId}\`)
+👑 *Vai trò*: ${isAdmin ? '👑 Quản trị viên (Admin)' : '👤 Người dùng (Member)'}
+🔗 *Google Workspace*: ${isGoogleConnected ? '✅ Đã kết nối (Calendar & Tasks sẵn sàng)' : '❌ Chưa kết nối (gõ `/login` để liên kết)'}
 
-⏰ Hạn mức tin nhắn sẽ tự động được làm mới vào lúc **07:00 sáng mai**.`;
+💡 Gõ \`/help\` để xem danh sách các câu lệnh và hướng dẫn sử dụng.`;
 
     await ctx.reply(msg, { parse_mode: 'Markdown' });
   }
@@ -243,7 +241,7 @@ ${googleStatus}
       return;
     }
 
-    const users = this.usersService.getUsers();
+    const users = await this.usersService.getUsers();
     if (users.length === 0) {
       await ctx.reply('Chưa có người dùng nào trong cơ sở dữ liệu.');
       return;
@@ -251,10 +249,10 @@ ${googleStatus}
 
     let listText = `👥 *DANH SÁCH NGƯỜI DÙNG (${users.length}):*\n\n`;
     for (const u of users) {
-      const isAuth = this.googleAuthService.isAuthorized(u.id);
-      const usage = this.usersService.getUserUsage(u.id);
+      const numericId = Number(u.id);
+      const isAuth = this.googleAuthService.isAuthorized(numericId);
       const name = u.firstName || u.username || 'User';
-      listText += `• *${name}* (\`${u.id}\`) - ${u.role === 'admin' ? '👑 Admin' : '👤 Member'}\n  Google: ${isAuth ? '✅' : '❌'} | Usage: ${usage.usedToday}/${usage.dailyLimit}\n`;
+      listText += `• *${name}* (\`${u.id}\`) - ${u.role === 'admin' ? '👑 Admin' : '👤 Member'} | Google: ${isAuth ? '✅' : '❌'}\n`;
     }
 
     await ctx.reply(listText, { parse_mode: 'Markdown' });
@@ -278,7 +276,7 @@ ${googleStatus}
       return;
     }
 
-    this.usersService.allowUser(targetId);
+    await this.usersService.allowUser(targetId);
     await ctx.reply(`✅ Đã cấp quyền sử dụng cho User ID \`${targetId}\`.`, {
       parse_mode: 'Markdown',
     });
@@ -302,7 +300,7 @@ ${googleStatus}
       return;
     }
 
-    const success = this.usersService.banUser(targetId);
+    const success = await this.usersService.banUser(targetId);
     if (success) {
       await ctx.reply(`🚫 Đã thu hồi quyền sử dụng của User ID \`${targetId}\`.`, {
         parse_mode: 'Markdown',

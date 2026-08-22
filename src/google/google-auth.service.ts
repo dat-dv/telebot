@@ -1,9 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { google } from 'googleapis';
 import { OAuth2Client, Credentials } from 'google-auth-library';
 import * as fs from 'fs';
 import * as path from 'path';
+import { UserTokenEntity } from '../database/entities/user-token.entity';
 
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
@@ -26,15 +29,19 @@ interface CredentialsFile {
 }
 
 @Injectable()
-export class GoogleAuthService {
+export class GoogleAuthService implements OnModuleInit {
   private readonly logger = new Logger(GoogleAuthService.name);
-  private userClients: Map<number, OAuth2Client> = new Map();
+  private userClients: Map<string, OAuth2Client> = new Map();
   private defaultClient: OAuth2Client | null = null;
   private readonly credentialsPath: string;
   private readonly defaultTokenPath: string;
   private readonly tokensDir: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(UserTokenEntity)
+    private readonly tokenRepo: Repository<UserTokenEntity>,
+  ) {
     this.credentialsPath = path.resolve(
       process.cwd(),
       this.configService.get<string>('google.credentialsPath', './gcp-oauth.keys.json'),
@@ -50,6 +57,39 @@ export class GoogleAuthService {
     }
 
     this.initializeDefaultClient();
+  }
+
+  public async onModuleInit(): Promise<void> {
+    await this.preloadTokensFromDatabase();
+  }
+
+  private async preloadTokensFromDatabase(): Promise<void> {
+    try {
+      const allTokens = await this.tokenRepo.find();
+      for (const t of allTokens) {
+        if (t.accessToken || t.refreshToken) {
+          const client = this.createOAuth2Instance();
+          if (client) {
+            client.setCredentials({
+              access_token: t.accessToken,
+              refresh_token: t.refreshToken,
+              scope: t.scope,
+              token_type: t.tokenType,
+              expiry_date: t.expiryDate ? Number(t.expiryDate) : undefined,
+            });
+            const numUserId = Number(t.userId);
+            client.on('tokens', (refreshed: Credentials) => {
+              void this.saveTokensForUser(numUserId, refreshed);
+            });
+            this.userClients.set(t.userId, client);
+          }
+        }
+      }
+      this.logger.log(`Preloaded ${allTokens.length} user Google OAuth token(s) from SQLite.`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.warn(`Could not preload tokens from database: ${error.message}`);
+    }
   }
 
   private getClientKeys(): { clientId: string; clientSecret: string; redirectUri: string } | null {
@@ -125,10 +165,12 @@ export class GoogleAuthService {
       return this.defaultClient;
     }
 
-    if (this.userClients.has(userId)) {
-      return this.userClients.get(userId) || null;
+    const strId = userId.toString();
+    if (this.userClients.has(strId)) {
+      return this.userClients.get(strId) || null;
     }
 
+    // Check file fallback
     const tokenPath = this.getUserTokenPath(userId);
     if (fs.existsSync(tokenPath)) {
       try {
@@ -140,9 +182,9 @@ export class GoogleAuthService {
             client.setCredentials(tokens);
             client.on('tokens', (refreshed: Credentials) => {
               this.logger.log(`Tokens refreshed for user ${userId}. Saving to user storage...`);
-              this.saveTokensForUser(userId, refreshed);
+              void this.saveTokensForUser(userId, refreshed);
             });
-            this.userClients.set(userId, client);
+            this.userClients.set(strId, client);
             return client;
           }
         }
@@ -152,7 +194,7 @@ export class GoogleAuthService {
       }
     }
 
-    // If user has no specific tokens, fallback to defaultClient for backward compatibility / Admin
+    // Fallback to defaultClient if admin/single-user
     if (!this.defaultClient) this.initializeDefaultClient();
     return this.defaultClient;
   }
@@ -165,6 +207,8 @@ export class GoogleAuthService {
   }
 
   public hasUserSpecificAuth(userId: number): boolean {
+    const strId = userId.toString();
+    if (this.userClients.has(strId)) return true;
     const tokenPath = this.getUserTokenPath(userId);
     return fs.existsSync(tokenPath);
   }
@@ -191,7 +235,7 @@ export class GoogleAuthService {
 
     try {
       const { tokens } = await client.getToken(code.trim());
-      this.saveTokensForUser(userId, tokens);
+      await this.saveTokensForUser(userId, tokens);
       return true;
     } catch (err) {
       const error = err as Error;
@@ -200,9 +244,32 @@ export class GoogleAuthService {
     }
   }
 
-  public saveTokensForUser(userId: number, tokens: Credentials): void {
+  public async saveTokensForUser(userId: number, tokens: Credentials): Promise<void> {
+    const strId = userId.toString();
     const tokenPath = this.getUserTokenPath(userId);
+
     try {
+      // 1. Save to SQLite database
+      let dbToken = await this.tokenRepo.findOne({ where: { userId: strId } });
+      if (!dbToken) {
+        dbToken = this.tokenRepo.create({
+          userId: strId,
+          accessToken: tokens.access_token || undefined,
+          refreshToken: tokens.refresh_token || undefined,
+          scope: tokens.scope || undefined,
+          tokenType: tokens.token_type || undefined,
+          expiryDate: tokens.expiry_date || undefined,
+        });
+      } else {
+        if (tokens.access_token) dbToken.accessToken = tokens.access_token;
+        if (tokens.refresh_token) dbToken.refreshToken = tokens.refresh_token;
+        if (tokens.scope) dbToken.scope = tokens.scope;
+        if (tokens.token_type) dbToken.tokenType = tokens.token_type;
+        if (tokens.expiry_date) dbToken.expiryDate = tokens.expiry_date;
+      }
+      await this.tokenRepo.save(dbToken);
+
+      // 2. Also save to disk JSON for double-persistence
       let existingTokens: Credentials = {};
       if (fs.existsSync(tokenPath)) {
         try {
@@ -216,19 +283,22 @@ export class GoogleAuthService {
       const updated = { ...existingTokens, ...tokens };
       fs.writeFileSync(tokenPath, JSON.stringify(updated, null, 2), 'utf8');
 
-      let client = this.userClients.get(userId);
+      // 3. Update client in memory
+      let client = this.userClients.get(strId);
       if (!client) {
         const newClient = this.createOAuth2Instance();
         if (newClient) {
-          newClient.on('tokens', (refreshed) => this.saveTokensForUser(userId, refreshed));
-          this.userClients.set(userId, newClient);
+          newClient.on('tokens', (refreshed: Credentials) => {
+            void this.saveTokensForUser(userId, refreshed);
+          });
+          this.userClients.set(strId, newClient);
           client = newClient;
         }
       }
       if (client) {
         client.setCredentials(updated);
       }
-      this.logger.log(`Saved OAuth tokens for user ${userId} to ${tokenPath}`);
+      this.logger.log(`Saved OAuth tokens for user ${userId} to SQLite & disk.`);
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Failed to save tokens for user ${userId}: ${error.message}`);
