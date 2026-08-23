@@ -25,32 +25,25 @@ cp .env.example .env
 Nội dung chi tiết các biến:
 
 ```env
-# ============================================================
-# CẤU HÌNH BẮT BUỘC (ZERO FILE MOUNT)
-# ============================================================
+SERVICE_URL_TELEBOT=https://telebot.example.com
+NEXT_PUBLIC_API_URL=https://telebot.example.com
 
-# 1. Token Bot từ @BotFather trên Telegram
-TELEGRAM_BOT_TOKEN=8896966650:AAGOYm_e6WMSLI818xlgkS7TW4mTm3lZJhc
-
-# 2. Telegram User ID của Admin (lấy từ @userinfobot)
+TELEGRAM_BOT_TOKEN=replace-with-bot-token
 TELEGRAM_ADMIN_ID=123456789
+GEMINI_API_KEY=replace-with-gemini-key
+DATA_ENCRYPTION_KEY=64-hex-characters
+GOOGLE_CLIENT_ID=replace-with-google-client-id
+GOOGLE_CLIENT_SECRET=replace-with-google-client-secret
+DASHBOARD_ACCESS_TOKEN_SECRET=64-random-characters
+DASHBOARD_REFRESH_TOKEN_SECRET=another-64-random-characters
 
-# 3. Gemini API Key từ Google AI Studio (https://aistudio.google.com/apikey)
-GEMINI_API_KEY=AIzaSyD...
-
-# 4. Google OAuth Credentials (từ Google Cloud Console)
-GOOGLE_CLIENT_ID=242273656915-xxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-yyy
-
-# ============================================================
-# CẤU HÌNH TÙY CHỌN (ĐÃ CÓ MẶC ĐỊNH SẴN TRONG CODE)
-# ============================================================
-# GEMINI_MODEL=gemini-3.5-flash-lite
-# DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh
-# TELEGRAM_LONG_POLLING_ENABLED=true
+# CallMe
+TELEGRAM_API_ID=replace-with-telegram-api-id
+TELEGRAM_API_HASH=replace-with-telegram-api-hash
+TELEGRAM_SESSION=replace-with-telegram-session
 ```
 
-> Bot nhận lệnh như `/help` bằng long polling. Giữ `TELEGRAM_LONG_POLLING_ENABLED=true` trên đúng một instance dùng bot token. Chỉ đặt `false` khi đã cấu hình webhook hoặc một worker polling riêng nhận update thay cho API này.
+> Bot mặc định nhận lệnh như `/help` bằng long polling. Chỉ thêm `TELEGRAM_LONG_POLLING_ENABLED=false` khi đã cấu hình webhook hoặc một worker polling riêng nhận update thay cho API này.
 
 ---
 
@@ -121,7 +114,7 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 1. **Tạo Application mới**: Chọn **Public / Private Repository** và liên kết với repo GitHub của bạn.
 2. **Chọn Build Pack**: Chọn **Dockerfile**.
 3. **Cấu hình Environment Variables**:
-   - Dán toàn bộ các biến từ file `.env` vào mục **Environment Variables** (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`...).
+   - Dán các biến từ `.env` vào mục **Environment Variables**, bao gồm cả `NEXT_PUBLIC_API_URL` trước lần build dashboard.
 4. **Cấu hình Persistent Storage (Duy nhất 1 mục)**:
    - Vào mục **Storages** > **Add Volume / Persistent Storage**:
      - **Destination Path / Mount Path**: `/app/data`
