@@ -8,8 +8,8 @@
 
 ## UI and state
 
-The module has loading skeleton, error with retry, and populated states. Home surfaces attention items and quick links; statistics surfaces financial totals and dense operational tables. Navigation keeps Home, Statistics, and Contacts accessible on desktop and narrow layouts.
+The module has loading skeleton, error with retry, empty tables, and populated states. Home surfaces attention items and quick links; statistics surfaces financial totals and dense operational tables. Financial values use semantic tones only for positive, warning, and negative meaning. Navigation remains an icon-and-text desktop sidebar and a horizontally scrollable mobile row.
 
 ## Integration seams
 
-`getDashboard` consumes `API_ROUTES.dashboard` through the shared HTTP client. `useDashboardQuery` defines the cache key and supports manual invalidation. Logout calls the shared dashboard logout route, clears authentication state, clears query cache, and returns to the report entry page.
+`getDashboard` consumes `API_ROUTES.dashboard` through the shared HTTP client. API route constants include `/api`; `NEXT_PUBLIC_API_URL` is therefore the public origin without `/api` (for example `https://telebot.datintech.site`). In production Nginx routes `/api/*` to NestJS and serves the static dashboard for all other paths. `useDashboardQuery` defines the cache key and supports manual invalidation. Logout calls the shared dashboard logout route, clears authentication state, clears query cache, and returns to the report entry page.

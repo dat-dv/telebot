@@ -4,12 +4,19 @@ import { APP_ROUTES } from '@telebot/contracts';
 
 export type ReportsNavigationPage = 'home' | 'statistics' | 'contacts' | 'debts' | 'expenses';
 
-const items: Array<{ page: ReportsNavigationPage; href: string; label: string }> = [
-  { page: 'home', href: APP_ROUTES.reports, label: 'Trang chủ' },
-  { page: 'statistics', href: APP_ROUTES.statistics, label: 'Thống kê' },
-  { page: 'contacts', href: APP_ROUTES.contacts, label: 'Liên lạc' },
-  { page: 'debts', href: APP_ROUTES.debts, label: 'Công nợ' },
-  { page: 'expenses', href: APP_ROUTES.expenses, label: 'Khoản chi' },
+type NavigationIcon = 'overview' | 'chart' | 'contacts' | 'debts' | 'expenses';
+
+const items: Array<{
+  page: ReportsNavigationPage;
+  href: string;
+  label: string;
+  icon: NavigationIcon;
+}> = [
+  { page: 'home', href: APP_ROUTES.reports, label: 'Trang chủ', icon: 'overview' },
+  { page: 'statistics', href: APP_ROUTES.statistics, label: 'Thống kê', icon: 'chart' },
+  { page: 'contacts', href: APP_ROUTES.contacts, label: 'Liên lạc', icon: 'contacts' },
+  { page: 'debts', href: APP_ROUTES.debts, label: 'Công nợ', icon: 'debts' },
+  { page: 'expenses', href: APP_ROUTES.expenses, label: 'Khoản chi', icon: 'expenses' },
 ];
 
 export function ReportsNavigation({
@@ -22,10 +29,16 @@ export function ReportsNavigation({
   return (
     <aside className="app-nav" aria-label="Điều hướng dashboard">
       <div className="app-nav__brand">
-        <span>Telebot</span>
-        <small>Cá nhân</small>
+        <span className="app-nav__brand-mark" aria-hidden="true">
+          T
+        </span>
+        <span>
+          <strong>Telebot</strong>
+          <small>Không gian cá nhân</small>
+        </span>
       </div>
-      <nav>
+      <nav aria-label="Báo cáo">
+        <p className="app-nav__section-label">Báo cáo</p>
         {items.map((item) => (
           <Link
             className={item.page === active ? 'app-nav__item is-active' : 'app-nav__item'}
@@ -33,11 +46,73 @@ export function ReportsNavigation({
             href={item.href}
             key={item.page}
           >
-            {item.label}
+            <NavigationItemIcon icon={item.icon} />
+            <span>{item.label}</span>
           </Link>
         ))}
       </nav>
-      {footer}
+      {footer ? <div className="app-nav__footer">{footer}</div> : null}
     </aside>
+  );
+}
+
+function NavigationItemIcon({ icon }: { icon: NavigationIcon }) {
+  const sharedProps = {
+    'aria-hidden': true,
+    className: 'app-nav__icon',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: 1.8,
+    viewBox: '0 0 24 24',
+  };
+
+  if (icon === 'overview') {
+    return (
+      <svg {...sharedProps}>
+        <rect height="6" width="6" x="3" y="3" />
+        <rect height="6" width="6" x="15" y="3" />
+        <rect height="6" width="6" x="3" y="15" />
+        <rect height="6" width="6" x="15" y="15" />
+      </svg>
+    );
+  }
+  if (icon === 'chart') {
+    return (
+      <svg {...sharedProps}>
+        <path d="M4 19V5" />
+        <path d="M4 19h16" />
+        <path d="m7 15 4-4 3 2 4-6" />
+      </svg>
+    );
+  }
+  if (icon === 'contacts') {
+    return (
+      <svg {...sharedProps}>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 20c.7-3.1 2.5-4.7 5.5-4.7s4.8 1.6 5.5 4.7" />
+        <path d="M16 8h4" />
+        <path d="M18 6v4" />
+      </svg>
+    );
+  }
+  if (icon === 'debts') {
+    return (
+      <svg {...sharedProps}>
+        <rect height="15" rx="1.5" width="16" x="4" y="4.5" />
+        <path d="M8 9.5h8" />
+        <path d="M8 14.5h5" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...sharedProps}>
+      <path d="M6 3v18" />
+      <path d="M18 3v18" />
+      <path d="M6 7h12" />
+      <path d="M6 12h12" />
+      <path d="M6 17h12" />
+    </svg>
   );
 }

@@ -42,7 +42,7 @@ Telegram chỉ cho phép một tiến trình gọi long polling (`getUpdates`) v
 ## Dashboard mở từ bot
 
 1. Cấu hình `APP_URL` là URL public runtime của API/bot và đặt `WEB_ORIGIN` cùng giá trị khi Dashboard dùng chung domain.
-2. Đặt `NEXT_PUBLIC_API_URL` cùng URL đó trước khi build Docker dashboard. Giá trị này được đóng gói vào static bundle; không được để Compose rơi về `http://localhost:3000`. Không dùng `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL do nền tảng quản lý.
+2. Đặt `NEXT_PUBLIC_API_URL` cùng origin đó trước khi build Docker dashboard, ví dụ `https://telebot.datintech.site` (không thêm `/api`). Giá trị này được đóng gói vào static bundle; các hằng route đã có `/api`, nên Nginx nhận `/api/*` và chuyển sang NestJS. Không dùng `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL do nền tảng quản lý.
 3. Bot hiển thị nút **Xem báo cáo**. Link chỉ dùng trong năm phút; API xác nhận token theo user Telegram, cấp session dashboard và chuyển sang `/reports` trên frontend.
 4. Dashboard gọi `GET /api/dashboard` bằng access token; không truyền Telegram ID. Refresh token không đi vào JavaScript. Hai secret `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET` chỉ nằm ở API.
 

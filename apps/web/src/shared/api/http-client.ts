@@ -10,10 +10,14 @@ import {
   setAccessToken,
 } from '@/modules/auth/client/auth-storage';
 
-const apiUrl = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : window.location.origin)
-).replace(/\/$/, '');
+function normalizeApiOrigin(value: string): string {
+  return value.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+}
+
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl = normalizeApiOrigin(
+  configuredApiUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''),
+);
 export const httpClient = axios.create({ baseURL: apiUrl, withCredentials: true });
 let refreshRequest: Promise<string> | undefined;
 

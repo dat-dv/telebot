@@ -11,7 +11,7 @@ data/              SQLite runtime data
 
 Chạy cả API và React: `npm run dev` · Chạy riêng API: `npm run dev:api` · Chạy riêng React: `npm run dev:web` · Build toàn bộ: `npm run build`.
 
-Dashboard mở từ bot cần `APP_URL`, `NEXT_PUBLIC_API_URL`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET`. `APP_URL` là URL runtime của API/bot; `NEXT_PUBLIC_API_URL` được đóng gói vào static output khi build. `WEB_ORIGIN` chỉ cần khi dashboard dùng domain khác `APP_URL`. Không dùng tên `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL được quản lý. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
+Dashboard mở từ bot cần `APP_URL`, `NEXT_PUBLIC_API_URL`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET`. Khi dùng một domain, đặt cả ba URL public thành `https://telebot.datintech.site` (không thêm `/api` vào `NEXT_PUBLIC_API_URL`): static Next.js phục vụ các route giao diện, còn Nginx chuyển mọi `/api/*` sang NestJS. `NEXT_PUBLIC_API_URL` được đóng gói vào static output khi build. Không dùng tên `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL được quản lý. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
 
 Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, được xây dựng bằng **NestJS**, tích hợp **Google Gemini AI (`gemini-3.5-flash-lite`)** với cơ chế Function Calling tự động 8 công cụ, lưu trữ **Database SQLite (TypeORM)** và hỗ trợ **Đa Người Dùng (Multi-User Isolation)** kết nối độc lập với toàn bộ hệ sinh thái **Google Workspace**.
 

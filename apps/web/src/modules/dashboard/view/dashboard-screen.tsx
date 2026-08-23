@@ -59,8 +59,17 @@ export function DashboardScreen({ page }: { page: Page }) {
             </p>
           </div>
           <div className="header-status">
-            <button onClick={refresh}>Làm mới</button>
-            <button className="button--quiet" onClick={() => void logout()}>
+            <span
+              className={data.user.googleConnected ? 'connection-status ok' : 'connection-status warn'}
+              role="status"
+            >
+              <span aria-hidden="true" />
+              {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
+            </span>
+            <button type="button" onClick={refresh}>
+              Làm mới
+            </button>
+            <button type="button" className="button--quiet" onClick={() => void logout()}>
               Đăng xuất
             </button>
           </div>
@@ -71,9 +80,17 @@ export function DashboardScreen({ page }: { page: Page }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  tone?: 'neutral' | 'positive' | 'warning' | 'negative';
+}) {
   return (
-    <article className="metric">
+    <article className={`metric metric--${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
@@ -85,10 +102,14 @@ function HomeView({ data }: { data: DashboardData }) {
   return (
     <>
       <section className="metric-grid" aria-label="Tổng quan tài chính">
-        <Metric label="Số dư tháng này" value={money(data.finance.balance)} />
-        <Metric label="Cần thu" value={money(data.finance.receivable)} />
-        <Metric label="Cần trả" value={money(data.finance.payable)} />
-        <Metric label="Việc cần chú ý" value={String(attentionCount)} />
+        <Metric
+          label="Số dư tháng này"
+          value={money(data.finance.balance)}
+          tone={data.finance.balance >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric label="Cần thu" value={money(data.finance.receivable)} tone="positive" />
+        <Metric label="Cần trả" value={money(data.finance.payable)} tone="warning" />
+        <Metric label="Việc cần chú ý" value={String(attentionCount)} tone="warning" />
       </section>
       <section className="quick-actions" aria-label="Truy cập nhanh">
         <Link href={APP_ROUTES.statistics}>Xem thống kê thu–chi</Link>
@@ -146,12 +167,17 @@ function StatisticsView({ data }: { data: DashboardData }) {
   return (
     <>
       <section className="metric-grid" aria-label="Thống kê thu chi">
-        <Metric label="Tổng thu" value={money(data.finance.income)} />
-        <Metric label="Tổng chi" value={money(data.finance.expense)} />
-        <Metric label="Số dư" value={money(data.finance.balance)} />
+        <Metric label="Tổng thu" value={money(data.finance.income)} tone="positive" />
+        <Metric label="Tổng chi" value={money(data.finance.expense)} tone="warning" />
+        <Metric
+          label="Số dư"
+          value={money(data.finance.balance)}
+          tone={data.finance.balance >= 0 ? 'positive' : 'negative'}
+        />
         <Metric
           label="Công nợ ròng"
           value={money(data.finance.receivable - data.finance.payable)}
+          tone={data.finance.receivable >= data.finance.payable ? 'positive' : 'negative'}
         />
       </section>
       {data.admin && (
@@ -189,7 +215,9 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <section className="alert" role="alert">
         <h1>Không mở được dashboard</h1>
         <p>Phiên mở dashboard đã hết hạn. Hãy mở lại từ bot.</p>
-        <button onClick={onRetry}>Thử lại</button>
+        <button type="button" onClick={onRetry}>
+          Thử lại
+        </button>
       </section>
     </main>
   );
