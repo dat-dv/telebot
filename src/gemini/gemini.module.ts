@@ -16,9 +16,18 @@ import { BanUserTool } from './tools/ban-user.tool';
 import { CreateReminderTool } from './tools/create-reminder.tool';
 import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
+import { FinanceModule } from '../finance/finance.module';
+import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
+import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
+import { CreateDebtTool } from './tools/create-debt.tool';
+import { ListDebtsTool } from './tools/list-debts.tool';
+import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
+import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
+import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
+import { UpdateReminderTool } from './tools/update-reminder.tool';
 
 @Module({
-  imports: [GoogleModule, UsersModule, RemindersModule],
+  imports: [GoogleModule, UsersModule, RemindersModule, FinanceModule],
   providers: [
     GeminiService,
     CreateCalendarTool,
@@ -34,6 +43,14 @@ import { DeleteReminderTool } from './tools/delete-reminder.tool';
     CreateReminderTool,
     ListRemindersTool,
     DeleteReminderTool,
+    CreateFinanceTransactionTool,
+    GetFinanceSummaryTool,
+    CreateDebtTool,
+    ListDebtsTool,
+    RecordDebtPaymentTool,
+    ResolveDebtContactTool,
+    UpdateDebtContactTool,
+    UpdateReminderTool,
   ],
   exports: [GeminiService],
 })

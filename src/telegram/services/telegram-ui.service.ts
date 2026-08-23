@@ -44,6 +44,8 @@ export class TelegramUiService {
       [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
       [Markup.button.callback('📊 Xem 7 ngày tới', 'action:view_week')],
+      [Markup.button.callback('💰 Thu–chi hôm nay', 'action:view_finance')],
+      [Markup.button.callback('💳 Công nợ', 'action:view_debts')],
       [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
     ];
 
@@ -81,6 +83,58 @@ export class TelegramUiService {
     return Markup.inlineKeyboard([
       [Markup.button.callback('🔄 Cập nhật', 'action:refresh_today')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+    ]);
+  }
+
+  public buildDebtActionsMarkup(debtId: string) {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('💵 Trả nợ', `debt:pay:${debtId}`)],
+      [Markup.button.callback('🗑️ Xóa khoản này', `debt:delete:${debtId}`)],
+    ]);
+  }
+
+  public buildConfirmationMarkup(actionId: string) {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('✅ Xác nhận', `confirm:${actionId}`),
+        Markup.button.callback('❌ Hủy', `cancel:${actionId}`),
+      ],
+    ]);
+  }
+
+  public formatConfirmationBox(
+    name: string,
+    payload: Record<string, unknown>,
+    referenceId: string,
+  ): string {
+    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Payload JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...payload }, null, 2))}</pre>\nKiểm tra nội dung trước khi thực hiện.`;
+  }
+
+  public formatResultBox(
+    name: string,
+    result: Record<string, unknown>,
+    referenceId: string,
+    cancelled = false,
+  ): string {
+    const title = cancelled ? '❌ <b>ĐÃ HỦY THAO TÁC</b>' : '✅ <b>ĐÃ THỰC HIỆN</b>';
+    return `${title}\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Output JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...result }, null, 2))}</pre>`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  public buildNotificationActionsMarkup() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🆗 Đã hiểu', 'notice:ack')],
+      [Markup.button.callback('✖️ Đóng', 'notice:close')],
+    ]);
+  }
+
+  public buildDebtDeleteConfirmationMarkup(debtId: string) {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('✅ Xác nhận xóa', `debt:delete_confirm:${debtId}`)],
+      [Markup.button.callback('❌ Hủy', 'debt:delete_cancel')],
     ]);
   }
 

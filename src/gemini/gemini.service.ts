@@ -15,7 +15,16 @@ import { BanUserTool } from './tools/ban-user.tool';
 import { CreateReminderTool } from './tools/create-reminder.tool';
 import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
+import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
+import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
+import { CreateDebtTool } from './tools/create-debt.tool';
+import { ListDebtsTool } from './tools/list-debts.tool';
+import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
+import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
+import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
+import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
+import { randomUUID } from 'crypto';
 
 export interface ChatResponse {
   text: string;
@@ -23,6 +32,21 @@ export interface ChatResponse {
     name: string;
     result: Record<string, unknown>;
   };
+  pendingAction?: {
+    id: string;
+    referenceId: string;
+    name: string;
+    payload: Record<string, unknown>;
+  };
+}
+
+interface PendingToolAction {
+  referenceId: string;
+  userId: number;
+  botUsername?: string;
+  name: string;
+  payload: Record<string, unknown>;
+  expiresAt: number;
 }
 
 @Injectable()
@@ -32,6 +56,22 @@ export class GeminiService {
   private toolsMap: Map<string, GeminiTool> = new Map();
   private readonly defaultTimeZone: string;
   private primaryModelName: string;
+  private readonly pendingActions = new Map<string, PendingToolAction>();
+  private readonly confirmationRequiredTools = new Set([
+    'create_calendar_event',
+    'delete_calendar_event',
+    'create_task',
+    'complete_task',
+    'create_invite_link',
+    'ban_user',
+    'create_reminder',
+    'delete_reminder',
+    'create_finance_transaction',
+    'create_debt',
+    'record_debt_payment',
+    'update_debt_contact',
+    'update_reminder',
+  ]);
 
   constructor(
     private readonly configService: ConfigService,
@@ -48,6 +88,14 @@ export class GeminiService {
     private readonly createReminderTool: CreateReminderTool,
     private readonly listRemindersTool: ListRemindersTool,
     private readonly deleteReminderTool: DeleteReminderTool,
+    private readonly createFinanceTransactionTool: CreateFinanceTransactionTool,
+    private readonly getFinanceSummaryTool: GetFinanceSummaryTool,
+    private readonly createDebtTool: CreateDebtTool,
+    private readonly listDebtsTool: ListDebtsTool,
+    private readonly recordDebtPaymentTool: RecordDebtPaymentTool,
+    private readonly resolveDebtContactTool: ResolveDebtContactTool,
+    private readonly updateDebtContactTool: UpdateDebtContactTool,
+    private readonly updateReminderTool: UpdateReminderTool,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
     const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
@@ -59,7 +107,7 @@ export class GeminiService {
 
     this.genAI = new GoogleGenerativeAI(apiKey);
 
-    // Register all tools (13 Tools total)
+    // Register all assistant tools.
     const tools: GeminiTool[] = [
       this.createCalendarTool,
       this.listCalendarTool,
@@ -74,6 +122,14 @@ export class GeminiService {
       this.createReminderTool,
       this.listRemindersTool,
       this.deleteReminderTool,
+      this.createFinanceTransactionTool,
+      this.getFinanceSummaryTool,
+      this.createDebtTool,
+      this.listDebtsTool,
+      this.recordDebtPaymentTool,
+      this.resolveDebtContactTool,
+      this.updateDebtContactTool,
+      this.updateReminderTool,
     ];
 
     for (const tool of tools) {
@@ -83,6 +139,54 @@ export class GeminiService {
 
   public getCurrentTimeInfo(): { nowText: string; nowIso: string } {
     return getCurrentTimeInfo(this.defaultTimeZone);
+  }
+
+  public async confirmPendingAction(
+    actionId: string,
+    userId: number,
+  ): Promise<{ referenceId: string; name: string; result: Record<string, unknown> }> {
+    const pending = this.pendingActions.get(actionId);
+    if (!pending || pending.userId !== userId || pending.expiresAt < Date.now()) {
+      this.pendingActions.delete(actionId);
+      throw new Error('Yêu cầu xác nhận không còn hiệu lực. Hãy gửi lại yêu cầu.');
+    }
+    this.pendingActions.delete(actionId);
+    const tool = this.toolsMap.get(pending.name);
+    if (!tool) throw new Error('Không tìm thấy thao tác cần thực hiện.');
+    const result = await tool.execute(pending.payload, {
+      userId,
+      botUsername: pending.botUsername,
+    });
+    return { referenceId: pending.referenceId, name: pending.name, result };
+  }
+
+  public cancelPendingAction(actionId: string, userId: number): boolean {
+    const pending = this.pendingActions.get(actionId);
+    if (!pending || pending.userId !== userId) return false;
+    this.pendingActions.delete(actionId);
+    return true;
+  }
+
+  public queueToolConfirmation(
+    name: string,
+    payload: Record<string, unknown>,
+    userId: number,
+    botUsername?: string,
+  ): { id: string; referenceId: string; name: string; payload: Record<string, unknown> } {
+    if (!this.confirmationRequiredTools.has(name) || !this.toolsMap.has(name)) {
+      throw new Error(`Thao tác ${name} không được phép đưa vào hàng chờ xác nhận.`);
+    }
+    const id = randomUUID();
+    const referenceId = `REQ-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+    this.pendingActions.set(id, {
+      referenceId,
+      userId,
+      botUsername,
+      name,
+      payload,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+    return { id, referenceId, name, payload };
   }
 
   private getGenerativeModel(modelName: string): GenerativeModel {
@@ -136,6 +240,21 @@ export class GeminiService {
           if (!tool) {
             functionResponse = {
               error: `Tool "${call.name}" is not registered in system.`,
+            };
+          } else if (this.confirmationRequiredTools.has(call.name)) {
+            if (!userId) {
+              return { text: 'Không xác định được danh tính người dùng để xác nhận thao tác.' };
+            }
+            const payload = call.args as Record<string, unknown>;
+            const pendingAction = this.queueToolConfirmation(
+              call.name,
+              payload,
+              userId,
+              botUsername,
+            );
+            return {
+              text: `Tôi đã chuẩn bị payload cho thao tác ${call.name}. Hãy kiểm tra và xác nhận trước khi thực hiện.`,
+              pendingAction,
             };
           } else {
             try {

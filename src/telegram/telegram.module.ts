@@ -8,6 +8,7 @@ import { GeminiModule } from '../gemini/gemini.module';
 import { GoogleModule } from '../google/google.module';
 import { UsersModule } from '../users/users.module';
 import { RemindersModule } from '../reminders/reminders.module';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RemindersModule } from '../reminders/reminders.module';
     GoogleModule,
     UsersModule,
     RemindersModule,
+    FinanceModule,
   ],
   providers: [TelegramUpdate, TelegramUiService, AuthGuard],
   exports: [TelegramUiService],

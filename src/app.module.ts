@@ -8,6 +8,7 @@ import { GoogleModule } from './google/google.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { RemindersModule } from './reminders/reminders.module';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RemindersModule } from './reminders/reminders.module';
     UsersModule,
     GoogleModule,
     RemindersModule,
+    FinanceModule,
     GeminiModule,
     TelegramModule,
   ],

@@ -6,6 +6,9 @@ import { UserEntity } from './entities/user.entity';
 import { InviteEntity } from './entities/invite.entity';
 import { UserTokenEntity } from './entities/user-token.entity';
 import { ReminderEntity } from './entities/reminder.entity';
+import { FinanceTransactionEntity } from './entities/finance-transaction.entity';
+import { DebtEntity } from './entities/debt.entity';
+import { DebtContactEntity } from './entities/debt-contact.entity';
 
 @Module({
   imports: [
@@ -19,13 +22,29 @@ import { ReminderEntity } from './entities/reminder.entity';
         return {
           type: 'better-sqlite3',
           database: dbPath,
-          entities: [UserEntity, InviteEntity, UserTokenEntity, ReminderEntity],
+          entities: [
+            UserEntity,
+            InviteEntity,
+            UserTokenEntity,
+            ReminderEntity,
+            FinanceTransactionEntity,
+            DebtEntity,
+            DebtContactEntity,
+          ],
           synchronize: true,
           logging: false,
         };
       },
     }),
-    TypeOrmModule.forFeature([UserEntity, InviteEntity, UserTokenEntity, ReminderEntity]),
+    TypeOrmModule.forFeature([
+      UserEntity,
+      InviteEntity,
+      UserTokenEntity,
+      ReminderEntity,
+      FinanceTransactionEntity,
+      DebtEntity,
+      DebtContactEntity,
+    ]),
   ],
   exports: [TypeOrmModule],
 })

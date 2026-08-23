@@ -9,6 +9,7 @@ import { GoogleAuthService } from '../google/google-auth.service';
 import { GoogleTasksService } from '../google/google-tasks.service';
 import { GoogleCalendarService } from '../google/google-calendar.service';
 import { RemindersService } from '../reminders/reminders.service';
+import { FinanceService } from '../finance/finance.service';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -23,7 +24,26 @@ export class TelegramUpdate {
     private readonly calendarService: GoogleCalendarService,
     private readonly remindersService: RemindersService,
     private readonly uiService: TelegramUiService,
+    private readonly financeService: FinanceService,
   ) {}
+
+  private async requestToolConfirmation(
+    ctx: Context,
+    userId: number,
+    name: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const pending = this.geminiService.queueToolConfirmation(
+      name,
+      payload,
+      userId,
+      ctx.botInfo?.username,
+    );
+    await ctx.reply(
+      this.uiService.formatConfirmationBox(pending.name, pending.payload, pending.referenceId),
+      { parse_mode: 'HTML', ...this.uiService.buildConfirmationMarkup(pending.id) },
+    );
+  }
 
   @Start()
   public async onStart(@Ctx() ctx: Context): Promise<void> {
@@ -195,16 +215,7 @@ ${googleStatus}
       return;
     }
 
-    const invite = await this.usersService.createInvite(userId);
-    const botUsername = ctx.botInfo.username;
-    const inviteLink = `https://t.me/${botUsername}?start=${invite.code}`;
-
-    const msg = `🎟️ *TẠO LINK MỜI THÀNH CÔNG!*\n\nBạn có thể gửi đường link này cho bạn bè/đồng nghiệp:\n👉 \`${inviteLink}\`\n\n⏳ *Lưu ý:* Link có hiệu lực trong **24 giờ** và **chỉ dùng được 1 lần**. Khi bạn bè nhấn link, họ sẽ được kích hoạt trợ lý riêng tự động!`;
-
-    await ctx.reply(msg, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([[Markup.button.url('👉 Thử Mở Link Mời', inviteLink)]]),
-    });
+    await this.requestToolConfirmation(ctx, userId, 'create_invite_link', {});
   }
 
   @Command('login')
@@ -356,21 +367,9 @@ ${googleStatus}
       return;
     }
 
-    const success = await this.usersService.banUser(targetId);
-    await this.googleAuthService.revokeUserTokens(targetId);
-
-    if (success) {
-      await ctx.reply(
-        `🚫 Đã khóa vĩnh viễn quyền truy cập và hủy toàn bộ Token Google của User ID \`${targetId}\`.`,
-        {
-          parse_mode: 'Markdown',
-        },
-      );
-    } else {
-      await ctx.reply(`⚠️ Không tìm thấy User ID \`${targetId}\` trong danh sách người dùng.`, {
-        parse_mode: 'Markdown',
-      });
-    }
+    await this.requestToolConfirmation(ctx, userId, 'ban_user', {
+      targetUserId: targetId.toString(),
+    });
   }
 
   @Command('today')
@@ -391,6 +390,73 @@ ${googleStatus}
       this.geminiService.getWeekSummary(userId, botUsername),
     );
     await this.uiService.sendSafeReply(ctx, summary, this.uiService.buildTodayActionsMarkup());
+  }
+
+  @Command('finance')
+  @Command('money')
+  public async onFinance(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const { startAt, endAt } = this.financeService.getTodayRange();
+    const summary = await this.financeService.getSummary(userId, startAt, endAt);
+    const transactionLines = summary.transactions.slice(0, 8).map((transaction) => {
+      const icon = transaction.type === 'income' ? '➕' : '➖';
+      return `${icon} ${transaction.note} — ${this.financeService.formatMoney(transaction.amount)}`;
+    });
+    const details = transactionLines.length > 0 ? `\n\n${transactionLines.join('\n')}` : '';
+
+    await ctx.reply(
+      `💰 SỔ THU–CHI HÔM NAY\n\nThu: ${this.financeService.formatMoney(summary.income)}\nChi: ${this.financeService.formatMoney(summary.expense)}\nCòn lại: ${this.financeService.formatMoney(summary.balance)}${details}\n\nNhắn ví dụ: “ăn trưa 65k” hoặc “nhận lương 20 triệu”.`,
+    );
+  }
+
+  @Command('debts')
+  @Command('debt')
+  public async onDebts(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const debts = await this.financeService.getActiveDebts(userId);
+    if (debts.length === 0) {
+      await ctx.reply('💳 Hiện không có khoản công nợ nào chưa tất toán.');
+      return;
+    }
+
+    const receivable = debts
+      .filter((debt) => debt.direction === 'receivable')
+      .reduce((sum, debt) => sum + debt.remainingAmount, 0);
+    const payable = debts
+      .filter((debt) => debt.direction === 'payable')
+      .reduce((sum, debt) => sum + debt.remainingAmount, 0);
+    await ctx.reply(
+      `💳 CÔNG NỢ\nCần thu: ${this.financeService.formatMoney(receivable)}\nCần trả: ${this.financeService.formatMoney(payable)}`,
+    );
+
+    for (const [index, debt] of debts.entries()) {
+      const createdAt = new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(debt.createdAt);
+      const dueAt = debt.dueAt
+        ? new Intl.DateTimeFormat('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }).format(debt.dueAt)
+        : 'Chưa hẹn';
+      const relation = debt.direction === 'receivable' ? 'đang nợ anh' : 'anh đang nợ';
+      const note = debt.note || 'Không có mô tả';
+      const contactName = debt.contact?.displayName || debt.counterparty;
+      const contactAlias = debt.contact?.alias || debt.counterpartyAlias;
+      await ctx.reply(
+        `${index + 1}. ${contactName}${contactAlias ? ` (${contactAlias})` : ''} ${relation}\n${this.financeService.formatMoney(debt.remainingAmount)} • ${createdAt}\n${note} • Hẹn trả: ${dueAt}`,
+        this.uiService.buildDebtActionsMarkup(debt.id),
+      );
+    }
   }
 
   @Command('tasks')
@@ -442,8 +508,9 @@ ${googleStatus}
     }
 
     try {
-      await this.tasksService.completeTask(taskId, '@default', userId);
-      await ctx.answerCbQuery('✅ Đã đánh dấu hoàn thành công việc!');
+      await ctx.answerCbQuery('Hãy xác nhận payload trước khi hoàn tất.');
+      await this.requestToolConfirmation(ctx, userId, 'complete_task', { taskId });
+      return;
 
       // Fetch remaining tasks and update message
       const remainingTasks = await this.tasksService.listTasks(
@@ -488,7 +555,13 @@ ${googleStatus}
       return;
     }
 
-    await this.remindersService.updateNotifyType(reminderId, targetType);
+    await ctx.answerCbQuery('Hãy xác nhận payload cập nhật.');
+    await this.requestToolConfirmation(ctx, ctx.from?.id || 0, 'update_reminder', {
+      reminderId,
+      action: 'set_notify_type',
+      notifyType: targetType,
+    });
+    return;
 
     const isCall = targetType === 'call';
     await ctx.answerCbQuery(
@@ -511,10 +584,12 @@ ${googleStatus}
   public async onCancelReminderAction(@Ctx() ctx: Context): Promise<void> {
     const match = (ctx as { match?: RegExpExecArray }).match;
     const reminderId = match ? match[1] : undefined;
+    const userId = ctx.from?.id;
 
-    if (reminderId) {
-      await this.remindersService.deleteReminder(reminderId);
-    }
+    if (!reminderId || !userId) return;
+    await ctx.answerCbQuery('Hãy xác nhận payload hủy lời nhắc.');
+    await this.requestToolConfirmation(ctx, userId, 'delete_reminder', { reminderId });
+    return;
 
     await ctx.answerCbQuery('🗑️ Đã hủy lời nhắc thành công.');
     try {
@@ -549,16 +624,8 @@ ${googleStatus}
       return;
     }
 
-    try {
-      await this.calendarService.deleteEvent(eventId, userId);
-      await ctx.answerCbQuery('🗑️ Đã xóa sự kiện lịch thành công!');
-      await ctx.editMessageText('❌ *ĐÃ XÓA SỰ KIỆN NÀY KHỎI GOOGLE CALENDAR.*', {
-        parse_mode: 'Markdown',
-      });
-    } catch (err) {
-      const error = err as Error;
-      await ctx.answerCbQuery(`Lỗi: ${error.message}`);
-    }
+    await ctx.answerCbQuery('Hãy xác nhận payload xóa lịch.');
+    await this.requestToolConfirmation(ctx, userId, 'delete_calendar_event', { eventId });
   }
 
   // Handle interactive inline button: Done Reminder
@@ -567,9 +634,11 @@ ${googleStatus}
     const match = (ctx as { match?: RegExpExecArray }).match;
     const reminderId = match ? match[1] : undefined;
 
-    if (reminderId) {
-      await this.remindersService.deleteReminder(reminderId);
-    }
+    const userId = ctx.from?.id;
+    if (!reminderId || !userId) return;
+    await ctx.answerCbQuery('Hãy xác nhận payload hoàn tất.');
+    await this.requestToolConfirmation(ctx, userId, 'delete_reminder', { reminderId });
+    return;
 
     await ctx.answerCbQuery('✅ Tuyệt vời! Đã hoàn thành lời nhắc.');
     try {
@@ -588,9 +657,15 @@ ${googleStatus}
     const minutes = match ? Number(match[1]) : 15;
     const reminderId = match ? match[2] : undefined;
 
-    if (reminderId) {
-      await this.remindersService.snoozeReminder(reminderId, minutes);
-    }
+    const userId = ctx.from?.id;
+    if (!reminderId || !userId) return;
+    await ctx.answerCbQuery('Hãy xác nhận payload hoãn lời nhắc.');
+    await this.requestToolConfirmation(ctx, userId, 'update_reminder', {
+      reminderId,
+      action: 'snooze',
+      minutes,
+    });
+    return;
 
     await ctx.answerCbQuery(`⏳ Đã hoãn lại ${minutes} phút!`);
     try {
@@ -619,6 +694,110 @@ ${googleStatus}
   public async onViewTasksAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('📝 Đang tải danh sách công việc...');
     await this.onTasksChecklist(ctx);
+  }
+
+  @Action('action:view_finance')
+  public async onViewFinanceAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('💰 Đang mở sổ thu–chi hôm nay...');
+    await this.onFinance(ctx);
+  }
+
+  @Action('action:view_debts')
+  public async onViewDebtsAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('💳 Đang mở sổ công nợ...');
+    await this.onDebts(ctx);
+  }
+
+  @Action(/^debt:pay:(.+)$/)
+  public async onDebtPayAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Nhắn số tiền đã trả, ví dụ: “Trí trả anh 200k”.');
+    await ctx.reply('💵 Nhắn số tiền đã trả, ví dụ: “Trí trả anh 200k”.');
+  }
+
+  @Action(/^debt:delete:(.+)$/)
+  public async onDebtDeleteAction(@Ctx() ctx: Context): Promise<void> {
+    const match = (ctx as { match?: RegExpExecArray }).match;
+    const debtId = match?.[1];
+    if (!debtId) {
+      await ctx.answerCbQuery('Không tìm thấy khoản công nợ.');
+      return;
+    }
+    await ctx.answerCbQuery('Hãy xác nhận payload xóa.');
+    await ctx.reply(
+      this.uiService.formatConfirmationBox(
+        'delete_debt',
+        { debtId },
+        `REQ-${debtId.slice(0, 6).toUpperCase()}`,
+      ),
+      { parse_mode: 'HTML', ...this.uiService.buildDebtDeleteConfirmationMarkup(debtId) },
+    );
+  }
+
+  @Action(/^debt:delete_confirm:(.+)$/)
+  public async onDebtDeleteConfirmAction(@Ctx() ctx: Context): Promise<void> {
+    const debtId = (ctx as { match?: RegExpExecArray }).match?.[1];
+    const userId = ctx.from?.id;
+    if (!debtId || !userId) return;
+    const deleted = await this.financeService.deleteDebt(userId, debtId);
+    await ctx.answerCbQuery(deleted ? 'Đã xóa khoản công nợ.' : 'Không tìm thấy khoản công nợ.');
+    if (deleted) await ctx.editMessageText('🗑️ Đã xóa khoản công nợ này.');
+  }
+
+  @Action('debt:delete_cancel')
+  public async onDebtDeleteCancelAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Đã hủy thao tác xóa.');
+    await ctx.editMessageText('❌ Đã hủy, khoản công nợ vẫn được giữ nguyên.');
+  }
+
+  @Action(/^confirm:(.+)$/)
+  public async onConfirmAction(@Ctx() ctx: Context): Promise<void> {
+    const actionId = (ctx as { match?: RegExpExecArray }).match?.[1];
+    const userId = ctx.from?.id;
+    if (!actionId || !userId) return;
+    try {
+      const { name, result, referenceId } = await this.geminiService.confirmPendingAction(
+        actionId,
+        userId,
+      );
+      await ctx.answerCbQuery('Đã xác nhận và thực hiện.');
+      await ctx.editMessageText(this.uiService.formatResultBox(name, result, referenceId), {
+        parse_mode: 'HTML',
+        ...this.uiService.buildNotificationActionsMarkup(),
+      });
+    } catch (error) {
+      await ctx.answerCbQuery((error as Error).message);
+    }
+  }
+
+  @Action(/^cancel:(.+)$/)
+  public async onCancelAction(@Ctx() ctx: Context): Promise<void> {
+    const actionId = (ctx as { match?: RegExpExecArray }).match?.[1];
+    const userId = ctx.from?.id;
+    if (!actionId || !userId) return;
+    const cancelled = this.geminiService.cancelPendingAction(actionId, userId);
+    await ctx.answerCbQuery(cancelled ? 'Đã hủy thao tác.' : 'Yêu cầu không còn hiệu lực.');
+    if (cancelled) {
+      await ctx.editMessageText(
+        this.uiService.formatResultBox('cancelled', { changed: false }, 'CANCELLED', true),
+        { parse_mode: 'HTML', ...this.uiService.buildNotificationActionsMarkup() },
+      );
+    }
+  }
+
+  @Action('notice:ack')
+  public async onNotificationAcknowledge(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Đã hiểu.');
+    await ctx.editMessageReplyMarkup(undefined);
+  }
+
+  @Action('notice:close')
+  public async onNotificationClose(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Đã đóng.');
+    try {
+      await ctx.deleteMessage();
+    } catch {
+      await ctx.editMessageReplyMarkup(undefined);
+    }
   }
 
   @Action('action:create_invite')
@@ -663,6 +842,15 @@ ${googleStatus}
     const chatResult = await this.uiService.withTyping(ctx, () =>
       this.geminiService.chat(text, [], userId, botUsername),
     );
+
+    if (chatResult.pendingAction) {
+      const { name, payload, id, referenceId } = chatResult.pendingAction;
+      await ctx.reply(this.uiService.formatConfirmationBox(name, payload, referenceId), {
+        parse_mode: 'HTML',
+        ...this.uiService.buildConfirmationMarkup(id),
+      });
+      return;
+    }
 
     let extraMarkup: ReturnType<typeof Markup.inlineKeyboard> | undefined = undefined;
 
