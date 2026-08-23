@@ -47,3 +47,27 @@ scripts/agent-system/
 
 
 */.next
+
+
+
+thuộc về global context
+consst table = ()=> {
+function scope a  
+
+
+handleClick(){
+funcrion scope 
+}
+
+use efect usetate
+
+const colum = [{
+name: a,
+cell () => {
+
+return abc
+}}]
+
+
+return <table columns rows />
+}

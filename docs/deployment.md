@@ -9,7 +9,7 @@ Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trườ
 - **Node.js**: Phiên bản 20.x hoặc 22.x LTS.
 - **NPM**: Phiên bản 10.x trở lên.
 - **Docker & Docker Compose** (nếu chạy dạng container).
-- **Tài khoản Google Cloud** đã kích hoạt Calendar API & Tasks API (và đã add Gmail của bạn bè vào mục *Test Users*).
+- **Tài khoản Google Cloud** đã kích hoạt Calendar API & Tasks API (và đã add Gmail của bạn bè vào mục _Test Users_).
 - **Telegram Bot Token** tạo từ `@BotFather`.
 
 ---
@@ -54,10 +54,11 @@ GOOGLE_CLIENT_SECRET=GOCSPX-yyy
 ## 3. Quy Trình Đăng Nhập Google 100% Qua Telegram
 
 Không cần chạy lệnh terminal `npm run auth` hay sinh file token thủ công:
+
 1. Mở bot trên Telegram và gõ: `/login` (hoặc bấm nút **"🔗 Đăng nhập Google"**).
 2. Đăng nhập Gmail trên trình duyệt và bấm **Cho phép (Allow)**.
 3. Copy mã xác thực trả về và gửi lại cho bot:
-   ```text
+   ```
    /code 4/0AQ...
    ```
 4. Toàn bộ Token của **Admin** và **Bạn bè** được tự động lưu trữ và quản lý độc lập, bảo mật trong **Database SQLite (bảng `user_tokens`)**!
@@ -89,11 +90,13 @@ npm run start:prod
 ## 5. Triển Khai Với Docker & Docker Compose
 
 ### 1. Build & Khởi động Container
+
 ```bash
 docker-compose up -d --build
 ```
 
 ### 2. Xem logs & trạng thái
+
 ```bash
 # Xem log realtime của bot
 docker logs -f telegram-assistant-bot
@@ -102,8 +105,7 @@ docker logs -f telegram-assistant-bot
 docker-compose down
 ```
 
-> [!NOTE]
-> Trong `docker-compose.yml`, chỉ cần duy nhất một volume mount `./data:/app/data` để lưu trữ bền vững cơ sở dữ liệu SQLite (`data/telebot.sqlite`) chứa toàn bộ Users, Invites và Google Tokens.
+> [!NOTE] Trong `docker-compose.yml`, chỉ cần duy nhất một volume mount `./data:/app/data` để lưu trữ bền vững cơ sở dữ liệu SQLite (`data/telebot.sqlite`) chứa toàn bộ Users, Invites và Google Tokens.
 
 ---
 
@@ -120,7 +122,7 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 4. **Cấu hình Persistent Storage (Duy nhất 1 mục)**:
    - Vào mục **Storages** > **Add Volume / Persistent Storage**:
      - **Destination Path / Mount Path**: `/app/data`
-     - *(Không cần cấu hình bất kỳ File Mount nào khác!)*
+     - _(Không cần cấu hình bất kỳ File Mount nào khác!)_
 5. **Kích hoạt Auto Deploy**:
    - Bật Webhook trong Coolify.
    - Mỗi lần bạn thực hiện `git push origin main`, Coolify sẽ tự động build lại Docker image và cập nhật ứng dụng sau 10-20 giây!
@@ -129,7 +131,7 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 
 ## 7. Chạy Nền Với PM2 (Nếu Không Dùng Docker)
 
-File cấu hình [`ecosystem.config.cjs`](file:///Users/datdoan/Documents/projects/telebot/ecosystem.config.cjs) đã được thiết lập sẵn:
+File cấu hình `ecosystem.config.cjs` đã được thiết lập sẵn:
 
 ```bash
 # 1. Cài đặt PM2 global nếu chưa có
@@ -154,9 +156,9 @@ pm2 monit
 
 ## 8. Xử Lý Sự Cố Thường Gặp (Troubleshooting)
 
-| Hiện tượng | Nguyên nhân | Cách khắc phục |
-| :--- | :--- | :--- |
-| Bot báo `Yêu cầu kết nối tài khoản Google` | Chưa đăng nhập Google OAuth. | Bấm nút **"🔗 Đăng nhập Google"** hoặc gõ `/login` rồi gửi `/code <mã>`. |
-| Người lạ nhắn tin báo `Truy cập bị từ chối` | Chưa được Admin mời qua link `/invite`. | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`. |
-| Lỗi `Google OAuth credentials chưa được cấu hình` | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`. |
-| AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key. | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio. |
+| Hiện tượng                                                 | Nguyên nhân                                           | Cách khắc phục                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| Bot báo `Yêu cầu kết nối tài khoản Google`                 | Chưa đăng nhập Google OAuth.                          | Bấm nút **"🔗 Đăng nhập Google"** hoặc gõ `/login` rồi gửi `/code <mã>`. |
+| Người lạ nhắn tin báo `Truy cập bị từ chối`                | Chưa được Admin mời qua link `/invite`.               | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`.          |
+| Lỗi `Google OAuth credentials chưa được cấu hình`          | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`.          |
+| AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key.             | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio.                    |

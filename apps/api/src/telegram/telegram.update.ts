@@ -38,8 +38,14 @@ export class TelegramUpdate {
   private async getReportsUrl(userId?: number): Promise<string> {
     const appUrl = this.configService.get<string>('appUrl', '').replace(/\/+$/, '');
     if (!appUrl || !userId) return '';
-    const token = await this.reportsTokens.issueExchangeToken(userId);
-    return `${appUrl}/api/access?token=${encodeURIComponent(token)}`;
+    try {
+      const token = await this.reportsTokens.issueExchangeToken(userId);
+      return `${appUrl}/api/access?token=${encodeURIComponent(token)}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Unable to create dashboard link for user ${userId}: ${message}`);
+      return '';
+    }
   }
 
   private async requestToolConfirmation(
