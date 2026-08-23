@@ -1,0 +1,33 @@
+---
+metadata:
+  agent-artifact:
+    id: docs-index
+    type: documentation
+    depends_on:
+      - .agents/knowledge/README.md
+      - .agents/knowledge/project-overview.md
+      - .agents/knowledge/global/README.md
+      - .agents/knowledge/modules/README.md
+---
+
+# Hướng Dẫn Vận Hành & Bảo Trì Dành Cho Lập Trình Viên (Human Developer Guides)
+
+Thư mục này chứa toàn bộ tài liệu hướng dẫn dành cho lập trình viên con người. Để giúp đội ngũ phát triển dễ đọc và vận hành nhất, TẤT CẢ tài liệu dưới `.agents/docs/` được viết bằng **Tiếng Việt** và ánh xạ 1-1 với thư mục module trong mã nguồn (`src/modules/<module-name>/`).
+
+## Cấu Trúc Ánh Xạ Thư Mục
+
+| Phạm vi | Tài liệu Hướng dẫn (`.agents/docs/` - Tiếng Việt) | Tri thức AI Agent (`.agents/knowledge/` - English) | Mô tả nội dung |
+| --- | --- | --- | --- |
+| **Tổng quan dự án** | [`README.md`](README.md) | [`project-overview.md`](../knowledge/project-overview.md) | Tổng quan mục tiêu, phạm vi ứng dụng và định hướng kinh doanh |
+| **Quy định Hệ thống** | [`global/README.md`](global/README.md) | [`global/README.md`](../knowledge/global/README.md) | Quy định chung, kiến trúc tổng thể và hạ tầng hệ thống |
+| **Feature Modules** | [`modules/<module>/README.md`](modules/README.md) | [`modules/<module>/README.md`](../knowledge/modules/README.md) | Ánh xạ trực tiếp mã nguồn (`src/modules/auth/` -> `modules/auth/`): Hướng dẫn sử dụng, các bước chạy test, và khắc phục sự cố |
+
+## Quy Chuẩn Viết Tài Liệu Dành Cho Lập Trình Viên
+
+1. **Ngôn ngữ**: Viết bằng **Tiếng Việt** dễ hiểu, rõ ràng.
+2. **Ánh xạ Tên Module Trực Tiếp**: Tên thư mục dưới `.agents/docs/modules/<module-name>/` phải trùng khớp 100% với tên module trong mã nguồn. Không tự đặt tên khác.
+3. **Nội dung bắt buộc trong Module Doc**:
+   - **Tổng quan & Cách dùng**: Giải thích ngắn gọn mục đích sử dụng module cho lập trình viên mới (onboarding).
+   - **Quy trình Chạy & Kiểm thử**: Các lệnh chạy thử, test cases chính cần chú ý.
+   - **Xử lý Sự cố (Troubleshooting)**: Các lỗi thường gặp và cách khắc phục nhanh.
+4. **Hard Completion Gate**: Một nhiệm vụ `implement` chỉ hoàn thành khi đã cập nhật song song cả **Tri thức AI Agent (`.agents/knowledge/`)** và **Hướng dẫn Lập trình viên (`.agents/docs/`)**.

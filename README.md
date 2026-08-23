@@ -1,4 +1,17 @@
-# 🤖 NestJS Telegram AI Assistant (Multi-User, SQLite & Google Workspace)
+# 🤖 Telebot Monorepo (NestJS, React, SQLite & Google Workspace)
+
+## Cấu trúc Monorepo
+
+```text
+apps/api/          NestJS Telegram bot và OAuth backend
+apps/web/          React + Vite admin shell
+packages/contracts/ Kiểu và route constants dùng chung
+data/              SQLite runtime data
+```
+
+Chạy cả API và React: `npm run dev` · Chạy riêng API: `npm run dev:api` · Chạy riêng React: `npm run dev:web` · Build toàn bộ: `npm run build`.
+
+Dashboard mở từ bot cần `WEB_ORIGIN`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET` trong `.env.local` ở root. `VITE_API_URL` đã có sẵn trong `apps/web/.env.local`. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
 
 Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, được xây dựng bằng **NestJS**, tích hợp **Google Gemini AI (`gemini-3.5-flash-lite`)** với cơ chế Function Calling tự động 8 công cụ, lưu trữ **Database SQLite (TypeORM)** và hỗ trợ **Đa Người Dùng (Multi-User Isolation)** kết nối độc lập với toàn bộ hệ sinh thái **Google Workspace**.
 

@@ -1,0 +1,35 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+import configuration from './config/configuration';
+import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './users/users.module';
+import { GoogleModule } from './google/google.module';
+import { GeminiModule } from './gemini/gemini.module';
+import { TelegramModule } from './telegram/telegram.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { FinanceModule } from './finance/finance.module';
+import { AuditModule } from './audit/audit.module';
+import { ReportsModule } from './reports/reports.module';
+import { fromProjectRoot } from './config/project-root';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [fromProjectRoot('.env.local'), fromProjectRoot('.env')],
+      load: [configuration],
+    }),
+    ScheduleModule.forRoot(),
+    DatabaseModule,
+    UsersModule,
+    GoogleModule,
+    RemindersModule,
+    FinanceModule,
+    AuditModule,
+    ReportsModule,
+    GeminiModule,
+    TelegramModule,
+  ],
+})
+export class AppModule {}

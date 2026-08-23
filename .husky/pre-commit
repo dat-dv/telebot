@@ -1,1 +1,5 @@
 npx lint-staged
+
+# Agent System:start
+npm run agent-system:precommit
+# Agent System:end

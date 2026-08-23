@@ -1,6 +1,8 @@
 # Compiled output
 /dist
 /node_modules
+**/dist
+**/node_modules
 
 # Logs
 npm-debug.log*
@@ -11,6 +13,7 @@ lerna-debug.log*
 
 # Environment files & Secrets
 .env
+.env.local
 .gcp-saved-tokens.json
 gcp-oauth.keys.json
 
@@ -29,3 +32,12 @@ Thumbs.db
 .idea
 *.swp
 *.swo
+
+# Base Agent:start
+AGENTS.md
+scripts/agent-system/
+.agents/*
+!.agents/docs/
+!.agents/knowledge/
+!.agents/artifacts/
+# Base Agent:end

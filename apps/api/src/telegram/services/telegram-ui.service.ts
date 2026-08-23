@@ -1,0 +1,282 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { Context, Markup } from 'telegraf';
+
+@Injectable()
+export class TelegramUiService {
+  private readonly logger = new Logger(TelegramUiService.name);
+
+  /**
+   * Helper that executes an asynchronous action while maintaining a continuous
+   * Telegram 'typing' status action (refreshed every 4 seconds) so the user
+   * always sees that the bot is actively processing.
+   */
+  public async withTyping<T>(ctx: Context, action: () => Promise<T>): Promise<T> {
+    ctx.sendChatAction('typing').catch(() => {});
+
+    const interval = setInterval(() => {
+      ctx.sendChatAction('typing').catch(() => {});
+    }, 4000);
+
+    try {
+      return await action();
+    } finally {
+      clearInterval(interval);
+    }
+  }
+
+  /**
+   * Removes any persistent reply keyboard from the user's screen
+   */
+  public getRemoveKeyboard() {
+    return Markup.removeKeyboard();
+  }
+
+  /**
+   * Builds clean Inline Keyboard attached directly under start / help messages
+   */
+  public buildMainMenuInlineMarkup(
+    isAdmin = false,
+    isGoogleConnected = false,
+    authUrl = '',
+    reportsUrl = '',
+  ) {
+    if (!isGoogleConnected && authUrl) {
+      return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
+    }
+
+    // One action per row keeps labels readable on narrow mobile screens.
+    const rows = [
+      [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
+      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+      [Markup.button.callback('📊 Xem 7 ngày tới', 'action:view_week')],
+      [Markup.button.callback('💰 Thu–chi hôm nay', 'action:view_finance')],
+      [Markup.button.callback('💳 Công nợ', 'action:view_debts')],
+      [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
+    ];
+
+    if (reportsUrl)
+      rows.splice(5, 0, [Markup.button.callback('📊 Xem báo cáo', 'action:view_reports')]);
+
+    if (isAdmin) {
+      rows.push([Markup.button.callback('👥 Danh sách user', 'action:refresh_users')]);
+      rows.push([Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')]);
+    }
+
+    return Markup.inlineKeyboard(rows);
+  }
+
+  /**
+   * Builds interactive Inline Keyboards for to-do list tasks
+   * allowing users to click a single button to complete each task!
+   */
+  public buildTaskChecklistMarkup(tasks: Array<{ id?: string | null; title?: string | null }>) {
+    const validTasks = tasks.filter((t) => t.id && t.title);
+    if (validTasks.length === 0) return undefined;
+
+    const inlineButtons = validTasks.slice(0, 8).map((t, idx) => {
+      const cleanTitle = (t.title || 'Task').trim();
+      const shortTitle = cleanTitle.length > 18 ? `${cleanTitle.slice(0, 16)}...` : cleanTitle;
+      return [
+        Markup.button.callback(`✅ Xong #${idx + 1}: ${shortTitle}`, `complete_task:${t.id}`),
+      ];
+    });
+
+    return Markup.inlineKeyboard(inlineButtons);
+  }
+
+  /**
+   * Builds interactive buttons for today summary
+   */
+  public buildTodayActionsMarkup() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Cập nhật', 'action:refresh_today')],
+      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+    ]);
+  }
+
+  public buildDebtActionsMarkup(debtId: string) {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('💵 Trả nợ', `debt:pay:${debtId}`)],
+      [Markup.button.callback('🗑️ Xóa khoản này', `debt:delete:${debtId}`)],
+    ]);
+  }
+
+  public buildConfirmationMarkup(actionId: string) {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('✅ Xác nhận', `confirm:${actionId}`),
+        Markup.button.callback('❌ Hủy', `cancel:${actionId}`),
+      ],
+    ]);
+  }
+
+  public buildVoiceConfirmationMarkup(requestId: string) {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('✅ Xác nhận', `voice:confirm:${requestId}`)],
+      [Markup.button.callback('✏️ Sửa bằng text', `voice:edit:${requestId}`)],
+      [Markup.button.callback('❌ Hủy', `voice:cancel:${requestId}`)],
+    ]);
+  }
+
+  public formatVoiceConfirmation(transcript: string): string {
+    return `🎙️ <b>BẠN YÊU CẦU</b>\n\n<blockquote>${this.escapeHtml(transcript)}</blockquote>\n\nKiểm tra nội dung trước khi gửi cho trợ lý.`;
+  }
+
+  public formatConfirmationBox(
+    name: string,
+    payload: Record<string, unknown>,
+    referenceId: string,
+  ): string {
+    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Payload JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...payload }, null, 2))}</pre>\nKiểm tra nội dung trước khi thực hiện.`;
+  }
+
+  public formatResultBox(
+    name: string,
+    result: Record<string, unknown>,
+    referenceId: string,
+    cancelled = false,
+  ): string {
+    const title = cancelled ? '❌ <b>ĐÃ HỦY THAO TÁC</b>' : '✅ <b>ĐÃ THỰC HIỆN</b>';
+    return `${title}\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Output JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...result }, null, 2))}</pre>`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  public buildNotificationActionsMarkup() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🆗 Đã hiểu', 'notice:ack')],
+      [Markup.button.callback('✖️ Đóng', 'notice:close')],
+    ]);
+  }
+
+  public buildDebtDeleteConfirmationMarkup(debtId: string) {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('✅ Xác nhận xóa', `debt:delete_confirm:${debtId}`)],
+      [Markup.button.callback('❌ Hủy', 'debt:delete_cancel')],
+    ]);
+  }
+
+  /**
+   * Builds interactive action buttons for Admin user list
+   */
+  public buildAdminUsersMarkup() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')],
+      [Markup.button.callback('🔄 Làm mới danh sách', 'action:refresh_users')],
+    ]);
+  }
+
+  /**
+   * Builds interactive buttons attached under a newly created reminder
+   * allowing the user to switch between TextMe / CallMe or Cancel the reminder.
+   */
+  public buildReminderConfirmationMarkup(
+    reminderId: string,
+    currentNotifyType: 'text' | 'call' = 'text',
+  ) {
+    const isCall = currentNotifyType === 'call';
+    const switchBtn = isCall
+      ? Markup.button.callback('💬 Đổi sang nhắn tin', `switch_reminder:text:${reminderId}`)
+      : Markup.button.callback('📞 Đổi sang báo động', `switch_reminder:call:${reminderId}`);
+
+    return Markup.inlineKeyboard([
+      [switchBtn],
+      [Markup.button.callback('❌ Hủy lời nhắc', `cancel_reminder:${reminderId}`)],
+      [Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${reminderId}`)],
+    ]);
+  }
+
+  /**
+   * Builds interactive buttons attached under a newly created Google Calendar event
+   */
+  public buildCalendarConfirmationMarkup(eventId?: string, htmlLink?: string) {
+    const buttons = [];
+    if (htmlLink) {
+      buttons.push([Markup.button.url('📅 Mở Google Calendar', htmlLink)]);
+    }
+    const actionRow = [];
+    if (eventId) {
+      buttons.push([Markup.button.callback('🗑️ Xóa lịch hẹn', `delete_calendar_event:${eventId}`)]);
+    }
+    actionRow.push(Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${eventId || 'cal'}`));
+    buttons.push(actionRow);
+
+    return Markup.inlineKeyboard(buttons);
+  }
+
+  /**
+   * Safely sends replies with automatic chunking for long messages (>4000 chars),
+   * fallback to plain text if Telegram Markdown parsing fails, and optional markup.
+   */
+  public async sendSafeReply(
+    ctx: Context,
+    text: string,
+    extraMarkup?: ReturnType<typeof Markup.inlineKeyboard> | ReturnType<typeof Markup.keyboard>,
+  ): Promise<void> {
+    const MAX_LENGTH = 4000;
+    const chunks: string[] = [];
+
+    let remaining = text;
+    while (remaining.length > 0) {
+      if (remaining.length <= MAX_LENGTH) {
+        chunks.push(remaining);
+        break;
+      }
+      let chunk = remaining.slice(0, MAX_LENGTH);
+      const lastNewline = chunk.lastIndexOf('\n');
+      if (lastNewline > 0) {
+        chunk = remaining.slice(0, lastNewline);
+        remaining = remaining.slice(lastNewline + 1);
+      } else {
+        remaining = remaining.slice(MAX_LENGTH);
+      }
+      chunks.push(chunk);
+    }
+
+    for (let i = 0; i < chunks.length; i++) {
+      const isLastChunk = i === chunks.length - 1;
+      const chunk = chunks[i];
+      const markupToSend = isLastChunk ? extraMarkup : undefined;
+
+      try {
+        if (markupToSend) {
+          await ctx.reply(chunk, { parse_mode: 'Markdown', ...markupToSend });
+        } else {
+          await ctx.reply(chunk, { parse_mode: 'Markdown', ...this.getRemoveKeyboard() });
+        }
+      } catch (markdownError) {
+        const err = markdownError as Error;
+        this.logger.warn(`Markdown reply failed, falling back to plain text: ${err.message}`);
+        if (markupToSend) {
+          await ctx.reply(chunk, markupToSend);
+        } else {
+          await ctx.reply(chunk, this.getRemoveKeyboard());
+        }
+      }
+    }
+  }
+
+  /**
+   * Automatically extracts authorization code from either a full redirect callback URL
+   * or a raw code string.
+   */
+  public extractAuthCode(input: string): string {
+    let cleaned = input.trim();
+    if (cleaned.includes('code=')) {
+      try {
+        const urlToParse = cleaned.startsWith('http') ? cleaned : `http://localhost/${cleaned}`;
+        const parsed = new URL(urlToParse);
+        const code = parsed.searchParams.get('code');
+        if (code) return code.trim();
+      } catch {
+        const match = cleaned.match(/code=([^&]+)/);
+        if (match && match[1]) return decodeURIComponent(match[1]).trim();
+      }
+    }
+    // Remove command prefix e.g. /code
+    cleaned = cleaned.replace(/^\/code\s*/i, '').trim();
+    return cleaned;
+  }
+}

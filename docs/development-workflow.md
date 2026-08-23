@@ -32,14 +32,25 @@ Dự án tích hợp sẵn hệ thống tự động định dạng và bắt l�
 
 ### 2.1 Các lệnh kiểm tra code
 ```bash
-# 1. Tự động sửa lỗi linting
+# 1. Kiểm tra linting toàn monorepo (không tự sửa file)
 npm run lint
 
-# 2. Tự động format toàn bộ source code
-npm run format
+# 2. Kiểm tra format (không tự sửa file)
+npm run format:check
 
-# 3. Kiểm tra tính toàn vẹn của build
+# 3. Tự sửa format/lint khi cần
+npm run format
+npm run lint:fix
+
+# 4. Kiểm tra type cho mọi workspace
+npm run typecheck
+
+# 5. Kiểm tra tính toàn vẹn của build
 npm run build
+
+# Chạy riêng từng ứng dụng
+npm run dev:api
+npm run dev:web
 ```
 
 ### 2.2 Git Hooks với Husky & Lint-Staged

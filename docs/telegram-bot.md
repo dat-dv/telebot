@@ -80,3 +80,6 @@ Telegram tự động tắt trạng thái `typing` sau 5 giây. Hàm `withTyping
 ### 2. Gửi phản hồi an toàn & Chia nhỏ tin nhắn (`sendSafeReply`)
 - Tự động chia nhỏ tin nhắn dài vượt quá giới hạn 4000 ký tự của Telegram.
 - Tự động fallback về plain-text nếu cú pháp Markdown của AI bị lỗi ký tự đặc biệt.
+
+### 3. Voice-to-text cục bộ
+Voice Telegram được chuyển thành text bởi `whisper.cpp` trong container, không dùng API key. Bot luôn hiển thị transcript với nút **Xác nhận**, **Sửa bằng text** và **Hủy** trước khi gửi nội dung sang Gemini. Xem cấu hình và cách xử lý sự cố tại [hướng dẫn voice](../.agents/docs/global/voice-transcription.md).

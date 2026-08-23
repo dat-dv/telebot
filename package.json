@@ -1,64 +1,28 @@
 {
-  "name": "nestjs-telegram-assistant",
+  "name": "telebot-monorepo",
   "version": "1.0.0",
-  "description": "Personal AI Assistant Telegram Bot with NestJS, Telegraf, Google Gemini, and Google Workspace",
-  "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\"",
-    "lint": "eslint \"{src,apps,libs,test,scripts}/**/*.ts\" --fix",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "auth": "tsx scripts/auth.ts",
-    "gramjs-login": "tsx scripts/gramjs-login.ts",
-    "prepare": "husky || true"
-  },
-  "dependencies": {
-    "@google/generative-ai": "^0.24.0",
-    "@nestjs/common": "^10.4.15",
-    "@nestjs/config": "^3.3.0",
-    "@nestjs/core": "^10.4.15",
-    "@nestjs/platform-express": "^10.4.15",
-    "@nestjs/schedule": "^4.1.2",
-    "@nestjs/typeorm": "^11.0.3",
-    "better-sqlite3": "^12.11.1",
-    "dotenv": "^16.4.7",
-    "google-auth-library": "^9.15.1",
-    "googleapis": "^144.0.0",
-    "nestjs-telegraf": "^2.9.1",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "telegraf": "^4.16.3",
-    "telegram": "^2.26.22",
-    "typeorm": "^1.1.0"
+    "dev": "concurrently --names api,web --prefix-colors blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run start:dev --workspace @telebot/api",
+    "dev:web": "npm run dev --workspace @telebot/web",
+    "build": "npm run build --workspace @telebot/contracts && npm run build --workspace @telebot/api && npm run build --workspace @telebot/web",
+    "build:api": "npm run build --workspace @telebot/api",
+    "build:web": "npm run build --workspace @telebot/web",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
+    "lint": "npm run lint:check --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "start:api": "npm run start:prod --workspace @telebot/api",
+    "agent-system:precommit": "node scripts/agent-system/precommit/run.mjs",
+    "agent-system:validate": "tsx scripts/agent-system/validate.ts"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.4.9",
-    "@nestjs/schematics": "^10.2.3",
-    "@types/better-sqlite3": "^9.6.0",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.10.7",
-    "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.6",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
-    "prettier": "^3.9.6",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
-  },
-  "lint-staged": {
-    "*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+    "concurrently": "^9.2.4"
   }
 }

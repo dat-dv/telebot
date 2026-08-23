@@ -6,7 +6,7 @@ Tài liệu này mô tả chi tiết kiến trúc tổng thể, luồng dữ li�
 
 ## 1. Bức Tranh Tổng Thể (High-Level Overview)
 
-Dự án được xây dựng theo mô hình **Modular Monolith** trên nền tảng **NestJS**, hỗ trợ **Kiến trúc Đa Người Dùng (Multi-Tenant Isolation)** và **Cơ sở dữ liệu nhúng SQLite (TypeORM)** kết nối 4 thực thể chính:
+Dự án được tổ chức dưới dạng **npm workspaces monorepo**. Backend là **Modular Monolith NestJS** tại `apps/api`, giao diện quản trị React + Vite tại `apps/web`, và các hợp đồng dùng chung tại `packages/contracts`. Backend vẫn hỗ trợ **Kiến trúc Đa Người Dùng (Multi-Tenant Isolation)** và **Cơ sở dữ liệu nhúng SQLite (TypeORM)**.
 
 1. **Người dùng Telegram**: Gửi yêu cầu qua ngôn ngữ tự nhiên tiếng Việt hoặc qua các lệnh tắt (Slash Commands).
 2. **Tầng Phân Quyền & Quản Lý Người Dùng (`UsersModule` + SQLite)**: Quản lý người dùng, lời mời kích hoạt Deep Link (`/invite`), danh sách trắng động và chống spam qua cơ sở dữ liệu `data/telebot.sqlite`.
@@ -39,7 +39,7 @@ graph TD
 Hệ thống tuân thủ nghiêm ngặt nguyên lý **Single Responsibility Principle (SRP)** và **Separation of Concerns (SoC)**:
 
 ```text
-src/
+apps/api/src/
 ├── app.module.ts                   # Root Module kết nối toàn bộ hệ thống
 ├── main.ts                         # Entrypoint & Fail-fast Environment Validator
 │
