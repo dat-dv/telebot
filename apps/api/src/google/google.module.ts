@@ -6,10 +6,12 @@ import { GoogleCalendarService } from './google-calendar.service';
 import { GoogleTasksService } from './google-tasks.service';
 import { UserTokenEntity } from '../database/entities/user-token.entity';
 import { TokenEncryptionService } from './token-encryption.service';
+import { GoogleResourcesController } from './google-resources.controller';
+import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserTokenEntity])],
-  controllers: [GoogleAuthController],
+  imports: [TypeOrmModule.forFeature([UserTokenEntity]), DashboardAuthModule],
+  controllers: [GoogleAuthController, GoogleResourcesController],
   providers: [GoogleAuthService, GoogleCalendarService, GoogleTasksService, TokenEncryptionService],
   exports: [GoogleAuthService, GoogleCalendarService, GoogleTasksService],
 })

@@ -10,10 +10,10 @@
 ## Runtime Rules
 
 - npm workspaces are the only package boundary. Build contracts before applications.
-- API resolves `.env.local`, `.env`, credential files, and `data/` from the monorepo root, regardless of whether it runs from `apps/api` or a root Docker working directory.
+- API resolves `.env.local`, `.env`, and `data/` from the monorepo root, regardless of whether it runs from `apps/api` or a root Docker working directory.
 - Never expose Telegram, Gemini, Google, encryption, or database secrets to the web package.
 - The web app owns static UI routes while Nest remains the only API, OAuth, token, database, and Telegram runtime. The static dashboard calls Nest directly through `NEXT_PUBLIC_API_URL`.
-- `TELEGRAM_LONG_POLLING_ENABLED` defaults to `true`. Exactly one runtime may enable long polling for a given bot token; API-only runtimes set it to `false` and retain outbound Telegram API access.
+- `TELEGRAM_LONG_POLLING_ENABLED` is required. Exactly one runtime may enable long polling for a given bot token; API-only runtimes set it to `false` and retain outbound Telegram API access.
 - Contract changes belong in `@telebot/contracts` before an API or web consumer is added.
 
 ## Telegram Dashboard
@@ -21,8 +21,8 @@
 - The bot creates a five-minute browser entry URL from a user-specific HMAC signature and expiry.
 - `GET /api/access` validates the Telegram exchange token, writes the refresh cookie, then redirects to `/reports`.
 - The React dashboard requests `GET /api/dashboard` with its short-lived Bearer token. The API derives the user exclusively from that signed token; it never accepts a frontend `userId`.
-- `APP_URL` is the canonical API/bot runtime URL, including OAuth callbacks and Telegram dashboard-entry links. `WEB_ORIGIN` defaults to `APP_URL` and is set only when the static dashboard has a different origin. `NEXT_PUBLIC_API_URL` is the public origin without `/api`, because contract route constants already include that prefix. Avoid `SERVICE_URL_*`: Coolify reserves that prefix for managed URLs. In single-origin deployments, Web Nginx proxies `/api/*` and `/oauth2callback` directly to the backend API container (`http://api:3000`) while serving static web files for other paths.
-- `CORS_ALLOW_ALL=false` is the default. Setting it to `true` reflects every request origin and permits credentials for temporary cross-origin local testing; it must be treated as an explicit security exception.
+- `APP_URL`, `WEB_ORIGIN`, and `NEXT_PUBLIC_API_URL` are required explicit URLs. `NEXT_PUBLIC_API_URL` is the public origin without `/api`, because contract route constants already include that prefix. Avoid `SERVICE_URL_*`: Coolify reserves that prefix for managed URLs. In single-origin deployments, Web Nginx proxies `/api/*` and `/oauth2callback` directly to the backend API container (`http://api:3000`) while serving static web files for other paths.
+- `CORS_ALLOW_ALL` is required and must be explicitly set to `true` or `false`. Setting it to `true` reflects every request origin and permits credentials for temporary cross-origin local testing; it must be treated as an explicit security exception.
 - Dashboard access and refresh tokens are signed with the two private dashboard token secrets. During local tunnel development, Vite proxies dashboard API routes to the exposed API Docker port at `localhost:3000`.
 - The frontend stores only the 15-minute dashboard access token. A rotated seven-day refresh token remains in an `HttpOnly` cookie and Axios uses it after a 401.
 - The browser routes `/reports`, `/reports/statistics`, and `/reports/contacts` are exported as static files. UI ownership is split into `modules/auth`, `modules/dashboard`, `modules/contacts`, and reusable `shared/api` and `shared/ui` components.

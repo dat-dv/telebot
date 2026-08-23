@@ -7,7 +7,7 @@ export class TokenEncryptionService {
   private readonly key: Buffer;
 
   constructor(config: ConfigService) {
-    const value = config.get<string>('security.encryptionKey', '');
+    const value = config.getOrThrow<string>('security.encryptionKey');
     if (!/^[0-9a-f]{64}$/i.test(value)) {
       throw new Error('DATA_ENCRYPTION_KEY must be a 64-character hexadecimal key.');
     }

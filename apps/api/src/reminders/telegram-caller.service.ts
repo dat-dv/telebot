@@ -13,12 +13,9 @@ export class TelegramCallerService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   public async onModuleInit(): Promise<void> {
-    const rawApiId =
-      this.configService.get<string>('telegram.apiId') || process.env.TELEGRAM_API_ID;
-    const apiHash =
-      this.configService.get<string>('telegram.apiHash') || process.env.TELEGRAM_API_HASH;
-    const sessionStr =
-      this.configService.get<string>('telegram.session') || process.env.TELEGRAM_SESSION;
+    const rawApiId = this.configService.get<string>('telegram.apiId');
+    const apiHash = this.configService.get<string>('telegram.apiHash');
+    const sessionStr = this.configService.get<string>('telegram.session');
 
     if (!rawApiId || !apiHash || !sessionStr) {
       this.logger.log(

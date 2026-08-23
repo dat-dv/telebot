@@ -9,6 +9,13 @@ export interface CreateTaskOptions {
   taskListId?: string;
 }
 
+export interface UpdateTaskOptions {
+  title?: string;
+  notes?: string;
+  due?: string;
+  status?: 'needsAction' | 'completed';
+}
+
 export interface ListTasksOptions {
   taskListId?: string;
   showCompleted?: boolean;
@@ -152,6 +159,31 @@ export class GoogleTasksService {
     });
 
     this.logger.log(`Completed Google Task: ${taskId} for user ${userId || 'default'}`);
+    return res.data;
+  }
+
+  public async getTask(
+    taskId: string,
+    taskListId: string = '@default',
+    userId?: number,
+  ): Promise<tasks_v1.Schema$Task> {
+    const tasks = this.getTasksClient(userId);
+    const res = await tasks.tasks.get({ tasklist: taskListId, task: taskId });
+    return res.data;
+  }
+
+  public async updateTask(
+    taskId: string,
+    options: UpdateTaskOptions,
+    taskListId: string = '@default',
+    userId?: number,
+  ): Promise<tasks_v1.Schema$Task> {
+    const tasks = this.getTasksClient(userId);
+    const res = await tasks.tasks.patch({
+      tasklist: taskListId,
+      task: taskId,
+      requestBody: options,
+    });
     return res.data;
   }
 

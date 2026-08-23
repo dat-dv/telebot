@@ -30,9 +30,9 @@ export class ReceiptImageAnalysisService {
     configService: ConfigService,
     private readonly geminiService: GeminiService,
   ) {
-    this.maxBytes = configService.get<number>('receiptImage.maxBytes', 10 * 1024 * 1024);
-    this.timeoutMs = configService.get<number>('receiptImage.timeoutMs', 45_000);
-    this.langPath = configService.get<string>('receiptImage.langPath', '/app/assets/tessdata');
+    this.maxBytes = configService.getOrThrow<number>('receiptImage.maxBytes');
+    this.timeoutMs = configService.getOrThrow<number>('receiptImage.timeoutMs');
+    this.langPath = configService.getOrThrow<string>('receiptImage.langPath');
   }
 
   public async analyze(telegram: Telegram, photos: TelegramPhoto[]): Promise<ReceiptImageAnalysis> {

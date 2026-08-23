@@ -41,3 +41,9 @@ Thêm một nút chuyển Light/Dark dùng được trên toàn bộ dashboard T
 
 - Dark mode cần phủ toàn bộ màu hard-code hiện có: dùng token CSS ở tầng chung để tránh phải sửa từng màn hình và giảm rủi ro bỏ sót.
 - Để không ảnh hưởng thay đổi đang có trong `styles.css`, chỉ chỉnh theo đúng các vùng palette/theme và đối chiếu diff trước khi hoàn tất.
+
+## Kết quả triển khai
+
+- Hoàn tất theme provider dùng chung, script khởi tạo trước khi render, và nút chuyển giao diện tại footer của thanh điều hướng.
+- Hoàn tất dark palette cho các surface, navigation, bảng dữ liệu, skeleton, cảnh báo và trạng thái semantic chính; mobile có vùng bấm tối thiểu 44px.
+- Đã cập nhật tài liệu dashboard và chạy thành công `npm run lint`, `npm run typecheck`, `npm run build`, cùng `git diff --check`.

@@ -4,11 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { google } from 'googleapis';
 import { OAuth2Client, Credentials } from 'google-auth-library';
-import * as fs from 'fs';
-import * as path from 'path';
 import { UserTokenEntity } from '../database/entities/user-token.entity';
 import { TokenEncryptionService } from './token-encryption.service';
-import { fromProjectRoot } from '../config/project-root';
 
 export const GOOGLE_SCOPES = [
   // 1. Thông tin cơ bản người dùng (User Profile & Email)
@@ -39,41 +36,17 @@ export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/contacts',
 ];
 
-interface InstalledCredentials {
-  client_id: string;
-  client_secret: string;
-  redirect_uris?: string[];
-  [key: string]: unknown;
-}
-
-interface CredentialsFile {
-  installed?: InstalledCredentials;
-  web?: InstalledCredentials;
-  client_id?: string;
-  client_secret?: string;
-  redirect_uris?: string[];
-}
-
 @Injectable()
 export class GoogleAuthService implements OnModuleInit {
   private readonly logger = new Logger(GoogleAuthService.name);
   private userClients: Map<string, OAuth2Client> = new Map();
-  private readonly credentialsPath: string;
 
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(UserTokenEntity)
     private readonly tokenRepo: Repository<UserTokenEntity>,
     private readonly encryption: TokenEncryptionService,
-  ) {
-    const configuredPath = this.configService.get<string>(
-      'google.credentialsPath',
-      './gcp-oauth.keys.json',
-    );
-    this.credentialsPath = path.isAbsolute(configuredPath)
-      ? configuredPath
-      : fromProjectRoot(configuredPath);
-  }
+  ) {}
 
   public async onModuleInit(): Promise<void> {
     await this.preloadTokensFromDatabase();
@@ -116,45 +89,14 @@ export class GoogleAuthService implements OnModuleInit {
   }
 
   public getClientKeys(): { clientId: string; clientSecret: string; redirectUri: string } | null {
-    const appUrl = this.configService.get<string>('appUrl', 'http://localhost:3000');
+    const appUrl = this.configService.getOrThrow<string>('appUrl');
     const defaultRedirectUri = `${appUrl.replace(/\/+$/, '')}/oauth2callback`;
 
-    // 1. First priority: Environment Variables (GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET)
-    const envClientId = this.configService.get<string>('google.clientId');
-    const envClientSecret = this.configService.get<string>('google.clientSecret');
-
-    if (envClientId && envClientSecret) {
-      return {
-        clientId: envClientId.trim(),
-        clientSecret: envClientSecret.trim(),
-        redirectUri: defaultRedirectUri,
-      };
-    }
-
-    // 2. Second priority: File gcp-oauth.keys.json fallback
-    try {
-      if (fs.existsSync(this.credentialsPath)) {
-        const raw = fs.readFileSync(this.credentialsPath, 'utf8');
-        const credentials = JSON.parse(raw) as CredentialsFile;
-        const keys = credentials.installed || credentials.web || credentials;
-
-        const clientId = keys.client_id;
-        const clientSecret = keys.client_secret;
-        const redirectUri = keys.redirect_uris?.[0] || defaultRedirectUri;
-
-        if (clientId && clientSecret) {
-          return { clientId, clientSecret, redirectUri };
-        }
-      }
-    } catch (err) {
-      const error = err as Error;
-      this.logger.error(`Error reading client keys from file: ${error.message}`);
-    }
-
-    this.logger.warn(
-      'Google OAuth credentials not found in environment variables (GOOGLE_CLIENT_ID) or file (gcp-oauth.keys.json).',
-    );
-    return null;
+    return {
+      clientId: this.configService.getOrThrow<string>('google.clientId'),
+      clientSecret: this.configService.getOrThrow<string>('google.clientSecret'),
+      redirectUri: defaultRedirectUri,
+    };
   }
 
   public createOAuth2Instance(): OAuth2Client | null {
@@ -171,7 +113,7 @@ export class GoogleAuthService implements OnModuleInit {
     }
 
     if (!targetUserId) {
-      const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+      const allowedIds = this.configService.getOrThrow<number[]>('telegram.allowedUserIds');
       if (allowedIds.length > 0) targetUserId = allowedIds[0];
     }
 

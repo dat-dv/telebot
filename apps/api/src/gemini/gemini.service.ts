@@ -159,13 +159,9 @@ export class GeminiService {
     private readonly updateReminderTool: UpdateReminderTool,
     private readonly tasksService: GoogleTasksService,
   ) {
-    const apiKey = this.configService.get<string>('gemini.apiKey', '');
-    const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
-    this.primaryModelName =
-      !rawModel || rawModel === 'gemini-2.0-flash' || rawModel === 'gemini-1.5-flash'
-        ? 'gemini-3.5-flash-lite'
-        : rawModel;
-    this.defaultTimeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
+    const apiKey = this.configService.getOrThrow<string>('gemini.apiKey');
+    this.primaryModelName = this.configService.getOrThrow<string>('gemini.model');
+    this.defaultTimeZone = this.configService.getOrThrow<string>('timezone');
 
     this.genAI = new GoogleGenerativeAI(apiKey);
 

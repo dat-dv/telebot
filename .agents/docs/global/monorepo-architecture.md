@@ -20,7 +20,7 @@ Tài liệu này hướng dẫn cấu trúc tổ chức dự án monorepo và qu
 
 ## Chạy dự án
 
-1. Sao chép `.env.example` thành `.env.local` ở root và điền các biến server.
+1. Sao chép `.env.example` thành `.env.local` ở root và điền toàn bộ biến bắt buộc; xem thêm [Env Guard](environment-guard.md).
 2. Chạy cả API và Web cùng lúc bằng `npm run dev` (hoặc chạy riêng từng app bằng `npm run dev:api` / `npm run dev:web`).
 3. Chạy `npm run build` trước khi phát hành; lệnh này build contracts, API rồi web.
 
@@ -37,7 +37,7 @@ Dashboard tổ chức theo DDD: `modules/auth` sở hữu token/session phía tr
 
 ## Tránh xung đột bot Telegram
 
-Telegram chỉ cho phép một tiến trình gọi long polling (`getUpdates`) với cùng một bot token. Biến `TELEGRAM_LONG_POLLING_ENABLED` mặc định là `true`; chỉ đặt `true` tại đúng một bot worker. Khi chạy local chỉ để dùng dashboard/API trong lúc production đang chạy bot, đặt `TELEGRAM_LONG_POLLING_ENABLED=false` trong `.env.local`. Instance này vẫn gửi được tin nhắn chủ động (ví dụ lời nhắc và thông báo OAuth) nhưng không nhận command hoặc update từ Telegram.
+Telegram chỉ cho phép một tiến trình gọi long polling (`getUpdates`) với cùng một bot token. Phải khai báo rõ `TELEGRAM_LONG_POLLING_ENABLED`; chỉ đặt `true` tại đúng một bot worker. Khi chạy local chỉ để dùng dashboard/API trong lúc production đang chạy bot, đặt `TELEGRAM_LONG_POLLING_ENABLED=false` trong `.env.local`. Instance này vẫn gửi được tin nhắn chủ động (ví dụ lời nhắc và thông báo OAuth) nhưng không nhận command hoặc update từ Telegram.
 
 ## Dashboard mở từ bot
 

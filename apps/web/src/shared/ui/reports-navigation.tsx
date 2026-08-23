@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { APP_ROUTES } from '@telebot/contracts';
+import { useTheme } from '@/shared/providers/theme-provider';
 
 export type ReportsNavigationPage = 'home' | 'statistics' | 'contacts' | 'debts' | 'expenses';
 
@@ -26,6 +29,9 @@ export function ReportsNavigation({
   active: ReportsNavigationPage;
   footer?: ReactNode;
 }) {
+  const { theme, toggleTheme } = useTheme();
+  const nextThemeLabel = theme === 'light' ? 'Bật giao diện tối' : 'Bật giao diện sáng';
+
   return (
     <aside className="app-nav" aria-label="Điều hướng dashboard">
       <div className="app-nav__brand">
@@ -51,8 +57,44 @@ export function ReportsNavigation({
           </Link>
         ))}
       </nav>
-      {footer ? <div className="app-nav__footer">{footer}</div> : null}
+      <div className="app-nav__footer">
+        {footer}
+        <button
+          aria-label={nextThemeLabel}
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={nextThemeLabel}
+          type="button"
+        >
+          <ThemeIcon theme={theme} />
+          <span>{theme === 'light' ? 'Giao diện tối' : 'Giao diện sáng'}</span>
+        </button>
+      </div>
     </aside>
+  );
+}
+
+function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
+  const sharedProps = {
+    'aria-hidden': true,
+    className: 'app-nav__icon',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: 1.8,
+    viewBox: '0 0 24 24',
+  };
+
+  return theme === 'light' ? (
+    <svg {...sharedProps}>
+      <path d="M20.4 15.5A8.5 8.5 0 0 1 8.5 3.6 8.5 8.5 0 1 0 20.4 15.5Z" />
+    </svg>
+  ) : (
+    <svg {...sharedProps}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
   );
 }
 

@@ -12,7 +12,7 @@ metadata:
 `apps/web/src/modules/dashboard` hiển thị trang Tổng quan và Thống kê từ payload dashboard đã xác thực.
 
 - API/cache: `getDashboard` gọi `API_ROUTES.dashboard`; `useDashboardQuery` là nguồn query key duy nhất. Nút Làm mới phải invalidate key này.
-- UI: luôn giữ skeleton khi tải, trạng thái rỗng rõ ràng, cảnh báo có nút thử lại khi lỗi, và các bảng dữ liệu dày khi thành công. Tổng quan có việc cần chú ý và link nhanh; Thống kê có số liệu thu–chi, công nợ và bảng chi tiết. Không hiển thị nhãn trạng thái kết nối Google cố định ở sidebar hoặc tiêu đề; trạng thái này chỉ dùng để chọn thông điệp rỗng phù hợp cho Lịch và Việc cần làm. Màu xanh/vàng/đỏ chỉ biểu thị số liệu tốt/cần theo dõi/âm; sidebar desktop giữ icon kèm chữ, còn mobile cuộn ngang.
+- UI: luôn giữ skeleton khi tải, trạng thái rỗng rõ ràng, cảnh báo có nút thử lại khi lỗi, và các bảng dữ liệu dày khi thành công. Tổng quan có việc cần chú ý và link nhanh; Thống kê có số liệu thu–chi, công nợ và bảng chi tiết. Không hiển thị nhãn trạng thái kết nối Google cố định ở sidebar hoặc tiêu đề; trạng thái này chỉ dùng để chọn thông điệp rỗng phù hợp cho Lịch và Việc cần làm. Màu xanh/vàng/đỏ chỉ biểu thị số liệu tốt/cần theo dõi/âm. Cuối sidebar có nút đổi giao diện sáng/tối; lựa chọn được lưu trong trình duyệt, lần đầu sẽ theo cài đặt hệ thống. Sidebar desktop giữ icon kèm chữ, còn mobile cuộn ngang.
 - Đăng xuất: gọi API logout, xóa token qua module `auth`, xóa cache rồi quay lại `/reports/`.
 
 ## Cấu hình production
@@ -21,5 +21,11 @@ metadata:
 - Static export không có API route của Next.js. Nginx phải chuyển `https://telebot.datintech.site/api/*` sang NestJS và trả `apps/web/out` cho mọi route khác.
 - Khi thay đổi `NEXT_PUBLIC_API_URL`, build lại image/web bundle vì biến này được đóng gói tại build-time.
 - Nút Dashboard trong `/help` và `/start` là callback: mỗi lần bấm, bot cấp link dùng một lần mới trong tin nhắn phản hồi. Người dùng bấm link mới để mở dashboard; không bấm lại URL cũ.
+
+## Chạy local và xử lý lỗi link
+
+- Chạy đồng thời `npm run dev:api` (cổng `3000`) và `npm run dev:web` (cổng `5173`). Khi dev, Next chuyển `/api/*` từ `http://localhost:5173` sang `NEXT_PUBLIC_API_URL` (mặc định `http://localhost:3000`), nên link Dashboard local có thể dùng cùng origin `5173`.
+- Link exchange hợp lệ redirect sang `/reports`. Link thiếu token, hết hạn hoặc đã dùng trả trang HTML tiếng Việt với HTTP `401`, hướng dẫn bấm lại nút Dashboard trên Telegram.
+- Nếu API cổng `3000` đang tắt, Next rewrite không thể tự dựng trang `503`; hãy khởi động `npm run dev:api`. Production dùng Nginx để proxy API và không dùng rewrite của Next.
 
 Khi dữ liệu dashboard sai hoặc rỗng, kiểm tra DTO/API trước khi sửa cột hiển thị. Các bảng dùng primitive trong `src/shared/ui`, không tạo lại primitive riêng trong module.

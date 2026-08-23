@@ -13,6 +13,15 @@ export interface CreateEventOptions {
   timeZone?: string;
 }
 
+export interface UpdateEventOptions {
+  summary?: string;
+  description?: string;
+  startDateTime?: string;
+  endDateTime?: string;
+  location?: string;
+  timeZone?: string;
+}
+
 export interface ListEventsOptions {
   timeMin?: string;
   timeMax?: string;
@@ -44,7 +53,7 @@ export class GoogleCalendarService {
     userId?: number,
   ): Promise<calendar_v3.Schema$Event[]> {
     const calendar = this.getCalendarClient(userId);
-    const timeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
+    const timeZone = this.configService.getOrThrow<string>('timezone');
 
     const res = await calendar.events.list({
       calendarId: 'primary',
@@ -65,7 +74,7 @@ export class GoogleCalendarService {
     userId?: number,
   ): Promise<calendar_v3.Schema$Event> {
     const calendar = this.getCalendarClient(userId);
-    const defaultTimeZone = this.configService.get<string>('timezone', 'Asia/Ho_Chi_Minh');
+    const defaultTimeZone = this.configService.getOrThrow<string>('timezone');
     const timeZone = options.timeZone || defaultTimeZone;
 
     // Multi-Reminder 4 mốc: 60p, 30p, 10p, 0p
@@ -116,6 +125,30 @@ export class GoogleCalendarService {
     });
     this.logger.log(`Deleted Google Calendar event: ${eventId} for user ${userId || 'default'}`);
     return true;
+  }
+
+  public async updateEvent(
+    eventId: string,
+    options: UpdateEventOptions,
+    userId?: number,
+  ): Promise<calendar_v3.Schema$Event> {
+    const calendar = this.getCalendarClient(userId);
+    const existing = await this.getEvent(eventId, userId);
+    const timeZone = options.timeZone || this.configService.getOrThrow<string>('timezone');
+    const res = await calendar.events.patch({
+      calendarId: 'primary',
+      eventId,
+      requestBody: {
+        summary: options.summary ?? existing.summary,
+        description: options.description ?? existing.description,
+        location: options.location ?? existing.location,
+        start: options.startDateTime
+          ? { dateTime: options.startDateTime, timeZone }
+          : existing.start,
+        end: options.endDateTime ? { dateTime: options.endDateTime, timeZone } : existing.end,
+      },
+    });
+    return res.data;
   }
 
   public async getEvent(eventId: string, userId?: number): Promise<calendar_v3.Schema$Event> {

@@ -11,13 +11,17 @@ import {
 } from '@/modules/auth/client/auth-storage';
 
 function normalizeApiOrigin(value: string): string {
-  return value.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  return value
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/api$/i, '');
 }
 
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
-const apiUrl = normalizeApiOrigin(
-  configuredApiUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''),
-);
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+if (!configuredApiUrl) {
+  throw new Error('NEXT_PUBLIC_API_URL must be configured before the dashboard can call the API.');
+}
+const apiUrl = normalizeApiOrigin(configuredApiUrl);
 export const httpClient = axios.create({ baseURL: apiUrl, withCredentials: true });
 let refreshRequest: Promise<string> | undefined;
 

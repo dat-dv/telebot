@@ -5,6 +5,7 @@ This directory contains system-wide business policies, cross-cutting architectur
 ## Global Topics
 
 - [Monorepo Architecture](monorepo-architecture.md): npm workspaces, app boundaries, environment scoping, and build order.
+- [Environment Guard](environment-guard.md): fail-fast configuration contract for API startup and dashboard builds.
 - [Type Safety & Zero-Any Invariant](type-safety.md): System-wide zero-any policy and type safety requirements.
 - [Route & Path Constants Architecture](route-constants.md): Centralized route and endpoint registry invariants and zero-hardcoding enforcement.
 - [Local Voice Transcription](voice-transcription.md): Offline Whisper runtime, transcript review state, and Telegram integration.
@@ -15,6 +16,7 @@ This directory contains system-wide business policies, cross-cutting architectur
 - [Telegram Command Intake](telegram-command-intake.md): Long-polling ownership and command-response fallback checks.
 - [Receipt Image Analysis](receipt-image-analysis.md): In-memory image analysis and confirmation-gated finance proposals.
 - [Web UI Direction](web-ui-direction.md): Shared data-dense dashboard and accessibility requirements.
+- [Backend CRUD API](backend-crud-api.md): Ownership-safe REST operations for finance, reminders, users, invites, Calendar, and Tasks.
 
 ## Consumer Project Adoption
 

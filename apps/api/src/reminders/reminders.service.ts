@@ -11,6 +11,13 @@ export interface CreateReminderDto {
   repeatType?: 'none' | 'daily' | 'weekly';
 }
 
+export interface UpdateReminderDto {
+  title?: string;
+  remindAt?: Date;
+  notifyType?: 'text' | 'call';
+  repeatType?: 'none' | 'daily' | 'weekly';
+}
+
 @Injectable()
 export class RemindersService {
   private readonly logger = new Logger(RemindersService.name);
@@ -57,6 +64,27 @@ export class RemindersService {
         remindAt: 'ASC',
       },
     });
+  }
+
+  public getUserReminder(userId: number, id: string): Promise<ReminderEntity | null> {
+    return this.reminderRepo.findOne({ where: { id, userId: userId.toString() } });
+  }
+
+  public async updateReminder(
+    userId: number,
+    id: string,
+    input: UpdateReminderDto,
+  ): Promise<ReminderEntity | null> {
+    const reminder = await this.getUserReminder(userId, id);
+    if (!reminder) return null;
+    if (input.title !== undefined) reminder.title = input.title.trim();
+    if (input.remindAt !== undefined) {
+      reminder.remindAt = input.remindAt;
+      reminder.isTriggered = false;
+    }
+    if (input.notifyType !== undefined) reminder.notifyType = input.notifyType;
+    if (input.repeatType !== undefined) reminder.repeatType = input.repeatType;
+    return this.reminderRepo.save(reminder);
   }
 
   public async markTriggered(reminderId: string): Promise<void> {

@@ -33,6 +33,21 @@ export interface CreateDebtDto {
   dueAt?: string;
 }
 
+export interface UpdateTransactionDto {
+  type?: 'income' | 'expense';
+  amount?: number;
+  category?: string;
+  note?: string;
+  occurredAt?: string;
+}
+
+export interface UpdateDebtDto {
+  direction?: 'receivable' | 'payable';
+  amount?: number;
+  note?: string;
+  dueAt?: string;
+}
+
 @Injectable()
 export class FinanceService {
   constructor(
@@ -102,6 +117,54 @@ export class FinanceService {
       .reduce((total, transaction) => total + transaction.amount, 0);
 
     return { income, expense, balance: income - expense, transactions };
+  }
+
+  public async listTransactions(
+    userId: number,
+    type?: 'income' | 'expense',
+  ): Promise<FinanceTransactionEntity[]> {
+    const query = this.transactionRepo
+      .createQueryBuilder('transaction')
+      .where('transaction.user_id = :userId', { userId: userId.toString() });
+    if (type) query.andWhere('transaction.type = :type', { type });
+    return query.orderBy('transaction.occurred_at', 'DESC').take(200).getMany();
+  }
+
+  public getTransaction(userId: number, id: string): Promise<FinanceTransactionEntity | null> {
+    return this.transactionRepo.findOne({ where: { id, userId: userId.toString() } });
+  }
+
+  public async updateTransaction(
+    userId: number,
+    id: string,
+    input: UpdateTransactionDto,
+  ): Promise<FinanceTransactionEntity | null> {
+    const transaction = await this.getTransaction(userId, id);
+    if (!transaction) return null;
+    if (input.type) transaction.type = input.type;
+    if (input.amount !== undefined) {
+      const amount = Math.round(Number(input.amount));
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Số tiền phải lớn hơn 0.');
+      transaction.amount = amount;
+    }
+    if (input.category !== undefined) transaction.category = input.category.trim() || 'Khác';
+    if (input.note !== undefined) {
+      if (!input.note.trim()) throw new Error('Cần có nội dung cho khoản thu hoặc chi.');
+      transaction.note = input.note.trim();
+    }
+    if (input.occurredAt !== undefined) {
+      const occurredAt = new Date(input.occurredAt);
+      if (Number.isNaN(occurredAt.getTime())) throw new Error('Ngày phát sinh không hợp lệ.');
+      transaction.occurredAt = occurredAt;
+    }
+    return this.transactionRepo.save(transaction);
+  }
+
+  public async deleteTransaction(userId: number, id: string): Promise<boolean> {
+    const transaction = await this.getTransaction(userId, id);
+    if (!transaction) return false;
+    await this.transactionRepo.remove(transaction);
+    return true;
   }
 
   public getTodayRange(): { startAt: string; endAt: string } {
@@ -178,7 +241,18 @@ export class FinanceService {
     });
   }
 
-  private async createContact(
+  public getContact(userId: number, id: string): Promise<DebtContactEntity | null> {
+    return this.contactRepo.findOne({ where: { id, userId: userId.toString() } });
+  }
+
+  public async deleteContact(userId: number, id: string): Promise<boolean> {
+    const contact = await this.getContact(userId, id);
+    if (!contact) return false;
+    await this.contactRepo.remove(contact);
+    return true;
+  }
+
+  public async createContact(
     userId: number,
     name: string,
     alias?: string,
@@ -214,6 +288,52 @@ export class FinanceService {
       .andWhere('debt.status = :status', { status: 'active' })
       .orderBy('debt.created_at', 'DESC')
       .getMany();
+  }
+
+  public async listDebts(userId: number, status?: 'active' | 'settled'): Promise<DebtEntity[]> {
+    const query = this.debtRepo
+      .createQueryBuilder('debt')
+      .leftJoinAndSelect('debt.contact', 'contact')
+      .where('debt.user_id = :userId', { userId: userId.toString() });
+    if (status) query.andWhere('debt.status = :status', { status });
+    return query.orderBy('debt.created_at', 'DESC').take(200).getMany();
+  }
+
+  public getDebt(userId: number, id: string): Promise<DebtEntity | null> {
+    return this.debtRepo.findOne({
+      where: { id, userId: userId.toString() },
+      relations: { contact: true },
+    });
+  }
+
+  public async updateDebt(
+    userId: number,
+    id: string,
+    input: UpdateDebtDto,
+  ): Promise<DebtEntity | null> {
+    const debt = await this.getDebt(userId, id);
+    if (!debt) return null;
+    if (input.direction) debt.direction = input.direction;
+    if (input.amount !== undefined) {
+      const nextOriginalAmount = Math.round(Number(input.amount));
+      const paidAmount = debt.originalAmount - debt.remainingAmount;
+      if (!Number.isFinite(nextOriginalAmount) || nextOriginalAmount <= 0) {
+        throw new Error('Số tiền phải lớn hơn 0.');
+      }
+      if (nextOriginalAmount < paidAmount) {
+        throw new Error('Số tiền mới không được nhỏ hơn phần đã thanh toán.');
+      }
+      debt.originalAmount = nextOriginalAmount;
+      debt.remainingAmount = nextOriginalAmount - paidAmount;
+      debt.status = debt.remainingAmount === 0 ? 'settled' : 'active';
+    }
+    if (input.note !== undefined) debt.note = input.note.trim();
+    if (input.dueAt !== undefined) {
+      const dueAt = new Date(input.dueAt);
+      if (Number.isNaN(dueAt.getTime())) throw new Error('Ngày hẹn trả không hợp lệ.');
+      debt.dueAt = dueAt;
+    }
+    return this.debtRepo.save(debt);
   }
 
   public async listExpenses(userId: number): Promise<FinanceTransactionEntity[]> {

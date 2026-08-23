@@ -25,10 +25,10 @@ export class VoiceTranscriptionService {
   private readonly maxBytes: number;
 
   constructor(private readonly configService: ConfigService) {
-    this.whisperUrl = this.configService.get<string>('voice.whisperUrl', 'http://127.0.0.1:8080');
-    this.timeoutMs = this.configService.get<number>('voice.timeoutMs', 45_000);
-    this.maxDurationSeconds = this.configService.get<number>('voice.maxDurationSeconds', 90);
-    this.maxBytes = this.configService.get<number>('voice.maxBytes', 8 * 1024 * 1024);
+    this.whisperUrl = this.configService.getOrThrow<string>('voice.whisperUrl');
+    this.timeoutMs = this.configService.getOrThrow<number>('voice.timeoutMs');
+    this.maxDurationSeconds = this.configService.getOrThrow<number>('voice.maxDurationSeconds');
+    this.maxBytes = this.configService.getOrThrow<number>('voice.maxBytes');
   }
 
   public async transcribe(telegram: Telegram, voice: TelegramVoice): Promise<string> {

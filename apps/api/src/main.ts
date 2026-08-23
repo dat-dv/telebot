@@ -2,10 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import { validateEnvironment, printEnvValidationBanner } from './config/env.validator';
+import {
+  loadEnvironment,
+  validateEnvironment,
+  printEnvValidationBanner,
+} from './config/env.validator';
 
 async function bootstrap() {
   // 1. Strict Fail-Fast Environment Validation
+  loadEnvironment();
   const validation = validateEnvironment();
   if (!validation.isValid) {
     printEnvValidationBanner(validation.errors);
@@ -27,11 +32,11 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('port', 3000);
-  const appUrl = configService.get<string>('appUrl', 'http://localhost:3000');
-  const webOrigin = configService.get<string>('webOrigin', '');
-  const corsAllowAll = configService.get<boolean>('cors.allowAll', false);
-  const longPollingEnabled = configService.get<boolean>('telegram.longPollingEnabled', true);
+  const port = configService.getOrThrow<number>('port');
+  const appUrl = configService.getOrThrow<string>('appUrl');
+  const webOrigin = configService.getOrThrow<string>('webOrigin');
+  const corsAllowAll = configService.getOrThrow<boolean>('cors.allowAll');
+  const longPollingEnabled = configService.getOrThrow<boolean>('telegram.longPollingEnabled');
 
   const corsOrigins = [webOrigin];
   if (process.env.NODE_ENV !== 'production') corsOrigins.push('http://localhost:5173');

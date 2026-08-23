@@ -4,9 +4,15 @@ import { FinanceTransactionEntity } from '../database/entities/finance-transacti
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { FinanceService } from './finance.service';
+import { FinanceController } from './finance.controller';
+import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FinanceTransactionEntity, DebtEntity, DebtContactEntity])],
+  imports: [
+    TypeOrmModule.forFeature([FinanceTransactionEntity, DebtEntity, DebtContactEntity]),
+    DashboardAuthModule,
+  ],
+  controllers: [FinanceController],
   providers: [FinanceService],
   exports: [FinanceService],
 })

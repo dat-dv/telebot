@@ -25,7 +25,7 @@ import { ReportsModule } from '../reports/reports.module';
         }
         return {
           token,
-          launchOptions: configService.get<boolean>('telegram.longPollingEnabled', true)
+          launchOptions: configService.getOrThrow<boolean>('telegram.longPollingEnabled')
             ? undefined
             : false,
         };

@@ -38,8 +38,8 @@ export class TelegramUpdate {
   ) {}
 
   private async getReportsUrl(userId?: number): Promise<string> {
-    const appUrl = this.configService.get<string>('appUrl', '').replace(/\/+$/, '');
-    if (!appUrl || !userId) return '';
+    const appUrl = this.configService.getOrThrow<string>('appUrl').replace(/\/+$/, '');
+    if (!userId) return '';
     if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.test(appUrl)) {
       return '';
     }

@@ -7,7 +7,7 @@ export interface AppConfig {
     token: string;
     longPollingEnabled: boolean;
     allowedUserIds: number[];
-    adminId?: number;
+    adminId: number;
     apiId?: string;
     apiHash?: string;
     session?: string;
@@ -31,7 +31,6 @@ export interface AppConfig {
   google: {
     clientId: string;
     clientSecret: string;
-    credentialsPath: string;
   };
   reports: {
     dashboardAccessTokenSecret: string;
@@ -40,79 +39,87 @@ export interface AppConfig {
   security: { encryptionKey: string };
 }
 
-function cleanEnv(val: string | undefined, defaultVal = ''): string {
-  if (!val) return defaultVal;
-  return val
-    .trim()
+function readEnv(name: string): string {
+  const value = process.env[name]
+    ?.trim()
     .replace(/^['"]+|['"]+$/g, '')
     .trim();
+  if (!value) throw new Error(`${name} must be configured before the application starts.`);
+  return value;
 }
 
-function parseBooleanEnv(val: string | undefined, defaultValue: boolean): boolean {
-  const normalized = cleanEnv(val).toLowerCase();
-  if (!normalized) return defaultValue;
-  return !['false', '0', 'no', 'off'].includes(normalized);
+function readOptionalEnv(name: string): string | undefined {
+  const value = process.env[name];
+  return value
+    ? value
+        .trim()
+        .replace(/^['"]+|['"]+$/g, '')
+        .trim() || undefined
+    : undefined;
+}
+
+function readBooleanEnv(name: string): boolean {
+  return readEnv(name).toLowerCase() === 'true';
+}
+
+function readNumberEnv(name: string): number {
+  return Number(readEnv(name));
 }
 
 export default (): AppConfig => {
-  const allowedUserIdsRaw = cleanEnv(process.env.TELEGRAM_ALLOWED_USER_IDS);
-  const allowedUserIds = allowedUserIdsRaw
+  const allowedUserIds = (readOptionalEnv('TELEGRAM_ALLOWED_USER_IDS') ?? '')
     .split(',')
     .map((id) => id.trim())
     .filter((id) => id.length > 0)
     .map((id) => Number(id))
     .filter((id) => !isNaN(id));
 
-  const rawAdminId = cleanEnv(process.env.TELEGRAM_ADMIN_ID);
-  const adminId = rawAdminId ? Number(rawAdminId) : undefined;
+  const adminId = readNumberEnv('TELEGRAM_ADMIN_ID');
 
   if (adminId && !allowedUserIds.includes(adminId)) {
     allowedUserIds.push(adminId);
   }
 
-  const rawAppUrl = cleanEnv(process.env.APP_URL, 'http://localhost:3000');
-  const appUrl = rawAppUrl.replace(/\/+$/, '');
+  const appUrl = readEnv('APP_URL').replace(/\/+$/, '');
 
   return {
-    port: Number(cleanEnv(process.env.PORT, '3000')) || 3000,
+    port: readNumberEnv('PORT'),
     appUrl,
-    webOrigin: cleanEnv(process.env.WEB_ORIGIN, appUrl),
-    cors: { allowAll: parseBooleanEnv(process.env.CORS_ALLOW_ALL, false) },
+    webOrigin: readEnv('WEB_ORIGIN').replace(/\/+$/, ''),
+    cors: { allowAll: readBooleanEnv('CORS_ALLOW_ALL') },
     telegram: {
-      token: cleanEnv(process.env.TELEGRAM_BOT_TOKEN),
-      longPollingEnabled: parseBooleanEnv(process.env.TELEGRAM_LONG_POLLING_ENABLED, true),
+      token: readEnv('TELEGRAM_BOT_TOKEN'),
+      longPollingEnabled: readBooleanEnv('TELEGRAM_LONG_POLLING_ENABLED'),
       allowedUserIds,
       adminId,
-      apiId: cleanEnv(process.env.TELEGRAM_API_ID),
-      apiHash: cleanEnv(process.env.TELEGRAM_API_HASH),
-      session: cleanEnv(process.env.TELEGRAM_SESSION),
+      apiId: readOptionalEnv('TELEGRAM_API_ID'),
+      apiHash: readOptionalEnv('TELEGRAM_API_HASH'),
+      session: readOptionalEnv('TELEGRAM_SESSION'),
     },
     gemini: {
-      apiKey: cleanEnv(process.env.GEMINI_API_KEY),
-      model: cleanEnv(process.env.GEMINI_MODEL, 'gemini-3.5-flash-lite'),
+      apiKey: readEnv('GEMINI_API_KEY'),
+      model: readEnv('GEMINI_MODEL'),
     },
     voice: {
-      whisperUrl: cleanEnv(process.env.WHISPER_URL, 'http://127.0.0.1:8080'),
-      timeoutMs: Number(cleanEnv(process.env.WHISPER_TIMEOUT_MS, '45000')) || 45_000,
-      maxDurationSeconds: Number(cleanEnv(process.env.VOICE_MAX_DURATION_SECONDS, '90')) || 90,
-      maxBytes: Number(cleanEnv(process.env.VOICE_MAX_BYTES, '8388608')) || 8 * 1024 * 1024,
+      whisperUrl: readEnv('WHISPER_URL'),
+      timeoutMs: readNumberEnv('WHISPER_TIMEOUT_MS'),
+      maxDurationSeconds: readNumberEnv('VOICE_MAX_DURATION_SECONDS'),
+      maxBytes: readNumberEnv('VOICE_MAX_BYTES'),
     },
     receiptImage: {
-      timeoutMs: Number(cleanEnv(process.env.RECEIPT_IMAGE_TIMEOUT_MS, '45000')) || 45_000,
-      maxBytes:
-        Number(cleanEnv(process.env.RECEIPT_IMAGE_MAX_BYTES, '10485760')) || 10 * 1024 * 1024,
-      langPath: cleanEnv(process.env.TESSERACT_LANG_PATH, '/app/assets/tessdata'),
+      timeoutMs: readNumberEnv('RECEIPT_IMAGE_TIMEOUT_MS'),
+      maxBytes: readNumberEnv('RECEIPT_IMAGE_MAX_BYTES'),
+      langPath: readEnv('TESSERACT_LANG_PATH'),
     },
-    timezone: cleanEnv(process.env.DEFAULT_TIMEZONE, 'Asia/Ho_Chi_Minh'),
+    timezone: readEnv('DEFAULT_TIMEZONE'),
     google: {
-      clientId: cleanEnv(process.env.GOOGLE_CLIENT_ID),
-      clientSecret: cleanEnv(process.env.GOOGLE_CLIENT_SECRET),
-      credentialsPath: cleanEnv(process.env.GOOGLE_OAUTH_CREDENTIALS, './gcp-oauth.keys.json'),
+      clientId: readEnv('GOOGLE_CLIENT_ID'),
+      clientSecret: readEnv('GOOGLE_CLIENT_SECRET'),
     },
     reports: {
-      dashboardAccessTokenSecret: cleanEnv(process.env.DASHBOARD_ACCESS_TOKEN_SECRET),
-      dashboardRefreshTokenSecret: cleanEnv(process.env.DASHBOARD_REFRESH_TOKEN_SECRET),
+      dashboardAccessTokenSecret: readEnv('DASHBOARD_ACCESS_TOKEN_SECRET'),
+      dashboardRefreshTokenSecret: readEnv('DASHBOARD_REFRESH_TOKEN_SECRET'),
     },
-    security: { encryptionKey: cleanEnv(process.env.DATA_ENCRYPTION_KEY) },
+    security: { encryptionKey: readEnv('DATA_ENCRYPTION_KEY') },
   };
 };

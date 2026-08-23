@@ -27,15 +27,39 @@ export class ReportsController {
 
   @Get('access')
   public async access(@Query('token') token: string, @Res() res: Response): Promise<void> {
-    const userId = await this.tokens.consumeExchangeToken(token);
+    let userId: number;
+    try {
+      userId = await this.tokens.consumeExchangeToken(token);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.renderAccessError(res);
+        return;
+      }
+      throw error;
+    }
     const access = this.tokens.issueAccessToken(userId);
     const refresh = this.tokens.issueRefreshToken(userId);
     this.setRefreshCookie(res, refresh.token);
-    const webOrigin = this.config.get<string>('webOrigin', '').replace(/\/+$/, '');
-    const appUrl = this.config.get<string>('appUrl', '').replace(/\/+$/, '');
-    res.redirect(
-      `${webOrigin || appUrl}/reports#dashboard_token=${encodeURIComponent(access.token)}`,
-    );
+    const webOrigin = this.config.getOrThrow<string>('webOrigin').replace(/\/+$/, '');
+    res.redirect(`${webOrigin}/reports#dashboard_token=${encodeURIComponent(access.token)}`);
+  }
+
+  private renderAccessError(res: Response): void {
+    res.status(401).type('html').send(`<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Không thể mở Dashboard</title>
+  </head>
+  <body>
+    <main>
+      <h1>Không thể mở Dashboard</h1>
+      <p>Liên kết này đã hết hạn hoặc đã được sử dụng.</p>
+      <p>Vui lòng quay lại Telegram và bấm nút Dashboard để nhận liên kết mới.</p>
+    </main>
+  </body>
+</html>`);
   }
 
   @Get('dashboard')

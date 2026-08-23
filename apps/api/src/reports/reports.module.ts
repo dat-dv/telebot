@@ -6,11 +6,18 @@ import { RemindersModule } from '../reminders/reminders.module';
 import { UsersModule } from '../users/users.module';
 import { DatabaseModule } from '../database/database.module';
 import { ReportsController } from './reports.controller';
-import { ReportsTokenService } from './reports-token.service';
+import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
 @Module({
-  imports: [DatabaseModule, FinanceModule, AuditModule, GoogleModule, RemindersModule, UsersModule],
+  imports: [
+    DatabaseModule,
+    DashboardAuthModule,
+    FinanceModule,
+    AuditModule,
+    GoogleModule,
+    RemindersModule,
+    UsersModule,
+  ],
   controllers: [ReportsController],
-  providers: [ReportsTokenService],
-  exports: [ReportsTokenService],
+  providers: [],
 })
 export class ReportsModule {}

@@ -6,6 +6,12 @@ export const API_ROUTES = {
   contacts: '/api/contacts',
   debts: '/api/debts',
   expenses: '/api/expenses',
+  transactions: '/api/transactions',
+  reminders: '/api/reminders',
+  users: '/api/users',
+  invites: '/api/invites',
+  calendarEvents: '/api/calendar/events',
+  tasks: '/api/tasks',
 } as const;
 
 export const APP_ROUTES = {
@@ -87,4 +93,24 @@ export interface IDashboardData {
 
 export interface IContactListResponse {
   contacts: IContactListItem[];
+}
+
+export type TransactionType = 'income' | 'expense';
+export type DebtDirection = 'receivable' | 'payable';
+export type ReminderNotifyType = 'text' | 'call';
+export type ReminderRepeatType = 'none' | 'daily' | 'weekly';
+
+export interface ICreateTransactionRequest {
+  type: TransactionType;
+  amount: number;
+  note: string;
+  category?: string;
+  occurredAt?: string;
+}
+
+export interface ICreateReminderRequest {
+  title: string;
+  remindAt: string;
+  notifyType?: ReminderNotifyType;
+  repeatType?: ReminderRepeatType;
 }

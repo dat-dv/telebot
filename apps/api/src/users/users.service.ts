@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import { UserEntity } from '../database/entities/user.entity';
@@ -60,13 +60,11 @@ export class UsersService implements OnModuleInit {
       }
 
       // Also include env admin & allowed IDs
-      const adminIdEnv = process.env.TELEGRAM_ADMIN_ID;
-      if (adminIdEnv) {
-        this.adminUserIdsCache.add(adminIdEnv.trim());
-        this.allowedUserIdsCache.add(adminIdEnv.trim());
-      }
+      const adminId = this.configService.getOrThrow<number>('telegram.adminId');
+      this.adminUserIdsCache.add(adminId.toString());
+      this.allowedUserIdsCache.add(adminId.toString());
 
-      const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+      const allowedIds = this.configService.getOrThrow<number[]>('telegram.allowedUserIds');
       for (const id of allowedIds) {
         this.allowedUserIdsCache.add(id.toString());
       }
@@ -114,19 +112,17 @@ export class UsersService implements OnModuleInit {
   }
 
   private async seedInitialUsers(): Promise<void> {
-    const adminIdEnv = process.env.TELEGRAM_ADMIN_ID ? process.env.TELEGRAM_ADMIN_ID.trim() : null;
-    const allowedIds = this.configService.get<number[]>('telegram.allowedUserIds', []);
+    const adminIdEnv = this.configService.getOrThrow<number>('telegram.adminId').toString();
+    const allowedIds = this.configService.getOrThrow<number[]>('telegram.allowedUserIds');
 
-    if (adminIdEnv) {
-      const existing = await this.userRepo.findOne({ where: { id: adminIdEnv } });
-      if (!existing) {
-        const adminUser = this.userRepo.create({
-          id: adminIdEnv,
-          role: 'admin',
-          createdAt: new Date(),
-        });
-        await this.userRepo.save(adminUser);
-      }
+    const existing = await this.userRepo.findOne({ where: { id: adminIdEnv } });
+    if (!existing) {
+      const adminUser = this.userRepo.create({
+        id: adminIdEnv,
+        role: 'admin',
+        createdAt: new Date(),
+      });
+      await this.userRepo.save(adminUser);
     }
 
     if (allowedIds && allowedIds.length > 0) {
@@ -134,7 +130,7 @@ export class UsersService implements OnModuleInit {
         const idStr = idNum.toString();
         const existing = await this.userRepo.findOne({ where: { id: idStr } });
         if (!existing) {
-          const isFirstOrAdmin = adminIdEnv ? idStr === adminIdEnv : index === 0;
+          const isFirstOrAdmin = idStr === adminIdEnv || index === 0;
           const user = this.userRepo.create({
             id: idStr,
             role: isFirstOrAdmin ? 'admin' : 'user',
@@ -250,6 +246,10 @@ export class UsersService implements OnModuleInit {
   }
 
   public async allowUser(userId: number, role: 'admin' | 'user' = 'user'): Promise<void> {
+    await this.upsertUser(userId, role);
+  }
+
+  public async upsertUser(userId: number, role: 'admin' | 'user' = 'user'): Promise<UserEntity> {
     const strId = userId.toString();
     let existing = await this.userRepo.findOne({ where: { id: strId } });
     if (!existing) {
@@ -264,6 +264,8 @@ export class UsersService implements OnModuleInit {
     await this.userRepo.save(existing);
     this.allowedUserIdsCache.add(strId);
     if (role === 'admin') this.adminUserIdsCache.add(strId);
+    else this.adminUserIdsCache.delete(strId);
+    return existing;
   }
 
   public async banUser(userId: number): Promise<boolean> {
@@ -284,5 +286,26 @@ export class UsersService implements OnModuleInit {
 
   public async getUsers(): Promise<UserEntity[]> {
     return this.userRepo.find();
+  }
+
+  public getUser(id: string): Promise<UserEntity | null> {
+    return this.userRepo.findOne({ where: { id } });
+  }
+
+  public async updateRole(id: string, role: 'admin' | 'user'): Promise<UserEntity | null> {
+    const user = await this.getUser(id);
+    if (!user) return null;
+    return this.upsertUser(Number(id), role);
+  }
+
+  public listInvites(): Promise<InviteEntity[]> {
+    return this.inviteRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  public async revokeInvite(code: string): Promise<boolean> {
+    const invite = await this.inviteRepo.findOne({ where: { code, usedBy: IsNull() } });
+    if (!invite) return false;
+    await this.inviteRepo.remove(invite);
+    return true;
   }
 }
