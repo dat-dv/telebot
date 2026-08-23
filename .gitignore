@@ -2,6 +2,9 @@
 /dist
 /node_modules
 **/dist
+**/.next
+**/out
+**/*.tsbuildinfo
 **/node_modules
 
 # Logs
@@ -41,3 +44,6 @@ scripts/agent-system/
 !.agents/knowledge/
 !.agents/artifacts/
 # Base Agent:end
+
+
+*/.next

@@ -32,8 +32,10 @@ async function bootstrap() {
   const webOrigin = configService.get<string>('webOrigin', '');
   const longPollingEnabled = configService.get<boolean>('telegram.longPollingEnabled', true);
 
-  if (webOrigin) {
-    app.enableCors({ origin: webOrigin, credentials: true });
+  const corsOrigins = [webOrigin];
+  if (process.env.NODE_ENV !== 'production') corsOrigins.push('http://localhost:5173');
+  if (corsOrigins.some(Boolean)) {
+    app.enableCors({ origin: corsOrigins.filter(Boolean), credentials: true });
   }
 
   await app.listen(port);

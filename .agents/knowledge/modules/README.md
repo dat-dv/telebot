@@ -12,4 +12,6 @@ Each module document covers:
 3. **Data Flow & Technical Seams**: Local state, DTO payload contracts, and integration points.
 
 ## Modules Index
-- [UI & Enterprise Design System](ui/design-direction.md): Flat Enterprise, data-dense B2B SaaS, and Excel-lite interaction standards.
+- [Authentication](auth/README.md): Dashboard access token storage and lifecycle.
+- [Contacts](contacts/README.md): Debt-contact retrieval and presentation.
+- [Dashboard](dashboard/README.md): Personal reports, statistics, and operational data views.

@@ -73,7 +73,7 @@ export default (): AppConfig => {
   return {
     port: Number(cleanEnv(process.env.PORT, '3000')) || 3000,
     appUrl,
-    webOrigin: cleanEnv(process.env.SERVICE_URL_TELEBOT, cleanEnv(process.env.WEB_ORIGIN)),
+    webOrigin: cleanEnv(process.env.WEB_ORIGIN, cleanEnv(process.env.SERVICE_URL_TELEBOT)),
     telegram: {
       token: cleanEnv(process.env.TELEGRAM_BOT_TOKEN),
       longPollingEnabled: parseBooleanEnv(process.env.TELEGRAM_LONG_POLLING_ENABLED, true),

@@ -1,7 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { type ReactNode, useState } from 'react';
+'use client';
 
-export function QueryProvider({ children }: { children: ReactNode }) {
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode, useEffect, useState } from 'react';
+import { captureDashboardToken } from '@/modules/auth/client/auth-storage';
+
+export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -10,5 +13,13 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         },
       }),
   );
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    captureDashboardToken();
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

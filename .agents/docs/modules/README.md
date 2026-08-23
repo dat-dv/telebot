@@ -12,4 +12,6 @@ metadata:
 This directory contains developer & operating guides organized by feature modules, mirroring [`.agents/knowledge/modules/`](../../knowledge/modules/README.md).
 
 ## Danh Mục Modules
-- [UI & Enterprise Design System](ui/design-direction.md): Hướng dẫn thiết kế giao diện Flat Enterprise, B2B SaaS mật độ dữ liệu cao và tương tác Excel-lite.
+- [Xác thực](auth/README.md): Lưu và quản lý phiên truy cập dashboard.
+- [Danh bạ](contacts/README.md): Tải và hiển thị danh bạ công nợ.
+- [Dashboard](dashboard/README.md): Tổng quan, thống kê và các bảng dữ liệu cá nhân.

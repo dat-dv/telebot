@@ -9,6 +9,7 @@ This directory contains system-wide business policies, cross-cutting architectur
 - [Route & Path Constants Architecture](route-constants.md): Centralized route and endpoint registry invariants and zero-hardcoding enforcement.
 - [Local Voice Transcription](voice-transcription.md): Offline Whisper runtime, transcript review state, and Telegram integration.
 - [Dashboard Session and Pages](dashboard-session.md): One-time Telegram exchange, access/refresh policy, contacts isolation, and web views.
+- [Web UI Direction](web-ui-direction.md): Shared data-dense dashboard and accessibility requirements.
 
 ## Consumer Project Adoption
 

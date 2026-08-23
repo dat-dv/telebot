@@ -4,9 +4,16 @@ import {
   type IApiResponse,
   type IDashboardAccessTokenResponse,
 } from '@telebot/contracts';
-import { clearAccessToken, getAccessToken, setAccessToken } from './auth-storage';
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from '@/modules/auth/client/auth-storage';
 
-const apiUrl = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '');
+const apiUrl = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : window.location.origin)
+).replace(/\/$/, '');
 export const httpClient = axios.create({ baseURL: apiUrl, withCredentials: true });
 let refreshRequest: Promise<string> | undefined;
 

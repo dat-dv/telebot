@@ -1,3 +1,5 @@
+'use client';
+
 import { useQuery } from '@tanstack/react-query';
 import type { IDashboardData } from '@telebot/contracts';
 import { getDashboard } from './dashboard-api';

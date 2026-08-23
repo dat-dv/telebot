@@ -23,6 +23,7 @@ This directory contains human-facing operational guides for system-wide architec
 - [Quy Chuẩn Quản Lý Route & API Constants](route-constants.md): Hướng dẫn định nghĩa và sử dụng `APP_ROUTES` và `API_ROUTES` tập trung, cấm tuyệt đối hardcode đường dẫn (Ánh xạ: [`route-constants.md`](../../knowledge/global/route-constants.md)).
 - [Nhận Diện Voice Cục Bộ](voice-transcription.md): Cấu hình Whisper, luồng xác nhận transcript và xử lý sự cố.
 - [Phiên Dashboard và các trang web](dashboard-session.md): One-time exchange token, thời hạn phiên, phân quyền danh bạ và kiểm tra UI.
+- [Định hướng UI web](web-ui-direction.md): Quy chuẩn giao diện dashboard dùng chung, bảng dữ liệu và khả năng truy cập.
 
 ## Checklist áp dụng Base Agents cho dự án mới
 

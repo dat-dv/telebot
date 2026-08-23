@@ -1,0 +1,18 @@
+---
+metadata:
+  agent-artifact:
+    id: docs-module-contacts
+    type: documentation
+    depends_on:
+      - .agents/knowledge/modules/contacts/README.md
+---
+
+# Module danh bạ công nợ
+
+`apps/web/src/modules/contacts` hiển thị danh bạ công nợ của đúng người dùng đang đăng nhập.
+
+- API: `getContacts` gọi `API_ROUTES.contacts` qua HTTP client đã xác thực.
+- Cache: `useContactsQuery` quản lý query key và hủy request khi cần; nút Làm mới invalidate key này.
+- UI: bảng có tên, biệt danh, mô tả và ngày tạo; phải giữ đủ loading, rỗng, thành công và lỗi có thể thử lại.
+
+Nếu danh bạ tải thất bại, kiểm tra phiên dashboard và phản hồi API trước; không thêm token trực tiếp vào component.

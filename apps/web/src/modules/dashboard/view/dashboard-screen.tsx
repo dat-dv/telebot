@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { APP_ROUTES, API_ROUTES, type IContactListItem } from '@telebot/contracts';
-import { clearAccessToken } from './auth-storage';
-import { DataPanel, DataTable, type DataTableColumn } from './components/data-table';
-import { contactsQueryKeys, useContactsQuery } from './contacts-query';
-import { dashboardQueryKeys, useDashboardQuery } from './dashboard-query';
-import { httpClient } from './http-client';
+'use client';
 
-type Page = 'home' | 'statistics' | 'contacts';
+import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
+import { API_ROUTES } from '@telebot/contracts';
+import { clearAccessToken } from '@/modules/auth/client/auth-storage';
+import { httpClient } from '@/shared/api/http-client';
+import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
+
+type Page = 'home' | 'statistics';
 type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
 
 const money = (value: number) =>
@@ -22,43 +23,17 @@ const date = (value?: string) =>
         new Date(value),
       )
     : 'Chưa đặt';
-const pageFromPath = (path: string): Page =>
-  path === APP_ROUTES.statistics
-    ? 'statistics'
-    : path === APP_ROUTES.contacts
-      ? 'contacts'
-      : 'home';
-const pathForPage = (page: Page) =>
-  page === 'statistics'
-    ? APP_ROUTES.statistics
-    : page === 'contacts'
-      ? APP_ROUTES.contacts
-      : APP_ROUTES.reports;
 
-export function App() {
+export function DashboardScreen({ page }: { page: Page }) {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState<Page>(() => pageFromPath(window.location.pathname));
   const dashboard = useDashboardQuery();
-  const contacts = useContactsQuery(page === 'contacts');
-  useEffect(() => {
-    const updatePage = () => setPage(pageFromPath(window.location.pathname));
-    window.addEventListener('popstate', updatePage);
-    return () => window.removeEventListener('popstate', updatePage);
-  }, []);
-  const navigate = (nextPage: Page) => {
-    window.history.pushState(null, '', pathForPage(nextPage));
-    setPage(nextPage);
-  };
-  const refresh = () => {
+  const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
-    if (page === 'contacts')
-      void queryClient.invalidateQueries({ queryKey: contactsQueryKeys.list() });
-  };
   const logout = async () => {
     await httpClient.post(API_ROUTES.dashboardLogout);
     clearAccessToken();
     queryClient.clear();
-    window.location.reload();
+    window.location.assign('/reports/');
   };
   if (dashboard.isError) return <ErrorState onRetry={refresh} />;
   if (dashboard.isLoading || !dashboard.data) return <DashboardSkeleton />;
@@ -71,17 +46,9 @@ export function App() {
           <small>Cá nhân</small>
         </div>
         <nav>
-          <NavItem active={page === 'home'} label="Trang chủ" onClick={() => navigate('home')} />
-          <NavItem
-            active={page === 'statistics'}
-            label="Thống kê"
-            onClick={() => navigate('statistics')}
-          />
-          <NavItem
-            active={page === 'contacts'}
-            label="Liên lạc"
-            onClick={() => navigate('contacts')}
-          />
+          <NavLink active={page === 'home'} href="/reports/" label="Trang chủ" />
+          <NavLink active={page === 'statistics'} href="/reports/statistics/" label="Thống kê" />
+          <NavLink active={false} href="/reports/contacts/" label="Liên lạc" />
         </nav>
         <p className={data.user.googleConnected ? 'app-nav__status ok' : 'app-nav__status warn'}>
           ● {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
@@ -91,19 +58,9 @@ export function App() {
         <header className="workspace__header">
           <div>
             <p className="eyebrow">Telebot</p>
-            <h1>
-              {page === 'home'
-                ? 'Chào bạn'
-                : page === 'statistics'
-                  ? 'Thống kê thu–chi'
-                  : 'Liên lạc'}
-            </h1>
+            <h1>{page === 'home' ? 'Chào bạn' : 'Thống kê thu–chi'}</h1>
             <p className="muted">
-              {page === 'home'
-                ? 'Tổng quan cá nhân, mở từ Telegram'
-                : page === 'statistics'
-                  ? 'Dữ liệu tháng hiện tại'
-                  : 'Danh bạ công nợ của bạn'}
+              {page === 'home' ? 'Tổng quan cá nhân, mở từ Telegram' : 'Dữ liệu tháng hiện tại'}
             </p>
           </div>
           <div className="header-status">
@@ -113,33 +70,24 @@ export function App() {
             </button>
           </div>
         </header>
-        {page === 'home' && <HomePage data={data} onNavigate={navigate} />}
-        {page === 'statistics' && <StatisticsPage data={data} />}
-        {page === 'contacts' && <ContactsPage contacts={contacts} />}
+        {page === 'home' ? <HomeView data={data} /> : <StatisticsView data={data} />}
       </section>
     </main>
   );
 }
 
-function NavItem({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
+function NavLink({ active, href, label }: { active: boolean; href: string; label: string }) {
   return (
-    <button
+    <Link
       className={active ? 'app-nav__item is-active' : 'app-nav__item'}
       aria-current={active ? 'page' : undefined}
-      onClick={onClick}
+      href={href}
     >
       {label}
-    </button>
+    </Link>
   );
 }
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <article className="metric">
@@ -149,7 +97,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HomePage({ data, onNavigate }: { data: DashboardData; onNavigate: (page: Page) => void }) {
+function HomeView({ data }: { data: DashboardData }) {
   const attentionCount = data.debts.length + data.reminders.length + data.tasks.length;
   return (
     <>
@@ -160,8 +108,8 @@ function HomePage({ data, onNavigate }: { data: DashboardData; onNavigate: (page
         <Metric label="Việc cần chú ý" value={String(attentionCount)} />
       </section>
       <section className="quick-actions" aria-label="Truy cập nhanh">
-        <button onClick={() => onNavigate('statistics')}>Xem thống kê thu–chi</button>
-        <button onClick={() => onNavigate('contacts')}>Mở danh bạ liên lạc</button>
+        <Link href="/reports/statistics/">Xem thống kê thu–chi</Link>
+        <Link href="/reports/contacts/">Mở danh bạ liên lạc</Link>
       </section>
       <section className="content-grid">
         <DataPanel title="Việc cần làm" description="Danh sách chưa hoàn tất">
@@ -209,7 +157,7 @@ function HomePage({ data, onNavigate }: { data: DashboardData; onNavigate: (page
   );
 }
 
-function StatisticsPage({ data }: { data: DashboardData }) {
+function StatisticsView({ data }: { data: DashboardData }) {
   return (
     <>
       <section className="metric-grid" aria-label="Thống kê thu chi">
@@ -249,28 +197,7 @@ function StatisticsPage({ data }: { data: DashboardData }) {
     </>
   );
 }
-function ContactsPage({ contacts }: { contacts: ReturnType<typeof useContactsQuery> }) {
-  if (contacts.isError)
-    return (
-      <section className="inline-alert" role="alert">
-        <strong>Không tải được danh bạ</strong>
-        <span>Hãy làm mới trang hoặc mở lại từ bot.</span>
-      </section>
-    );
-  return (
-    <section className="content-grid content-grid--wide">
-      <DataPanel title="Danh bạ công nợ" description="Các liên lạc đã lưu trong hệ thống">
-        <DataTable
-          ariaLabel="Danh bạ công nợ"
-          rows={contacts.data ?? []}
-          loading={contacts.isLoading}
-          emptyMessage="Chưa có liên lạc nào"
-          columns={contactColumns}
-        />
-      </DataPanel>
-    </section>
-  );
-}
+
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <main className="center">
@@ -384,29 +311,6 @@ const activityColumns: DataTableColumn<DashboardData['activity'][number]>[] = [
     cell: (item) => <span className="cell-muted">{date(item.createdAt)}</span>,
   },
 ];
-const contactColumns: DataTableColumn<IContactListItem>[] = [
-  {
-    id: 'displayName',
-    header: 'Tên',
-    cell: (item) => <span className="cell-primary">{item.displayName}</span>,
-  },
-  {
-    id: 'alias',
-    header: 'Biệt danh',
-    cell: (item) => <span className="cell-muted">{item.alias || '—'}</span>,
-  },
-  {
-    id: 'descriptor',
-    header: 'Mô tả',
-    cell: (item) => <span className="cell-muted">{item.descriptor || '—'}</span>,
-  },
-  {
-    id: 'createdAt',
-    header: 'Ngày tạo',
-    align: 'right',
-    cell: (item) => <span className="cell-muted">{date(item.createdAt)}</span>,
-  },
-];
 
 function DashboardSkeleton() {
   return (
@@ -423,22 +327,6 @@ function DashboardSkeleton() {
             <span className="skeleton skeleton--label" />
             <strong className="skeleton skeleton--value" />
           </div>
-        ))}
-      </section>
-      <section className="content-grid" aria-label="Đang tải dữ liệu dashboard">
-        {Array.from({ length: 4 }, (_, index) => (
-          <DataPanel key={index} title="Đang tải">
-            <DataTable
-              ariaLabel="Đang tải"
-              rows={[]}
-              emptyMessage=""
-              loading
-              columns={[
-                { id: 'first', header: 'Dữ liệu', cell: () => null },
-                { id: 'second', header: 'Trạng thái', cell: () => null },
-              ]}
-            />
-          </DataPanel>
         ))}
       </section>
     </main>

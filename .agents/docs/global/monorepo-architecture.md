@@ -14,7 +14,7 @@ Tài liệu này hướng dẫn cấu trúc tổ chức dự án monorepo và qu
 ## Cấu trúc
 
 - `apps/api`: NestJS backend, Telegram bot và OAuth Google.
-- `apps/web`: React + Vite, hiện là shell quản trị sẵn sàng tích hợp API.
+- `apps/web`: Next.js App Router xuất static files; không dùng Next API Route hay Server Action.
 - `packages/contracts`: Kiểu dữ liệu và hằng số route dùng chung.
 - `data/`: SQLite tại root, không chuyển vào app con để giữ dữ liệu khi chạy Docker.
 
@@ -31,7 +31,9 @@ Tài liệu này hướng dẫn cấu trúc tổ chức dự án monorepo và qu
 
 ## Bảo mật biến môi trường
 
-Chỉ `VITE_API_URL` được phép đi vào bundle trình duyệt. Token Telegram, Gemini, Google OAuth và `DATA_ENCRYPTION_KEY` chỉ dùng cho `apps/api`.
+Chỉ `NEXT_PUBLIC_API_URL` được phép đi vào bundle trình duyệt. Token Telegram, Gemini, Google OAuth và `DATA_ENCRYPTION_KEY` chỉ dùng cho `apps/api`.
+
+Dashboard tổ chức theo DDD: `modules/auth` sở hữu token/session phía trình duyệt, `modules/dashboard` sở hữu tổng quan và thống kê, `modules/contacts` sở hữu danh bạ. Component tái sử dụng như `DataTable` và `DataPanel` nằm ở `shared/ui`; client HTTP và TanStack Query provider nằm ở `shared/api`/`shared/providers`. `packages/contracts` chỉ chứa route constants và DTO types, không chứa React component.
 
 ## Tránh xung đột bot Telegram
 
@@ -46,8 +48,8 @@ Telegram chỉ cho phép một tiến trình gọi long polling (`getUpdates`) v
 
 Access token dashboard được lưu ở browser storage trong 15 phút theo yêu cầu UI. Refresh token sống 7 ngày, được xoay vòng ở cookie `HttpOnly`; Axios tự refresh sau `401`, còn TanStack Query quản lý cache và trạng thái dữ liệu.
 
-Khi phát triển qua tunnel, trỏ tunnel vào Vite tại `localhost:5173`. Vite proxy các endpoint dashboard sang API Docker tại `localhost:3000`; browser không gọi Docker network trực tiếp.
+Khi phát triển local, Next chạy tại `http://localhost:5173` và browser gọi API tại `http://localhost:3000`; API tự cho phép origin này ở non-production. Khi triển khai static web riêng, đặt `WEB_ORIGIN` là URL public của web và `NEXT_PUBLIC_API_URL` là URL public của API trước lúc build web. API dùng `WEB_ORIGIN` cho CORS và redirect từ `/api/access`.
 
 ## Docker
 
-Dùng `docker compose up --build` tại root. Compose build `apps/api/Dockerfile` với root làm build context và mount `./data` vào `/app/data`.
+Dùng `docker compose up --build` tại root. Compose build API và static web qua `apps/api/Dockerfile` và `apps/web/Dockerfile`; web được phục vụ bởi Nginx tại `WEB_PORT` (mặc định 3001), còn API mount `./data` để giữ SQLite.
