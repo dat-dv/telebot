@@ -4,6 +4,7 @@ import { Context, Markup } from 'telegraf';
 import { AuthGuard } from './guards/auth.guard';
 import { TelegramUiService } from './services/telegram-ui.service';
 import { VoiceTranscriptionService } from './services/voice-transcription.service';
+import { ReceiptImageAnalysisService } from './services/receipt-image-analysis.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from '../google/google-auth.service';
@@ -29,6 +30,7 @@ export class TelegramUpdate {
     private readonly remindersService: RemindersService,
     private readonly uiService: TelegramUiService,
     private readonly voiceTranscriptionService: VoiceTranscriptionService,
+    private readonly receiptImageAnalysisService: ReceiptImageAnalysisService,
     private readonly financeService: FinanceService,
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
@@ -104,9 +106,14 @@ export class TelegramUpdate {
 
   private isDashboardRequest(text: string): boolean {
     const normalized = text.trim().toLocaleLowerCase('vi-VN');
-    return ['dashboard', 'mở dashboard', 'xem dashboard', 'cho anh xem dashboard'].includes(
-      normalized,
-    );
+    return [
+      'dashboard',
+      'mở dashboard',
+      'xem dashboard',
+      'cho anh xem dashboard',
+      'cho anh link dashboard',
+      'link dashboard',
+    ].includes(normalized.replace(/\s+/g, ' '));
   }
 
   @Start()
@@ -593,10 +600,10 @@ ${googleStatus}
       return;
     }
 
-    await ctx.reply(
-      '📊 Mở Dashboard để xem tổng quan thu–chi, công việc, lịch hẹn, nhắc nhở và công nợ:',
-      Markup.inlineKeyboard([[Markup.button.url('📊 Mở Dashboard', reportsUrl)]]),
-    );
+    await ctx.reply('📊 *Dashboard*\nThu–chi · Việc · Lịch · Nhắc · Công nợ', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([[Markup.button.url('📊 Mở Dashboard', reportsUrl)]]),
+    });
   }
 
   // Handle interactive inline button: complete task
@@ -1016,6 +1023,37 @@ ${googleStatus}
       await ctx.reply(this.uiService.formatVoiceConfirmation(transcript), {
         parse_mode: 'HTML',
         ...this.uiService.buildVoiceConfirmationMarkup(requestId),
+      });
+    } catch (error) {
+      await ctx.reply(`⚠️ ${(error as Error).message}`);
+    }
+  }
+
+  @On('photo')
+  public async onPhotoMessage(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    const message = ctx.message;
+    if (!userId || !message || !('photo' in message)) return;
+
+    try {
+      const analysis = await this.uiService.withTyping(ctx, () =>
+        this.receiptImageAnalysisService.analyze(ctx.telegram, message.photo),
+      );
+      if (analysis.kind === 'not_receipt') {
+        await ctx.reply(`🖼️ ${analysis.summary}`);
+        return;
+      }
+      if (analysis.kind === 'missing_fields') {
+        const missing = analysis.missingFields?.includes('amount') ? 'số tiền' : 'thu hay chi';
+        await ctx.reply(`🖼️ ${analysis.summary}\nAnh cho em biết thêm ${missing} nhé.`);
+        return;
+      }
+      await this.requestToolConfirmation(ctx, userId, 'create_finance_transaction', {
+        type: analysis.type,
+        amount: analysis.amount,
+        category: analysis.category || 'Khác',
+        note: analysis.note,
+        ...(analysis.occurredAt ? { occurredAt: analysis.occurredAt } : {}),
       });
     } catch (error) {
       await ctx.reply(`⚠️ ${(error as Error).message}`);

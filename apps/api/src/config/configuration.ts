@@ -21,6 +21,10 @@ export interface AppConfig {
     maxDurationSeconds: number;
     maxBytes: number;
   };
+  receiptImage: {
+    timeoutMs: number;
+    maxBytes: number;
+  };
   timezone: string;
   google: {
     clientId: string;
@@ -92,6 +96,11 @@ export default (): AppConfig => {
       timeoutMs: Number(cleanEnv(process.env.WHISPER_TIMEOUT_MS, '45000')) || 45_000,
       maxDurationSeconds: Number(cleanEnv(process.env.VOICE_MAX_DURATION_SECONDS, '90')) || 90,
       maxBytes: Number(cleanEnv(process.env.VOICE_MAX_BYTES, '8388608')) || 8 * 1024 * 1024,
+    },
+    receiptImage: {
+      timeoutMs: Number(cleanEnv(process.env.RECEIPT_IMAGE_TIMEOUT_MS, '45000')) || 45_000,
+      maxBytes:
+        Number(cleanEnv(process.env.RECEIPT_IMAGE_MAX_BYTES, '10485760')) || 10 * 1024 * 1024,
     },
     timezone: cleanEnv(process.env.DEFAULT_TIMEZONE, 'Asia/Ho_Chi_Minh'),
     google: {

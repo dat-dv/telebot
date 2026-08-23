@@ -50,8 +50,8 @@ export class TelegramUiService {
     > = [
       [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
-      [Markup.button.callback('📊 Xem 7 ngày tới', 'action:view_week')],
-      [Markup.button.callback('💰 Thu–chi hôm nay', 'action:view_finance')],
+      [Markup.button.callback('📊 Lịch 7 ngày', 'action:view_week')],
+      [Markup.button.callback('💰 Thu–chi', 'action:view_finance')],
       [Markup.button.callback('💳 Công nợ', 'action:view_debts')],
       [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
     ];
@@ -128,7 +128,15 @@ export class TelegramUiService {
     payload: Record<string, unknown>,
     referenceId: string,
   ): string {
-    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Payload JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...payload }, null, 2))}</pre>\nKiểm tra nội dung trước khi thực hiện.`;
+    if (name === 'create_finance_transaction') {
+      const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
+      const amount =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
+      const category = typeof payload.category === 'string' ? payload.category : 'Khác';
+      const note = typeof payload.note === 'string' ? payload.note : 'Chưa có mô tả';
+      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
+    }
+    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\n<pre>${this.escapeHtml(JSON.stringify(payload, null, 2))}</pre>\nKiểm tra rồi bấm Xác nhận.`;
   }
 
   public formatResultBox(
@@ -143,6 +151,10 @@ export class TelegramUiService {
 
   private escapeHtml(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  private formatMoney(amount: number): string {
+    return `${new Intl.NumberFormat('vi-VN').format(amount)}đ`;
   }
 
   public buildNotificationActionsMarkup() {

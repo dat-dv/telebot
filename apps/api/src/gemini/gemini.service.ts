@@ -27,6 +27,61 @@ import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 import { randomUUID } from 'crypto';
 
+export interface ReceiptImageAnalysis {
+  kind: 'ready' | 'missing_fields' | 'not_receipt';
+  type?: 'income' | 'expense';
+  amount?: number;
+  category?: string;
+  note?: string;
+  occurredAt?: string;
+  missingFields?: string[];
+  summary: string;
+}
+
+export function parseReceiptImageAnalysis(raw: string): ReceiptImageAnalysis {
+  const json = raw.trim().replace(/^```json\s*|\s*```$/g, '');
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return { kind: 'not_receipt', summary: 'Không đọc được thông tin giao dịch rõ ràng từ ảnh.' };
+  }
+  if (!value || typeof value !== 'object') {
+    return { kind: 'not_receipt', summary: 'Không đọc được thông tin giao dịch rõ ràng từ ảnh.' };
+  }
+  const candidate = value as Record<string, unknown>;
+  const summary = typeof candidate.summary === 'string' ? candidate.summary.trim() : '';
+  const missingFields = Array.isArray(candidate.missingFields)
+    ? candidate.missingFields.filter((field): field is string => typeof field === 'string')
+    : [];
+  const type =
+    candidate.type === 'income' || candidate.type === 'expense' ? candidate.type : undefined;
+  const amount =
+    typeof candidate.amount === 'number' && candidate.amount > 0 ? candidate.amount : undefined;
+  const note = typeof candidate.note === 'string' ? candidate.note.trim() : '';
+
+  if (candidate.kind === 'ready' && type && amount && note) {
+    return {
+      kind: 'ready',
+      type,
+      amount,
+      note,
+      category: typeof candidate.category === 'string' ? candidate.category.trim() : undefined,
+      occurredAt:
+        typeof candidate.occurredAt === 'string' ? candidate.occurredAt.trim() : undefined,
+      summary: summary || 'Đã đọc được một giao dịch từ ảnh.',
+    };
+  }
+  if (candidate.kind === 'missing_fields') {
+    return {
+      kind: 'missing_fields',
+      missingFields,
+      summary: summary || 'Ảnh chưa đủ thông tin để ghi thu-chi.',
+    };
+  }
+  return { kind: 'not_receipt', summary: summary || 'Ảnh không có giao dịch để ghi thu-chi.' };
+}
+
 export interface ChatResponse {
   text: string;
   lastTool?: {
@@ -143,6 +198,23 @@ export class GeminiService {
 
   public getCurrentTimeInfo(): { nowText: string; nowIso: string } {
     return getCurrentTimeInfo(this.defaultTimeZone);
+  }
+
+  public async analyzeReceiptImage(image: Buffer, mimeType: string): Promise<ReceiptImageAnalysis> {
+    const model = this.genAI.getGenerativeModel({ model: this.primaryModelName });
+    const prompt = `Phân tích ảnh do người dùng gửi. Chỉ trả JSON hợp lệ, không Markdown và không gọi tool.
+Nếu là hoá đơn, bill hoặc ảnh chụp giao dịch với đủ dữ liệu, trả:
+{"kind":"ready","type":"income"|"expense","amount":số_VND_dương,"category":"...","note":"...","occurredAt":"ISO-8601 nếu đọc chắc chắn","summary":"..."}
+Nếu là giao dịch nhưng thiếu loại hoặc số tiền, trả:
+{"kind":"missing_fields","missingFields":["type"|"amount"],"summary":"..."}
+Nếu không phải giao dịch/hoá đơn, trả:
+{"kind":"not_receipt","summary":"..."}
+Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là VND đầy đủ.`;
+    const response = await model.generateContent([
+      { text: prompt },
+      { inlineData: { data: image.toString('base64'), mimeType } },
+    ]);
+    return parseReceiptImageAnalysis(response.response.text());
   }
 
   public async confirmPendingAction(

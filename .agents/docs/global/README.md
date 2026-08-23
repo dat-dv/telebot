@@ -10,6 +10,7 @@ metadata:
       - .agents/knowledge/global/monorepo-architecture.md
       - .agents/knowledge/global/dashboard-session.md
       - .agents/knowledge/global/google-tasks.md
+      - .agents/knowledge/global/receipt-image-analysis.md
       - .agents/knowledge/global/voice-transcription.md
 ---
 
@@ -25,6 +26,7 @@ This directory contains human-facing operational guides for system-wide architec
 - [Nhận Diện Voice Cục Bộ](voice-transcription.md): Cấu hình Whisper, luồng xác nhận transcript và xử lý sự cố.
 - [Phiên Dashboard và các trang web](dashboard-session.md): One-time exchange token, thời hạn phiên, phân quyền danh bạ và kiểm tra UI.
 - [Google Tasks: tạo một hoặc nhiều việc](google-tasks.md): Xác nhận batch, kết quả thành công một phần và aliases `/task`/`/tasks`.
+- [Phân tích ảnh hoá đơn và thu-chi](receipt-image-analysis.md): Đọc ảnh trong bộ nhớ, đề xuất giao dịch và bắt buộc xác nhận.
 - [Định hướng UI web](web-ui-direction.md): Quy chuẩn giao diện dashboard dùng chung, bảng dữ liệu và khả năng truy cập.
 
 ## Checklist áp dụng Base Agents cho dự án mới

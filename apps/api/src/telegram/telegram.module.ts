@@ -4,6 +4,7 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramUpdate } from './telegram.update';
 import { TelegramUiService } from './services/telegram-ui.service';
 import { VoiceTranscriptionService } from './services/voice-transcription.service';
+import { ReceiptImageAnalysisService } from './services/receipt-image-analysis.service';
 import { AuthGuard } from './guards/auth.guard';
 import { GeminiModule } from '../gemini/gemini.module';
 import { GoogleModule } from '../google/google.module';
@@ -39,7 +40,13 @@ import { ReportsModule } from '../reports/reports.module';
     AuditModule,
     ReportsModule,
   ],
-  providers: [TelegramUpdate, TelegramUiService, VoiceTranscriptionService, AuthGuard],
+  providers: [
+    TelegramUpdate,
+    TelegramUiService,
+    VoiceTranscriptionService,
+    ReceiptImageAnalysisService,
+    AuthGuard,
+  ],
   exports: [TelegramUiService],
 })
 export class TelegramModule {}

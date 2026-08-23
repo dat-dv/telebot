@@ -35,3 +35,15 @@ void test('buildMainMenuInlineMarkup has the same menu for start and help inputs
 
   assert.deepEqual(helpMenu.reply_markup, startMenu.reply_markup);
 });
+
+void test('formats finance confirmation as compact mobile-friendly text', () => {
+  const message = new TelegramUiService().formatConfirmationBox(
+    'create_finance_transaction',
+    { type: 'expense', amount: 65000, category: 'Ăn uống', note: 'Cơm trưa' },
+    'REQ-ABC123',
+  );
+
+  assert.match(message, /XÁC NHẬN THU–CHI/);
+  assert.match(message, /65\.000đ/);
+  assert.doesNotMatch(message, /Payload JSON/);
+});
