@@ -11,6 +11,7 @@ import { GoogleCalendarService } from '../google/google-calendar.service';
 import { RemindersService } from '../reminders/reminders.service';
 import { FinanceService } from '../finance/finance.service';
 import { AuditService } from '../audit/audit.service';
+import { ConfigService } from '@nestjs/config';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -27,7 +28,14 @@ export class TelegramUpdate {
     private readonly uiService: TelegramUiService,
     private readonly financeService: FinanceService,
     private readonly auditService: AuditService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private getReportsUrl(): string {
+    const appUrl = this.configService.get<string>('appUrl', '').replace(/\/+$/, '');
+    const token = this.configService.get<string>('reports.accessToken', '');
+    return appUrl && token ? `${appUrl}/reports/access?token=${encodeURIComponent(token)}` : '';
+  }
 
   private async requestToolConfirmation(
     ctx: Context,
@@ -125,6 +133,7 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
+      this.getReportsUrl(),
     );
 
     await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
@@ -148,6 +157,7 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
+      this.getReportsUrl(),
     );
 
     if (isAdmin) {
@@ -260,7 +270,12 @@ ${googleStatus}
       });
 
       const isAdmin = this.usersService.isAdmin(userId);
-      const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(isAdmin, true);
+      const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
+        isAdmin,
+        true,
+        '',
+        this.getReportsUrl(),
+      );
 
       await ctx.reply(
         '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bạn có thể sử dụng các nút bấm bên dưới hoặc nhắn tin tự nhiên cho bot nhé!',
@@ -726,6 +741,20 @@ ${googleStatus}
   public async onViewDebtsAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('💳 Đang mở sổ công nợ...');
     await this.onDebts(ctx);
+  }
+
+  @Action('action:view_reports')
+  public async onViewReportsAction(@Ctx() ctx: Context): Promise<void> {
+    const reportsUrl = this.getReportsUrl();
+    if (!reportsUrl) {
+      await ctx.answerCbQuery('Chưa cấu hình trang báo cáo trên server.');
+      return;
+    }
+    await ctx.answerCbQuery('Đang mở báo cáo...');
+    await ctx.reply(
+      '📊 Mở trang báo cáo tài chính:',
+      Markup.inlineKeyboard([[Markup.button.url('📊 Xem báo cáo', reportsUrl)]]),
+    );
   }
 
   @Action(/^debt:pay:(.+)$/)

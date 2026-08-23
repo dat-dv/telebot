@@ -34,7 +34,12 @@ export class TelegramUiService {
   /**
    * Builds clean Inline Keyboard attached directly under start / help messages
    */
-  public buildMainMenuInlineMarkup(isAdmin = false, isGoogleConnected = false, authUrl = '') {
+  public buildMainMenuInlineMarkup(
+    isAdmin = false,
+    isGoogleConnected = false,
+    authUrl = '',
+    reportsUrl = '',
+  ) {
     if (!isGoogleConnected && authUrl) {
       return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
     }
@@ -48,6 +53,9 @@ export class TelegramUiService {
       [Markup.button.callback('💳 Công nợ', 'action:view_debts')],
       [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
     ];
+
+    if (reportsUrl)
+      rows.splice(5, 0, [Markup.button.callback('📊 Xem báo cáo', 'action:view_reports')]);
 
     if (isAdmin) {
       rows.push([Markup.button.callback('👥 Danh sách user', 'action:refresh_users')]);

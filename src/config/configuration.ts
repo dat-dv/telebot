@@ -19,6 +19,7 @@ export interface AppConfig {
     clientSecret: string;
     credentialsPath: string;
   };
+  reports: { accessToken: string };
 }
 
 function cleanEnv(val: string | undefined, defaultVal = ''): string {
@@ -69,5 +70,6 @@ export default (): AppConfig => {
       clientSecret: cleanEnv(process.env.GOOGLE_CLIENT_SECRET),
       credentialsPath: cleanEnv(process.env.GOOGLE_OAUTH_CREDENTIALS, './gcp-oauth.keys.json'),
     },
+    reports: { accessToken: cleanEnv(process.env.REPORT_ACCESS_TOKEN) },
   };
 };
