@@ -9,6 +9,7 @@ import { GeminiModule } from './gemini/gemini.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { FinanceModule } from './finance/finance.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FinanceModule } from './finance/finance.module';
     GoogleModule,
     RemindersModule,
     FinanceModule,
+    AuditModule,
     GeminiModule,
     TelegramModule,
   ],

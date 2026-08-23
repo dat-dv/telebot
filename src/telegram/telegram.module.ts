@@ -9,6 +9,7 @@ import { GoogleModule } from '../google/google.module';
 import { UsersModule } from '../users/users.module';
 import { RemindersModule } from '../reminders/reminders.module';
 import { FinanceModule } from '../finance/finance.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FinanceModule } from '../finance/finance.module';
     UsersModule,
     RemindersModule,
     FinanceModule,
+    AuditModule,
   ],
   providers: [TelegramUpdate, TelegramUiService, AuthGuard],
   exports: [TelegramUiService],

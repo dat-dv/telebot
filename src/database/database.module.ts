@@ -9,6 +9,8 @@ import { ReminderEntity } from './entities/reminder.entity';
 import { FinanceTransactionEntity } from './entities/finance-transaction.entity';
 import { DebtEntity } from './entities/debt.entity';
 import { DebtContactEntity } from './entities/debt-contact.entity';
+import { AuditLogEntity } from './entities/audit-log.entity';
+import { AuditLogSubscriber } from './audit-log.subscriber';
 
 @Module({
   imports: [
@@ -30,7 +32,9 @@ import { DebtContactEntity } from './entities/debt-contact.entity';
             FinanceTransactionEntity,
             DebtEntity,
             DebtContactEntity,
+            AuditLogEntity,
           ],
+          subscribers: [AuditLogSubscriber],
           synchronize: true,
           logging: false,
         };
@@ -44,6 +48,7 @@ import { DebtContactEntity } from './entities/debt-contact.entity';
       FinanceTransactionEntity,
       DebtEntity,
       DebtContactEntity,
+      AuditLogEntity,
     ]),
   ],
   exports: [TypeOrmModule],

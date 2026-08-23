@@ -10,6 +10,7 @@ import { GoogleTasksService } from '../google/google-tasks.service';
 import { GoogleCalendarService } from '../google/google-calendar.service';
 import { RemindersService } from '../reminders/reminders.service';
 import { FinanceService } from '../finance/finance.service';
+import { AuditService } from '../audit/audit.service';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -25,6 +26,7 @@ export class TelegramUpdate {
     private readonly remindersService: RemindersService,
     private readonly uiService: TelegramUiService,
     private readonly financeService: FinanceService,
+    private readonly auditService: AuditService,
   ) {}
 
   private async requestToolConfirmation(
@@ -409,6 +411,24 @@ ${googleStatus}
     await ctx.reply(
       `💰 SỔ THU–CHI HÔM NAY\n\nThu: ${this.financeService.formatMoney(summary.income)}\nChi: ${this.financeService.formatMoney(summary.expense)}\nCòn lại: ${this.financeService.formatMoney(summary.balance)}${details}\n\nNhắn ví dụ: “ăn trưa 65k” hoặc “nhận lương 20 triệu”.`,
     );
+  }
+
+  @Command('history')
+  public async onHistory(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const logs = await this.auditService.listRecent(userId);
+    if (logs.length === 0) {
+      await ctx.reply('📜 Chưa có lịch sử thay đổi để hiển thị.');
+      return;
+    }
+    const text = logs
+      .map(
+        (log, index) =>
+          `${index + 1}. ${log.action.toUpperCase()} ${log.tableName} • ${new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(log.createdAt)}`,
+      )
+      .join('\n');
+    await ctx.reply(`📜 LỊCH SỬ GẦN ĐÂY\n\n${text}`);
   }
 
   @Command('debts')
