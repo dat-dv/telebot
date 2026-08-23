@@ -51,8 +51,18 @@ export class AuditLogSubscriber implements EntitySubscriberInterface {
       recordId: recordId || undefined,
       action,
       actorId: typeof data.userId === 'string' ? data.userId : undefined,
-      beforeData,
-      afterData,
+      beforeData: this.redact(beforeData),
+      afterData: this.redact(afterData),
     });
+  }
+
+  private redact(data?: Record<string, unknown>): Record<string, unknown> | undefined {
+    if (!data) return undefined;
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [
+        key,
+        /token|secret|password|authorization/i.test(key) ? '[REDACTED]' : value,
+      ]),
+    );
   }
 }

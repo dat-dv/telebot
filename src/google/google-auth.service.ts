@@ -7,6 +7,7 @@ import { OAuth2Client, Credentials } from 'google-auth-library';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UserTokenEntity } from '../database/entities/user-token.entity';
+import { TokenEncryptionService } from './token-encryption.service';
 
 export const GOOGLE_SCOPES = [
   // 1. Thông tin cơ bản người dùng (User Profile & Email)
@@ -62,6 +63,7 @@ export class GoogleAuthService implements OnModuleInit {
     private readonly configService: ConfigService,
     @InjectRepository(UserTokenEntity)
     private readonly tokenRepo: Repository<UserTokenEntity>,
+    private readonly encryption: TokenEncryptionService,
   ) {
     this.credentialsPath = path.resolve(
       process.cwd(),
@@ -78,11 +80,18 @@ export class GoogleAuthService implements OnModuleInit {
       const allTokens = await this.tokenRepo.find();
       for (const t of allTokens) {
         if (t.accessToken || t.refreshToken) {
+          const accessToken = this.encryption.decrypt(t.accessToken);
+          const refreshToken = this.encryption.decrypt(t.refreshToken);
+          if (!t.accessToken?.startsWith('enc:v1:') || !t.refreshToken?.startsWith('enc:v1:')) {
+            t.accessToken = this.encryption.encrypt(accessToken);
+            t.refreshToken = this.encryption.encrypt(refreshToken);
+            await this.tokenRepo.save(t);
+          }
           const client = this.createOAuth2Instance();
           if (client) {
             client.setCredentials({
-              access_token: t.accessToken,
-              refresh_token: t.refreshToken,
+              access_token: accessToken,
+              refresh_token: refreshToken,
               scope: t.scope,
               token_type: t.tokenType,
               expiry_date: t.expiryDate ? Number(t.expiryDate) : undefined,
@@ -219,15 +228,16 @@ export class GoogleAuthService implements OnModuleInit {
       if (!dbToken) {
         dbToken = this.tokenRepo.create({
           userId: strId,
-          accessToken: tokens.access_token || undefined,
-          refreshToken: tokens.refresh_token || undefined,
+          accessToken: this.encryption.encrypt(tokens.access_token || undefined),
+          refreshToken: this.encryption.encrypt(tokens.refresh_token || undefined),
           scope: tokens.scope || undefined,
           tokenType: tokens.token_type || undefined,
           expiryDate: tokens.expiry_date || undefined,
         });
       } else {
-        if (tokens.access_token) dbToken.accessToken = tokens.access_token;
-        if (tokens.refresh_token) dbToken.refreshToken = tokens.refresh_token;
+        if (tokens.access_token) dbToken.accessToken = this.encryption.encrypt(tokens.access_token);
+        if (tokens.refresh_token)
+          dbToken.refreshToken = this.encryption.encrypt(tokens.refresh_token);
         if (tokens.scope) dbToken.scope = tokens.scope;
         if (tokens.token_type) dbToken.tokenType = tokens.token_type;
         if (tokens.expiry_date) dbToken.expiryDate = tokens.expiry_date;
@@ -248,8 +258,8 @@ export class GoogleAuthService implements OnModuleInit {
       }
       if (client) {
         client.setCredentials({
-          access_token: dbToken.accessToken,
-          refresh_token: dbToken.refreshToken,
+          access_token: this.encryption.decrypt(dbToken.accessToken),
+          refresh_token: this.encryption.decrypt(dbToken.refreshToken),
           scope: dbToken.scope,
           token_type: dbToken.tokenType,
           expiry_date: dbToken.expiryDate ? Number(dbToken.expiryDate) : undefined,

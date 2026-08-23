@@ -20,6 +20,7 @@ export interface AppConfig {
     credentialsPath: string;
   };
   reports: { accessToken: string };
+  security: { encryptionKey: string };
 }
 
 function cleanEnv(val: string | undefined, defaultVal = ''): string {
@@ -71,5 +72,6 @@ export default (): AppConfig => {
       credentialsPath: cleanEnv(process.env.GOOGLE_OAUTH_CREDENTIALS, './gcp-oauth.keys.json'),
     },
     reports: { accessToken: cleanEnv(process.env.REPORT_ACCESS_TOKEN) },
+    security: { encryptionKey: cleanEnv(process.env.DATA_ENCRYPTION_KEY) },
   };
 };

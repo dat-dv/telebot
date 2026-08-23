@@ -2,6 +2,7 @@ import { Controller, Get, Query, Req, Res, UnauthorizedException } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { FinanceService } from '../finance/finance.service';
+import { signReportsUser, verifyReportsUser } from './reports-access';
 
 @Controller('reports')
 export class ReportsController {
@@ -11,10 +12,16 @@ export class ReportsController {
   ) {}
 
   @Get('access')
-  public access(@Query('token') token: string, @Res() res: Response): void {
+  public access(
+    @Query('userId') rawUserId: string,
+    @Query('token') token: string,
+    @Res() res: Response,
+  ): void {
     const expected = this.config.get<string>('reports.accessToken');
-    if (!expected || token !== expected) throw new UnauthorizedException();
-    res.cookie('reports_access', expected, {
+    const userId = Number(rawUserId);
+    if (!expected || !Number.isSafeInteger(userId) || !verifyReportsUser(userId, token, expected))
+      throw new UnauthorizedException();
+    res.cookie('reports_access', `${userId}.${signReportsUser(userId, expected)}`, {
       httpOnly: true,
       sameSite: 'strict',
       secure: true,
@@ -27,8 +34,7 @@ export class ReportsController {
   public async dashboard(@Req() req: Request, @Res() res: Response): Promise<void> {
     const expected = this.config.get<string>('reports.accessToken');
     if (!expected || !this.hasAccess(req, expected)) throw new UnauthorizedException();
-    const userId = this.config.get<number>('telegram.adminId');
-    if (!userId) throw new UnauthorizedException();
+    const userId = this.getUserId(req, expected);
     const now = new Date();
     const startAt = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const endAt = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
@@ -58,10 +64,28 @@ export class ReportsController {
   }
 
   private hasAccess(req: Request, token: string): boolean {
-    return (
-      req.headers.cookie?.split(';').some((item) => item.trim() === `reports_access=${token}`) ||
-      false
-    );
+    try {
+      this.getUserId(req, token);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  private getUserId(req: Request, secret: string): number {
+    const value = req.headers.cookie
+      ?.split(';')
+      .map((item) => item.trim())
+      .find((item) => item.startsWith('reports_access='))
+      ?.slice('reports_access='.length);
+    const [rawUserId, signature] = value?.split('.') || [];
+    const userId = Number(rawUserId);
+    if (
+      !Number.isSafeInteger(userId) ||
+      !signature ||
+      !verifyReportsUser(userId, signature, secret)
+    )
+      throw new UnauthorizedException();
+    return userId;
   }
   private escape(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

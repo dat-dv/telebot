@@ -12,6 +12,7 @@ import { RemindersService } from '../reminders/reminders.service';
 import { FinanceService } from '../finance/finance.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '@nestjs/config';
+import { signReportsUser } from '../reports/reports-access';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -31,10 +32,12 @@ export class TelegramUpdate {
     private readonly configService: ConfigService,
   ) {}
 
-  private getReportsUrl(): string {
+  private getReportsUrl(userId?: number): string {
     const appUrl = this.configService.get<string>('appUrl', '').replace(/\/+$/, '');
     const token = this.configService.get<string>('reports.accessToken', '');
-    return appUrl && token ? `${appUrl}/reports/access?token=${encodeURIComponent(token)}` : '';
+    return appUrl && token && userId
+      ? `${appUrl}/reports/access?userId=${userId}&token=${signReportsUser(userId, token)}`
+      : '';
   }
 
   private async requestToolConfirmation(
@@ -133,7 +136,7 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
-      this.getReportsUrl(),
+      this.getReportsUrl(userId),
     );
 
     await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
@@ -157,7 +160,7 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
-      this.getReportsUrl(),
+      this.getReportsUrl(userId),
     );
 
     if (isAdmin) {
@@ -274,7 +277,7 @@ ${googleStatus}
         isAdmin,
         true,
         '',
-        this.getReportsUrl(),
+        this.getReportsUrl(userId),
       );
 
       await ctx.reply(
@@ -745,7 +748,7 @@ ${googleStatus}
 
   @Action('action:view_reports')
   public async onViewReportsAction(@Ctx() ctx: Context): Promise<void> {
-    const reportsUrl = this.getReportsUrl();
+    const reportsUrl = this.getReportsUrl(ctx.from?.id);
     if (!reportsUrl) {
       await ctx.answerCbQuery('Chưa cấu hình trang báo cáo trên server.');
       return;

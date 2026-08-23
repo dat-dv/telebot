@@ -39,6 +39,14 @@ export function validateEnvironment(): EnvValidationResult {
     });
   }
 
+  if (!/^[0-9a-f]{64}$/i.test(process.env.DATA_ENCRYPTION_KEY?.trim() || '')) {
+    errors.push({
+      key: 'DATA_ENCRYPTION_KEY',
+      reason: 'Thiếu khóa mã hóa 32-byte cho token người dùng.',
+      guide: 'Tạo bằng lệnh: openssl rand -hex 32, rồi lưu vào .env.',
+    });
+  }
+
   // 4. GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET (or gcp-oauth.keys.json)
   const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
