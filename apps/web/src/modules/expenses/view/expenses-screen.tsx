@@ -30,7 +30,7 @@ export function ExpensesScreen() {
     window.location.assign(APP_ROUTES.reports);
   };
   return (
-    <main className="workspace app-shell">
+    <main className="workspace workspace--full app-shell">
       <ReportsNavigation active="expenses" />
       <section className="app-content">
         <header className="workspace__header">

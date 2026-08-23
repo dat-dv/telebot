@@ -15,6 +15,7 @@ Module `apps/web/src/modules/debts` hiển thị các khoản công nợ đang m
 
 - API `GET /api/debts` chỉ trả các khoản cần thu hoặc cần trả chưa tất toán.
 - Bảng gồm hướng công nợ, người liên quan, số tiền ban đầu/còn lại, hạn trả và ghi chú.
+- Trên desktop, canvas báo cáo và bảng trải hết chiều ngang còn lại sau thanh điều hướng; trên màn hình hẹp bảng cuộn ngang bên trong panel.
 - Khi API lỗi, dùng nút **Thử lại**; trước hết kiểm tra phiên dashboard đã hết hạn hay chưa.
 
 Kiểm thử bằng `npm run typecheck`, `npm run lint` và `npm run build` tại thư mục gốc.

@@ -6,7 +6,7 @@
 
 ## UI and state
 
-The table shows direction, counterparty, original and remaining amounts, due date, and note. It supports loading, empty, success, and retryable-error states, with horizontal scrolling on small screens.
+The table shows direction, counterparty, original and remaining amounts, due date, and note. Its report canvas uses the full available desktop width after navigation, while small screens retain horizontal table scrolling. It supports loading, empty, success, and retryable-error states.
 
 ## Integration seams
 

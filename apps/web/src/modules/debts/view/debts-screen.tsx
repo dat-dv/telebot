@@ -30,7 +30,7 @@ export function DebtsScreen() {
     window.location.assign(APP_ROUTES.reports);
   };
   return (
-    <main className="workspace app-shell">
+    <main className="workspace workspace--full app-shell">
       <ReportsNavigation active="debts" />
       <section className="app-content">
         <header className="workspace__header">

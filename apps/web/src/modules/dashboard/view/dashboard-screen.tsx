@@ -41,14 +41,7 @@ export function DashboardScreen({ page }: { page: Page }) {
   const data = dashboard.data;
   return (
     <main className="workspace app-shell">
-      <ReportsNavigation
-        active={page}
-        footer={
-          <p className={data.user.googleConnected ? 'app-nav__status ok' : 'app-nav__status warn'}>
-            ● {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
-          </p>
-        }
-      />
+      <ReportsNavigation active={page} />
       <section className="app-content">
         <header className="workspace__header">
           <div>
@@ -59,13 +52,6 @@ export function DashboardScreen({ page }: { page: Page }) {
             </p>
           </div>
           <div className="header-status">
-            <span
-              className={data.user.googleConnected ? 'connection-status ok' : 'connection-status warn'}
-              role="status"
-            >
-              <span aria-hidden="true" />
-              {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
-            </span>
             <button type="button" onClick={refresh}>
               Làm mới
             </button>

@@ -39,6 +39,9 @@ a:focus-visible {
   min-height: 100vh;
   padding: 28px 24px 40px;
 }
+.workspace--full {
+  max-width: none;
+}
 .app-shell {
   display: grid;
   gap: 32px;
@@ -152,11 +155,6 @@ a:focus-visible {
   margin: 28px 8px 0;
   padding-top: 14px;
 }
-.app-nav__status {
-  font-size: 12px;
-  line-height: 18px;
-  margin: 0;
-}
 .quick-actions {
   align-items: center;
   display: flex;
@@ -238,21 +236,6 @@ h2 {
   gap: 8px;
   font-size: 13px;
   justify-content: flex-end;
-}
-.connection-status {
-  align-items: center;
-  color: #475569;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 500;
-  gap: 6px;
-  min-height: 36px;
-}
-.connection-status > span {
-  background: currentColor;
-  border-radius: 50%;
-  height: 7px;
-  width: 7px;
 }
 .button--quiet {
   color: #475569;
@@ -494,9 +477,6 @@ h2 {
     margin: 10px 0 0;
     padding-top: 0;
   }
-  .app-nav__status {
-    margin: 0;
-  }
   .workspace {
     padding: 20px 14px 32px;
   }
@@ -506,10 +486,6 @@ h2 {
   .header-status {
     align-items: flex-start;
     justify-content: flex-start;
-  }
-  .connection-status {
-    flex-basis: 100%;
-    min-height: 24px;
   }
   .metric-grid,
   .content-grid {

@@ -12,7 +12,7 @@ metadata:
 `apps/web/src/modules/dashboard` hiển thị trang Tổng quan và Thống kê từ payload dashboard đã xác thực.
 
 - API/cache: `getDashboard` gọi `API_ROUTES.dashboard`; `useDashboardQuery` là nguồn query key duy nhất. Nút Làm mới phải invalidate key này.
-- UI: luôn giữ skeleton khi tải, trạng thái rỗng rõ ràng, cảnh báo có nút thử lại khi lỗi, và các bảng dữ liệu dày khi thành công. Tổng quan có việc cần chú ý và link nhanh; Thống kê có số liệu thu–chi, công nợ và bảng chi tiết. Màu xanh/vàng/đỏ chỉ biểu thị số liệu tốt/cần theo dõi/âm; sidebar desktop giữ icon kèm chữ, còn mobile cuộn ngang.
+- UI: luôn giữ skeleton khi tải, trạng thái rỗng rõ ràng, cảnh báo có nút thử lại khi lỗi, và các bảng dữ liệu dày khi thành công. Tổng quan có việc cần chú ý và link nhanh; Thống kê có số liệu thu–chi, công nợ và bảng chi tiết. Không hiển thị nhãn trạng thái kết nối Google cố định ở sidebar hoặc tiêu đề; trạng thái này chỉ dùng để chọn thông điệp rỗng phù hợp cho Lịch và Việc cần làm. Màu xanh/vàng/đỏ chỉ biểu thị số liệu tốt/cần theo dõi/âm; sidebar desktop giữ icon kèm chữ, còn mobile cuộn ngang.
 - Đăng xuất: gọi API logout, xóa token qua module `auth`, xóa cache rồi quay lại `/reports/`.
 
 ## Cấu hình production

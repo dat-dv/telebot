@@ -6,7 +6,7 @@
 
 ## UI and state
 
-The table displays category, note, amount, and occurrence time. It provides loading, empty, success, and retryable-error states and keeps the data table scrollable on narrow screens.
+The table displays category, note, amount, and occurrence time. Its report canvas uses the full available desktop width after navigation, while narrow screens retain horizontal table scrolling. It provides loading, empty, success, and retryable-error states.
 
 ## Integration seams
 

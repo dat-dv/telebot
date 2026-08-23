@@ -8,7 +8,7 @@
 
 ## UI and state
 
-The module has loading skeleton, error with retry, empty tables, and populated states. Home surfaces attention items and quick links; statistics surfaces financial totals and dense operational tables. Financial values use semantic tones only for positive, warning, and negative meaning. Navigation remains an icon-and-text desktop sidebar and a horizontally scrollable mobile row.
+The module has loading skeleton, error with retry, empty tables, and populated states. Home surfaces attention items and quick links; statistics surfaces financial totals and dense operational tables. Financial values use semantic tones only for positive, warning, and negative meaning. Google connection state remains available to determine Calendar and Tasks empty messages, but it is not rendered as a persistent navigation or header status label. Navigation remains an icon-and-text desktop sidebar and a horizontally scrollable mobile row.
 
 ## Integration seams
 
