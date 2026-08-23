@@ -38,3 +38,10 @@ Loại bỏ các biến môi trường không được source production hiện 
 
 - Validation của agent không chạy được trong sandbox do `tsx` không thể tạo IPC socket; đây là giới hạn môi trường kiểm tra, không phải lỗi cấu hình ứng dụng.
 - Tài liệu kiến trúc hiện còn nêu `REPORT_ACCESS_TOKEN` được dùng, nhưng source `apps/api` không còn đọc biến này; tài liệu sẽ được sửa đồng bộ.
+
+## Kết quả triển khai
+
+- Đã xoá các giá trị mặc định/trùng lặp và hai key không được source `apps/api` sử dụng khỏi `.env`: `PORT`, `SERVICE_FQDN_TELEBOT`, `REPORT_ACCESS_TOKEN`, `GEMINI_MODEL`, `DEFAULT_TIMEZONE`, `TELEGRAM_LONG_POLLING_ENABLED`, `WEB_ORIGIN`, `WEB_PORT`.
+- Đã giữ nguyên `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` và `TELEGRAM_SESSION` vì CallMe đang được sử dụng.
+- Đã rút gọn `.env.example`, cập nhật hướng dẫn deploy và đồng bộ tài liệu kiến trúc. Token bot thật từng có trong `docs/deployment.md` đã được thay bằng placeholder.
+- Đã kiểm tra danh sách ENV không còn các key dư trên; `npm run lint`, `npm run typecheck` và `npm run build` đều thành công.
