@@ -6,6 +6,7 @@ import { CreateCalendarTool } from './tools/create-calendar.tool';
 import { ListCalendarTool } from './tools/list-calendar.tool';
 import { DeleteCalendarTool } from './tools/delete-calendar.tool';
 import { CreateTaskTool } from './tools/create-task.tool';
+import { CreateTasksTool } from './tools/create-tasks.tool';
 import { ListTasksTool } from './tools/list-tasks.tool';
 import { CompleteTaskTool } from './tools/complete-task.tool';
 import { LoginGoogleTool } from './tools/login-google.tool';
@@ -61,6 +62,7 @@ export class GeminiService {
     'create_calendar_event',
     'delete_calendar_event',
     'create_task',
+    'create_tasks',
     'complete_task',
     'create_invite_link',
     'ban_user',
@@ -79,6 +81,7 @@ export class GeminiService {
     private readonly listCalendarTool: ListCalendarTool,
     private readonly deleteCalendarTool: DeleteCalendarTool,
     private readonly createTaskTool: CreateTaskTool,
+    private readonly createTasksTool: CreateTasksTool,
     private readonly listTasksTool: ListTasksTool,
     private readonly completeTaskTool: CompleteTaskTool,
     private readonly loginGoogleTool: LoginGoogleTool,
@@ -113,6 +116,7 @@ export class GeminiService {
       this.listCalendarTool,
       this.deleteCalendarTool,
       this.createTaskTool,
+      this.createTasksTool,
       this.listTasksTool,
       this.completeTaskTool,
       this.loginGoogleTool,

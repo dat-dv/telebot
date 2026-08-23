@@ -2,7 +2,7 @@
 
 The Telegram dashboard link uses a random one-time exchange token. Only its SHA-256 hash is persisted in `dashboard_exchange_tokens`; the raw token appears only in the short-lived URL.
 
-The shared `/start` and `/help` inline menu exposes **Xem báo cáo** as that URL directly. Dashboard-link generation is optional: if exchange-token creation fails, the command still replies and omits only this button. The legacy callback remains only for already-sent menus and issues a new URL before replying.
+The shared `/start` and `/help` inline menu exposes **Xem báo cáo** as that URL directly. `/dashboard` and exact short Dashboard requests are routed directly to the same URL instead of the generative model. Dashboard-link generation is optional: if exchange-token creation fails, the command still replies and omits only this button. The legacy callback remains only for already-sent menus and issues a new URL before replying.
 
 - `GET /api/access?token=...` atomically consumes a valid, unused exchange token and redirects with an access token in the URL fragment.
 - Access tokens expire after 24 hours. Refresh tokens expire after 7 days, rotate on refresh, and are stored only in an HTTP-only cookie.

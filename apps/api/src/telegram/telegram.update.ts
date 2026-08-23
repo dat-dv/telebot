@@ -102,6 +102,13 @@ export class TelegramUpdate {
     await this.uiService.sendSafeReply(ctx, chatResult.text, extraMarkup);
   }
 
+  private isDashboardRequest(text: string): boolean {
+    const normalized = text.trim().toLocaleLowerCase('vi-VN');
+    return ['dashboard', 'mở dashboard', 'xem dashboard', 'cho anh xem dashboard'].includes(
+      normalized,
+    );
+  }
+
   @Start()
   public async onStart(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
@@ -542,6 +549,7 @@ ${googleStatus}
   }
 
   @Command('tasks')
+  @Command('task')
   public async onTasksChecklist(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
@@ -575,6 +583,20 @@ ${googleStatus}
       const error = err as Error;
       await ctx.reply(`⚠️ Không thể lấy danh sách công việc: ${error.message}`);
     }
+  }
+
+  @Command('dashboard')
+  public async onDashboard(@Ctx() ctx: Context): Promise<void> {
+    const reportsUrl = await this.getReportsUrl(ctx.from?.id);
+    if (!reportsUrl) {
+      await ctx.reply('⚠️ Chưa thể tạo link Dashboard. Vui lòng thử lại sau ít phút.');
+      return;
+    }
+
+    await ctx.reply(
+      '📊 Mở Dashboard để xem tổng quan thu–chi, công việc, lịch hẹn, nhắc nhở và công nợ:',
+      Markup.inlineKeyboard([[Markup.button.url('📊 Mở Dashboard', reportsUrl)]]),
+    );
   }
 
   // Handle interactive inline button: complete task
@@ -958,6 +980,11 @@ ${googleStatus}
     const message = ctx.message;
     const text = message && 'text' in message ? message.text.trim() : '';
     if (!text) return;
+
+    if (this.isDashboardRequest(text)) {
+      await this.onDashboard(ctx);
+      return;
+    }
 
     // Auto-detect if user simply pasted the redirect callback URL or raw auth code
     if (

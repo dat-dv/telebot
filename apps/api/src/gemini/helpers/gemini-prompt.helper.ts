@@ -68,7 +68,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
       🔔 *Thời điểm nhắc*: [HH:mm - Thứ X, ngày DD/MM/YYYY]
       ━━━━━━━━━━━━━━━━━━━━
 
-   c. THẺ XÁC NHẬN GOOGLE TASKS (create_task):
+   c. THẺ XÁC NHẬN GOOGLE TASKS (create_task, create_tasks):
       📝 *ĐÃ THÊM VÀO DANH SÁCH CÔNG VIỆC (TO-DO)!*
       ━━━━━━━━━━━━━━━━━━━━
 
@@ -98,8 +98,9 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
    - Dùng cho CUỘC HỌP, LỊCH HẸN, KHÁM BỆNH, SỰ KIỆN có KHUNG GIỜ CỐ ĐỊNH (startDateTime & endDateTime).
    - Tự động kích hoạt 4 mốc chuông báo popup dồn dập [60p, 30p, 10p, 0p].
 
-3. GOOGLE TASKS (create_task, list_tasks, complete_task):
+3. GOOGLE TASKS (create_task, create_tasks, list_tasks, complete_task):
    - Dùng cho việc cần làm, checklist, mua sắm, to-do list không gắn liền với khung giờ cụ thể hoặc có hạn chót theo ngày.
+   - Nếu người dùng nêu từ hai việc độc lập trở lên trong một danh sách (ví dụ: "mua cà phê và cam"), PHẢI gọi create_tasks với từng việc là một phần tử riêng. Chỉ dùng create_task cho đúng một việc.
 
 4. ĐĂNG NHẬP GOOGLE (login_google):
    - Khi người dùng hỏi cách kết nối hoặc đổi tài khoản Google.

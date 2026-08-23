@@ -7,6 +7,7 @@ import { CreateCalendarTool } from './tools/create-calendar.tool';
 import { ListCalendarTool } from './tools/list-calendar.tool';
 import { DeleteCalendarTool } from './tools/delete-calendar.tool';
 import { CreateTaskTool } from './tools/create-task.tool';
+import { CreateTasksTool } from './tools/create-tasks.tool';
 import { ListTasksTool } from './tools/list-tasks.tool';
 import { CompleteTaskTool } from './tools/complete-task.tool';
 import { LoginGoogleTool } from './tools/login-google.tool';
@@ -34,6 +35,7 @@ import { UpdateReminderTool } from './tools/update-reminder.tool';
     ListCalendarTool,
     DeleteCalendarTool,
     CreateTaskTool,
+    CreateTasksTool,
     ListTasksTool,
     CompleteTaskTool,
     LoginGoogleTool,
