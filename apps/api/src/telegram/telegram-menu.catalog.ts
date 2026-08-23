@@ -50,7 +50,7 @@ const PRIMARY_MENU_ITEMS: readonly TelegramMenuItem[] = [
     id: 'debts',
     command: 'debts',
     commandDescription: 'Các khoản công nợ đang mở',
-    label: '💳 Công nợ',
+    label: '💳 Công nợ đang mở',
     callbackData: 'action:view_debts',
   },
   {

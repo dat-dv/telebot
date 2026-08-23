@@ -12,7 +12,7 @@ import { UsersModule } from '../users/users.module';
 import { RemindersModule } from '../reminders/reminders.module';
 import { FinanceModule } from '../finance/finance.module';
 import { AuditModule } from '../audit/audit.module';
-import { ReportsModule } from '../reports/reports.module';
+import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { ReportsModule } from '../reports/reports.module';
     RemindersModule,
     FinanceModule,
     AuditModule,
-    ReportsModule,
+    DashboardAuthModule,
   ],
   providers: [
     TelegramUpdate,

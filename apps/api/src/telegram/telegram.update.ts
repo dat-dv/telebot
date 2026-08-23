@@ -468,7 +468,7 @@ ${googleStatus}
     const summary = await this.uiService.withTyping(ctx, () =>
       this.geminiService.getWeekSummary(userId, botUsername),
     );
-    await this.uiService.sendSafeReply(ctx, summary, this.uiService.buildTodayActionsMarkup());
+    await this.uiService.sendSafeReply(ctx, summary, this.uiService.buildWeekActionsMarkup());
   }
 
   @Command('finance')
@@ -795,6 +795,12 @@ ${googleStatus}
   public async onRefreshTodayAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('🔄 Đang cập nhật lịch trình...');
     await this.onToday(ctx);
+  }
+
+  @Action('action:refresh_week')
+  public async onRefreshWeekAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🔄 Đang cập nhật lịch 7 ngày...');
+    await this.onWeek(ctx);
   }
 
   @Action('action:view_week')

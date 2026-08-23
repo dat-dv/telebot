@@ -93,7 +93,15 @@ export class TelegramUiService {
    */
   public buildTodayActionsMarkup() {
     return Markup.inlineKeyboard([
-      [Markup.button.callback('🔄 Cập nhật', 'action:refresh_today')],
+      [Markup.button.callback('🔄 Cập nhật lịch hôm nay', 'action:refresh_today')],
+      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+      [Markup.button.callback('❌ Đóng', 'message:close')],
+    ]);
+  }
+
+  public buildWeekActionsMarkup() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Cập nhật lịch 7 ngày', 'action:refresh_week')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
       [Markup.button.callback('❌ Đóng', 'message:close')],
     ]);
@@ -241,6 +249,28 @@ export class TelegramUiService {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  private normalizeGeneratedMarkdown(value: string): string {
+    const namedEntities: Record<string, string> = {
+      amp: '&',
+      apos: "'",
+      gt: '>',
+      lt: '<',
+      quot: '"',
+    };
+
+    return value
+      .replace(
+        /&#x([0-9a-f]+);|&#(\d+);|&(amp|apos|gt|lt|quot);/gi,
+        (match: string, hex?: string, decimal?: string, named?: string) => {
+          if (named) return namedEntities[named.toLowerCase()] || match;
+          const codePoint = Number.parseInt(hex || decimal || '', hex ? 16 : 10);
+          if (Number.isNaN(codePoint) || codePoint < 0 || codePoint > 0x10ffff) return match;
+          return String.fromCodePoint(codePoint);
+        },
+      )
+      .replace(/\\&/g, '&');
+  }
+
   private groupButtons<T>(buttons: readonly T[], columns: number): T[][] {
     return buttons.reduce<T[][]>((rows, button) => {
       const currentRow = rows[rows.length - 1];
@@ -330,7 +360,7 @@ export class TelegramUiService {
     const MAX_LENGTH = 4000;
     const chunks: string[] = [];
 
-    let remaining = text;
+    let remaining = this.normalizeGeneratedMarkdown(text);
     while (remaining.length > 0) {
       if (remaining.length <= MAX_LENGTH) {
         chunks.push(remaining);

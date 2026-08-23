@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TelegramUiService } from './telegram-ui.service';
 
+function getCallbackData(button: unknown): string | undefined {
+  if (typeof button !== 'object' || button === null || !('callback_data' in button)) {
+    return undefined;
+  }
+
+  const { callback_data: callbackData } = button;
+  return typeof callbackData === 'string' ? callbackData : undefined;
+}
+
 void test('buildMainMenuInlineMarkup requests a fresh Dashboard link by callback', () => {
   const menu = new TelegramUiService().buildMainMenuInlineMarkup(false, true, '');
   const reportButton = menu.reply_markup.inline_keyboard
@@ -9,7 +18,7 @@ void test('buildMainMenuInlineMarkup requests a fresh Dashboard link by callback
     .find((button) => button.text === '📊 Dashboard');
 
   assert.equal(reportButton?.text, '📊 Dashboard');
-  assert.equal(reportButton?.callback_data, 'action:view_reports');
+  assert.equal(getCallbackData(reportButton), 'action:view_reports');
   assert.equal('url' in (reportButton ?? {}), false);
 });
 
@@ -20,11 +29,11 @@ void test('groups the main menu into compact rows of two controls', () => {
   assert.ok(rows.length > 0);
   assert.ok(rows.every((row) => row.length <= 2));
   assert.equal(
-    rows.flat().find((button) => button.text === '📊 Dashboard')?.callback_data,
+    getCallbackData(rows.flat().find((button) => button.text === '📊 Dashboard')),
     'action:view_reports',
   );
   assert.equal(
-    rows.flat().find((button) => button.text === '👥 Danh sách user')?.callback_data,
+    getCallbackData(rows.flat().find((button) => button.text === '👥 Danh sách user')),
     'action:refresh_users',
   );
 });
@@ -80,11 +89,11 @@ void test('groups compact task completion controls and provides a close control'
   assert.equal(rows.length, 3);
   assert.equal(rows[0].length, 2);
   assert.equal(rows[1].length, 1);
-  assert.equal(rows[0][0].callback_data, 'complete_task:one');
-  assert.equal(rows[0][1].callback_data, 'complete_task:two');
-  assert.equal(rows[1][0].callback_data, 'complete_task:three');
+  assert.equal(getCallbackData(rows[0][0]), 'complete_task:one');
+  assert.equal(getCallbackData(rows[0][1]), 'complete_task:two');
+  assert.equal(getCallbackData(rows[1][0]), 'complete_task:three');
   assert.equal(rows[2][0].text, '❌ Đóng');
-  assert.equal(rows[2][0].callback_data, 'message:close');
+  assert.equal(getCallbackData(rows[2][0]), 'message:close');
 });
 
 void test('provides close controls for today and admin lists', () => {
@@ -94,8 +103,36 @@ void test('provides close controls for today and admin lists', () => {
     const closeButton = markup.reply_markup.inline_keyboard
       .flat()
       .find((button) => button.text === '❌ Đóng');
-    assert.equal(closeButton?.callback_data, 'message:close');
+    assert.equal(getCallbackData(closeButton), 'message:close');
   }
+});
+
+void test('uses scope-specific refresh controls for today and week summaries', () => {
+  const service = new TelegramUiService();
+  const todayButtons = service.buildTodayActionsMarkup().reply_markup.inline_keyboard.flat();
+  const weekButtons = service.buildWeekActionsMarkup().reply_markup.inline_keyboard.flat();
+
+  assert.equal(todayButtons[0].text, '🔄 Cập nhật lịch hôm nay');
+  assert.equal(getCallbackData(todayButtons[0]), 'action:refresh_today');
+  assert.equal(weekButtons[0].text, '🔄 Cập nhật lịch 7 ngày');
+  assert.equal(getCallbackData(weekButtons[0]), 'action:refresh_week');
+});
+
+void test('normalizes HTML entities and escaped URL ampersands before sending Markdown', async () => {
+  const replies: string[] = [];
+  const ctx = {
+    reply: async (text: string) => {
+      replies.push(text);
+      await Promise.resolve();
+    },
+  };
+
+  await new TelegramUiService().sendSafeReply(
+    ctx as never,
+    '📍&#x20;[Mở lịch](https://example.test/event?eid=abc\\&ctz=Asia/Ho_Chi_Minh)',
+  );
+
+  assert.equal(replies[0], '📍 [Mở lịch](https://example.test/event?eid=abc&ctz=Asia/Ho_Chi_Minh)');
 });
 
 void test('provides a close control for each debt detail', () => {
@@ -104,14 +141,14 @@ void test('provides a close control for each debt detail', () => {
     .reply_markup.inline_keyboard.flat();
 
   assert.equal(
-    buttons.find((button) => button.text === '💵 Trả nợ')?.callback_data,
+    getCallbackData(buttons.find((button) => button.text === '💵 Trả nợ')),
     'debt:pay:debt-1',
   );
   assert.equal(
-    buttons.find((button) => button.text === '🗑️ Xóa khoản này')?.callback_data,
+    getCallbackData(buttons.find((button) => button.text === '🗑️ Xóa khoản này')),
     'debt:delete:debt-1',
   );
-  assert.equal(buttons.find((button) => button.text === '❌ Đóng')?.callback_data, 'debt:close');
+  assert.equal(getCallbackData(buttons.find((button) => button.text === '❌ Đóng')), 'debt:close');
 });
 
 void test('formats completed task results without technical JSON', () => {

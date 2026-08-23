@@ -85,7 +85,8 @@ Telegram tự động tắt trạng thái `typing` sau 5 giây. Hàm `withTyping
 ### 2. Gửi phản hồi an toàn & Chia nhỏ tin nhắn (`sendSafeReply`)
 
 - Tự động chia nhỏ tin nhắn dài vượt quá giới hạn 4000 ký tự của Telegram.
-- Tự động fallback về plain-text nếu cú pháp Markdown của AI bị lỗi ký tự đặc biệt.
+- Chuẩn hóa Markdown do AI tạo trước khi gửi: giải mã HTML entity và bỏ escape thừa trong URL, nên chuỗi như ` ` không hiển thị nguyên văn trong chat.
+- Tự động fallback về plain-text nếu cú pháp Markdown vẫn bị lỗi ký tự đặc biệt.
 
 ### 3. Voice-to-text cục bộ
 
