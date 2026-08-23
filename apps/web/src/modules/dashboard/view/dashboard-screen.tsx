@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_ROUTES } from '@telebot/contracts';
+import { API_ROUTES, APP_ROUTES } from '@telebot/contracts';
 import { clearAccessToken } from '@/modules/auth/client/auth-storage';
 import { httpClient } from '@/shared/api/http-client';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { ReportsNavigation } from '@/shared/ui/reports-navigation';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 type Page = 'home' | 'statistics';
@@ -40,20 +41,14 @@ export function DashboardScreen({ page }: { page: Page }) {
   const data = dashboard.data;
   return (
     <main className="workspace app-shell">
-      <aside className="app-nav" aria-label="Điều hướng dashboard">
-        <div className="app-nav__brand">
-          <span>Telebot</span>
-          <small>Cá nhân</small>
-        </div>
-        <nav>
-          <NavLink active={page === 'home'} href="/reports/" label="Trang chủ" />
-          <NavLink active={page === 'statistics'} href="/reports/statistics/" label="Thống kê" />
-          <NavLink active={false} href="/reports/contacts/" label="Liên lạc" />
-        </nav>
-        <p className={data.user.googleConnected ? 'app-nav__status ok' : 'app-nav__status warn'}>
-          ● {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
-        </p>
-      </aside>
+      <ReportsNavigation
+        active={page}
+        footer={
+          <p className={data.user.googleConnected ? 'app-nav__status ok' : 'app-nav__status warn'}>
+            ● {data.user.googleConnected ? 'Google đã kết nối' : 'Chưa kết nối Google'}
+          </p>
+        }
+      />
       <section className="app-content">
         <header className="workspace__header">
           <div>
@@ -73,18 +68,6 @@ export function DashboardScreen({ page }: { page: Page }) {
         {page === 'home' ? <HomeView data={data} /> : <StatisticsView data={data} />}
       </section>
     </main>
-  );
-}
-
-function NavLink({ active, href, label }: { active: boolean; href: string; label: string }) {
-  return (
-    <Link
-      className={active ? 'app-nav__item is-active' : 'app-nav__item'}
-      aria-current={active ? 'page' : undefined}
-      href={href}
-    >
-      {label}
-    </Link>
   );
 }
 
@@ -108,8 +91,10 @@ function HomeView({ data }: { data: DashboardData }) {
         <Metric label="Việc cần chú ý" value={String(attentionCount)} />
       </section>
       <section className="quick-actions" aria-label="Truy cập nhanh">
-        <Link href="/reports/statistics/">Xem thống kê thu–chi</Link>
-        <Link href="/reports/contacts/">Mở danh bạ liên lạc</Link>
+        <Link href={APP_ROUTES.statistics}>Xem thống kê thu–chi</Link>
+        <Link href={APP_ROUTES.contacts}>Mở danh bạ liên lạc</Link>
+        <Link href={APP_ROUTES.debts}>Xem công nợ</Link>
+        <Link href={APP_ROUTES.expenses}>Xem khoản chi</Link>
       </section>
       <section className="content-grid">
         <DataPanel title="Việc cần làm" description="Danh sách chưa hoàn tất">

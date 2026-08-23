@@ -90,6 +90,7 @@ export class TelegramUiService {
       },
       [],
     );
+    inlineButtons.push([Markup.button.callback('❌ Đóng', 'message:close')]);
 
     return Markup.inlineKeyboard(inlineButtons);
   }
@@ -101,6 +102,7 @@ export class TelegramUiService {
     return Markup.inlineKeyboard([
       [Markup.button.callback('🔄 Cập nhật', 'action:refresh_today')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+      [Markup.button.callback('❌ Đóng', 'message:close')],
     ]);
   }
 
@@ -108,6 +110,7 @@ export class TelegramUiService {
     return Markup.inlineKeyboard([
       [Markup.button.callback('💵 Trả nợ', `debt:pay:${debtId}`)],
       [Markup.button.callback('🗑️ Xóa khoản này', `debt:delete:${debtId}`)],
+      [Markup.button.callback('❌ Đóng', 'debt:close')],
     ]);
   }
 
@@ -281,6 +284,7 @@ export class TelegramUiService {
     return Markup.inlineKeyboard([
       [Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')],
       [Markup.button.callback('🔄 Làm mới danh sách', 'action:refresh_users')],
+      [Markup.button.callback('❌ Đóng', 'message:close')],
     ]);
   }
 

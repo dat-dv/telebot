@@ -4,6 +4,8 @@ export const API_ROUTES = {
   dashboardRefresh: '/api/refresh',
   dashboardLogout: '/api/logout',
   contacts: '/api/contacts',
+  debts: '/api/debts',
+  expenses: '/api/expenses',
 } as const;
 
 export const APP_ROUTES = {
@@ -11,6 +13,8 @@ export const APP_ROUTES = {
   reports: '/reports',
   statistics: '/reports/statistics',
   contacts: '/reports/contacts',
+  debts: '/reports/debts',
+  expenses: '/reports/expenses',
 } as const;
 
 export interface IApiResponse<T> {
@@ -28,6 +32,26 @@ export interface IContactListItem {
   alias?: string;
   descriptor?: string;
   createdAt: string;
+}
+
+export interface IDebtListItem {
+  id: string;
+  direction: 'receivable' | 'payable';
+  counterparty: string;
+  counterpartyAlias?: string;
+  originalAmount: number;
+  remainingAmount: number;
+  note?: string;
+  dueAt?: string;
+  createdAt: string;
+}
+
+export interface IExpenseListItem {
+  id: string;
+  category: string;
+  note: string;
+  amount: number;
+  occurredAt: string;
 }
 
 export interface IDashboardData {
@@ -59,14 +83,6 @@ export interface IDashboardData {
   reminders: Array<{ id: string; title: string; remindAt: string; notifyType: 'text' | 'call' }>;
   activity: Array<{ id: string; action: string; tableName: string; createdAt: string }>;
   admin?: { userCount: number; googleConnectedCount: number };
-}
-
-export interface IContactListItem {
-  id: string;
-  displayName: string;
-  alias?: string;
-  descriptor?: string;
-  createdAt: string;
 }
 
 export interface IContactListResponse {

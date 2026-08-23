@@ -373,16 +373,19 @@ ${googleStatus}
 
 💡 *Mẹo:* Bạn có thể chạm vào các nút bên dưới để xem nhanh lịch trình hoặc việc cần làm.`;
 
-    const inlineButtons = isGoogleConnected
-      ? [[Markup.button.callback('🔄 Kiểm tra lại', 'action:refresh_status')]]
-      : [
-          [
-            Markup.button.url(
-              '🔗 Đăng nhập Google ngay',
-              this.googleAuthService.generateAuthUrl(userId),
-            ),
-          ],
-        ];
+    const inlineButtons = [
+      ...(isGoogleConnected
+        ? [[Markup.button.callback('🔄 Kiểm tra lại', 'action:refresh_status')]]
+        : [
+            [
+              Markup.button.url(
+                '🔗 Đăng nhập Google ngay',
+                this.googleAuthService.generateAuthUrl(userId),
+              ),
+            ],
+          ]),
+      [Markup.button.callback('❌ Đóng', 'message:close')],
+    ];
 
     await ctx.reply(msg, {
       parse_mode: 'Markdown',
@@ -598,14 +601,17 @@ ${googleStatus}
     const reportsUrl = await this.getReportsUrl(ctx.from?.id);
     if (!reportsUrl) {
       await ctx.reply(
-        '⚠️ Chưa thể tạo link Dashboard. Vui lòng kiểm tra cấu hình domain public (SERVICE_URL_TELEBOT) trên server.',
+        '⚠️ Chưa thể tạo link Dashboard. Vui lòng kiểm tra cấu hình domain public (APP_URL) trên server.',
       );
       return;
     }
 
     await ctx.reply('📊 *Dashboard*\nThu–chi · Việc · Lịch · Nhắc · Công nợ', {
       parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([[Markup.button.url('📊 Mở Dashboard', reportsUrl)]]),
+      ...Markup.inlineKeyboard([
+        [Markup.button.url('📊 Mở Dashboard', reportsUrl)],
+        [Markup.button.callback('❌ Đóng', 'message:close')],
+      ]),
     });
   }
 
@@ -832,7 +838,10 @@ ${googleStatus}
     await ctx.answerCbQuery('Đang mở báo cáo...');
     await ctx.reply(
       '📊 Mở trang báo cáo tài chính:',
-      Markup.inlineKeyboard([[Markup.button.url('📊 Xem báo cáo', reportsUrl)]]),
+      Markup.inlineKeyboard([
+        [Markup.button.url('📊 Xem báo cáo', reportsUrl)],
+        [Markup.button.callback('❌ Đóng', 'message:close')],
+      ]),
     );
   }
 
@@ -840,6 +849,25 @@ ${googleStatus}
   public async onDebtPayAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('Nhắn số tiền đã trả, ví dụ: “Trí trả anh 200k”.');
     await ctx.reply('💵 Nhắn số tiền đã trả, ví dụ: “Trí trả anh 200k”.');
+  }
+
+  @Action('debt:close')
+  public async onDebtCloseAction(@Ctx() ctx: Context): Promise<void> {
+    await this.closeMessage(ctx);
+  }
+
+  @Action('message:close')
+  public async onMessageCloseAction(@Ctx() ctx: Context): Promise<void> {
+    await this.closeMessage(ctx);
+  }
+
+  private async closeMessage(ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Đã đóng.');
+    try {
+      await ctx.deleteMessage();
+    } catch {
+      await ctx.editMessageReplyMarkup(undefined);
+    }
   }
 
   @Action(/^debt:delete:(.+)$/)
@@ -958,12 +986,7 @@ ${googleStatus}
 
   @Action('notice:close')
   public async onNotificationClose(@Ctx() ctx: Context): Promise<void> {
-    await ctx.answerCbQuery('Đã đóng.');
-    try {
-      await ctx.deleteMessage();
-    } catch {
-      await ctx.editMessageReplyMarkup(undefined);
-    }
+    await this.closeMessage(ctx);
   }
 
   @Action('action:create_invite')

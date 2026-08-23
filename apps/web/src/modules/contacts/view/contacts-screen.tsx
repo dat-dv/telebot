@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_ROUTES, type IContactListItem } from '@telebot/contracts';
+import { API_ROUTES, APP_ROUTES, type IContactListItem } from '@telebot/contracts';
 import { clearAccessToken } from '@/modules/auth/client/auth-storage';
 import { httpClient } from '@/shared/api/http-client';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { ReportsNavigation } from '@/shared/ui/reports-navigation';
 import { contactsQueryKeys, useContactsQuery } from '../api/contacts-query';
 
 const date = (value?: string) =>
@@ -23,21 +23,11 @@ export function ContactsScreen() {
     await httpClient.post(API_ROUTES.dashboardLogout);
     clearAccessToken();
     queryClient.clear();
-    window.location.assign('/reports/');
+    window.location.assign(APP_ROUTES.reports);
   };
   return (
     <main className="workspace app-shell">
-      <aside className="app-nav" aria-label="Điều hướng dashboard">
-        <div className="app-nav__brand">
-          <span>Telebot</span>
-          <small>Cá nhân</small>
-        </div>
-        <nav>
-          <NavLink href="/reports/" label="Trang chủ" />
-          <NavLink href="/reports/statistics/" label="Thống kê" />
-          <NavLink active href="/reports/contacts/" label="Liên lạc" />
-        </nav>
-      </aside>
+      <ReportsNavigation active="contacts" />
       <section className="app-content">
         <header className="workspace__header">
           <div>
@@ -72,26 +62,6 @@ export function ContactsScreen() {
         )}
       </section>
     </main>
-  );
-}
-
-function NavLink({
-  active = false,
-  href,
-  label,
-}: {
-  active?: boolean;
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link
-      className={active ? 'app-nav__item is-active' : 'app-nav__item'}
-      aria-current={active ? 'page' : undefined}
-      href={href}
-    >
-      {label}
-    </Link>
   );
 }
 

@@ -41,14 +41,14 @@ Telegram chỉ cho phép một tiến trình gọi long polling (`getUpdates`) v
 
 ## Dashboard mở từ bot
 
-1. Cấu hình `SERVICE_URL_TELEBOT` là URL public duy nhất của frontend/tunnel.
-2. Đặt `NEXT_PUBLIC_API_URL` cùng URL đó trước khi build Docker dashboard. Giá trị này được đóng gói vào static bundle; không được để Compose rơi về `http://localhost:3000`.
+1. Cấu hình `APP_URL` là URL public runtime của API/bot và đặt `WEB_ORIGIN` cùng giá trị khi Dashboard dùng chung domain.
+2. Đặt `NEXT_PUBLIC_API_URL` cùng URL đó trước khi build Docker dashboard. Giá trị này được đóng gói vào static bundle; không được để Compose rơi về `http://localhost:3000`. Không dùng `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL do nền tảng quản lý.
 3. Bot hiển thị nút **Xem báo cáo**. Link chỉ dùng trong năm phút; API xác nhận token theo user Telegram, cấp session dashboard và chuyển sang `/reports` trên frontend.
 4. Dashboard gọi `GET /api/dashboard` bằng access token; không truyền Telegram ID. Refresh token không đi vào JavaScript. Hai secret `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET` chỉ nằm ở API.
 
 Access token dashboard được lưu ở browser storage trong 15 phút theo yêu cầu UI. Refresh token sống 7 ngày, được xoay vòng ở cookie `HttpOnly`; Axios tự refresh sau `401`, còn TanStack Query quản lý cache và trạng thái dữ liệu.
 
-Khi phát triển local, Next chạy tại `http://localhost:5173` và browser gọi API tại `http://localhost:3000`; API tự cho phép origin này ở non-production. Khi dashboard và API dùng cùng domain, chỉ cần `SERVICE_URL_TELEBOT` và `NEXT_PUBLIC_API_URL` cùng giá trị. Khi triển khai static web riêng, thêm `WEB_ORIGIN` là URL public của web; API dùng biến này cho CORS và redirect từ `/api/access`.
+Khi phát triển local, Next chạy tại `http://localhost:5173` và browser gọi API tại `http://localhost:3000`; API tự cho phép origin này ở non-production. Khi dashboard và API dùng cùng domain, đặt `APP_URL`, `WEB_ORIGIN` và `NEXT_PUBLIC_API_URL` cùng giá trị. Khi triển khai static web riêng, đặt `WEB_ORIGIN` là URL public của web; API dùng biến này cho CORS và redirect từ `/api/access`.
 
 ## Docker
 

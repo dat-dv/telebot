@@ -129,6 +129,40 @@ export class ReportsController {
     };
   }
 
+  @Get('debts')
+  public async debts(@Req() req: Request) {
+    const userId = this.getAccessUserId(req);
+    const debts = await this.finance.getActiveDebts(userId);
+    return {
+      data: debts.map((debt) => ({
+        id: debt.id,
+        direction: debt.direction,
+        counterparty: debt.counterparty,
+        counterpartyAlias: debt.counterpartyAlias,
+        originalAmount: debt.originalAmount,
+        remainingAmount: debt.remainingAmount,
+        note: debt.note || undefined,
+        dueAt: debt.dueAt?.toISOString(),
+        createdAt: debt.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  @Get('expenses')
+  public async expenses(@Req() req: Request) {
+    const userId = this.getAccessUserId(req);
+    const expenses = await this.finance.listExpenses(userId);
+    return {
+      data: expenses.map((expense) => ({
+        id: expense.id,
+        category: expense.category,
+        note: expense.note,
+        amount: expense.amount,
+        occurredAt: expense.occurredAt.toISOString(),
+      })),
+    };
+  }
+
   @Post('refresh')
   public refresh(@Req() req: Request, @Res() res: Response): void {
     const refreshToken = this.getCookie(req, 'reports_refresh');

@@ -89,7 +89,7 @@ void test('warns about potential duplicate Google Tasks without blocking confirm
   assert.match(message, /vẫn có thể xác nhận/i);
 });
 
-void test('groups compact task completion controls into rows of two', () => {
+void test('groups compact task completion controls and provides a close control', () => {
   const markup = new TelegramUiService().buildTaskChecklistMarkup([
     { id: 'one', title: 'Việc 1' },
     { id: 'two', title: 'Việc 2' },
@@ -97,12 +97,41 @@ void test('groups compact task completion controls into rows of two', () => {
   ]);
 
   const rows = markup?.reply_markup.inline_keyboard ?? [];
-  assert.equal(rows.length, 2);
+  assert.equal(rows.length, 3);
   assert.equal(rows[0].length, 2);
   assert.equal(rows[1].length, 1);
   assert.equal(rows[0][0].callback_data, 'complete_task:one');
   assert.equal(rows[0][1].callback_data, 'complete_task:two');
   assert.equal(rows[1][0].callback_data, 'complete_task:three');
+  assert.equal(rows[2][0].text, '❌ Đóng');
+  assert.equal(rows[2][0].callback_data, 'message:close');
+});
+
+void test('provides close controls for today and admin lists', () => {
+  const service = new TelegramUiService();
+
+  for (const markup of [service.buildTodayActionsMarkup(), service.buildAdminUsersMarkup()]) {
+    const closeButton = markup.reply_markup.inline_keyboard
+      .flat()
+      .find((button) => button.text === '❌ Đóng');
+    assert.equal(closeButton?.callback_data, 'message:close');
+  }
+});
+
+void test('provides a close control for each debt detail', () => {
+  const buttons = new TelegramUiService()
+    .buildDebtActionsMarkup('debt-1')
+    .reply_markup.inline_keyboard.flat();
+
+  assert.equal(
+    buttons.find((button) => button.text === '💵 Trả nợ')?.callback_data,
+    'debt:pay:debt-1',
+  );
+  assert.equal(
+    buttons.find((button) => button.text === '🗑️ Xóa khoản này')?.callback_data,
+    'debt:delete:debt-1',
+  );
+  assert.equal(buttons.find((button) => button.text === '❌ Đóng')?.callback_data, 'debt:close');
 });
 
 void test('formats completed task results without technical JSON', () => {

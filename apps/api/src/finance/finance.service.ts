@@ -216,6 +216,14 @@ export class FinanceService {
       .getMany();
   }
 
+  public async listExpenses(userId: number): Promise<FinanceTransactionEntity[]> {
+    return this.transactionRepo.find({
+      where: { userId: userId.toString(), type: 'expense' },
+      order: { occurredAt: 'DESC' },
+      take: 200,
+    });
+  }
+
   public async updateContact(
     userId: number,
     contactId: string,

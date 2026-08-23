@@ -25,7 +25,8 @@ cp .env.example .env
 Nội dung chi tiết các biến:
 
 ```env
-SERVICE_URL_TELEBOT=https://telebot.example.com
+APP_URL=https://telebot.example.com
+WEB_ORIGIN=https://telebot.example.com
 NEXT_PUBLIC_API_URL=https://telebot.example.com
 
 TELEGRAM_BOT_TOKEN=replace-with-bot-token
@@ -114,7 +115,8 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 1. **Tạo Application mới**: Chọn **Public / Private Repository** và liên kết với repo GitHub của bạn.
 2. **Chọn Build Pack**: Chọn **Dockerfile**.
 3. **Cấu hình Environment Variables**:
-   - Dán các biến từ `.env` vào mục **Environment Variables**, bao gồm cả `NEXT_PUBLIC_API_URL` trước lần build dashboard.
+   - Dán các biến từ `.env` vào mục **Environment Variables**. Đặt `APP_URL` và `WEB_ORIGIN` là runtime variables; đặt `NEXT_PUBLIC_API_URL` là build variable trước lần build Dashboard.
+   - Không dùng `SERVICE_URL_TELEBOT`: Coolify dành tiền tố `SERVICE_URL_*` cho URL do nền tảng quản lý.
 4. **Cấu hình Persistent Storage (Duy nhất 1 mục)**:
    - Vào mục **Storages** > **Add Volume / Persistent Storage**:
      - **Destination Path / Mount Path**: `/app/data`

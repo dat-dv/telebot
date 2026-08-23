@@ -1,0 +1,20 @@
+---
+metadata:
+  agent-artifact:
+    id: docs-module-debts
+    type: documentation
+    depends_on:
+      - .agents/knowledge/modules/debts/README.md
+---
+
+# Module công nợ
+
+Tài liệu này ánh xạ trực tiếp với tri thức canonical [`README.md`](../../../knowledge/modules/debts/README.md).
+
+Module `apps/web/src/modules/debts` hiển thị các khoản công nợ đang mở của đúng người dùng đăng nhập.
+
+- API `GET /api/debts` chỉ trả các khoản cần thu hoặc cần trả chưa tất toán.
+- Bảng gồm hướng công nợ, người liên quan, số tiền ban đầu/còn lại, hạn trả và ghi chú.
+- Khi API lỗi, dùng nút **Thử lại**; trước hết kiểm tra phiên dashboard đã hết hạn hay chưa.
+
+Kiểm thử bằng `npm run typecheck`, `npm run lint` và `npm run build` tại thư mục gốc.
