@@ -25,7 +25,7 @@ RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git && \
 FROM node:22-alpine AS runner
 
 WORKDIR /app
-RUN apk add --no-cache curl ffmpeg libgomp libstdc++ python3 make g++ && \
+RUN apk add --no-cache curl ffmpeg libgomp libstdc++ && \
     mkdir -p /app/assets/tessdata && \
     curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/vie.traineddata.gz -o /app/assets/tessdata/vie.traineddata.gz && \
     curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/eng.traineddata.gz -o /app/assets/tessdata/eng.traineddata.gz
@@ -34,10 +34,10 @@ EXPOSE 3000
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
-COPY apps/web/package.json apps/web/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
-RUN npm ci --omit=dev --workspace @telebot/api
 
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/contracts/dist packages/contracts/dist
 COPY --from=builder /app/apps/api/dist apps/api/dist
 COPY --from=whisper-builder /opt/whisper.cpp/build/bin/whisper-server /usr/local/bin/whisper-server
 COPY --from=whisper-builder /opt/whisper.cpp/models/ggml-base.bin /opt/whisper/models/ggml-base.bin

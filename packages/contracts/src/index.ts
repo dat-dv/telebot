@@ -23,6 +23,90 @@ export const APP_ROUTES = {
   expenses: '/reports/expenses',
 } as const;
 
+export const SUPPORTED_LOCALES = ['vi', 'en'] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+export const DEFAULT_LOCALE: SupportedLocale = 'vi';
+
+export function normalizeLocale(value: unknown): SupportedLocale {
+  return typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value)
+    ? (value as SupportedLocale)
+    : DEFAULT_LOCALE;
+}
+
+export function localeTag(locale: SupportedLocale): 'vi-VN' | 'en-US' {
+  return locale === 'en' ? 'en-US' : 'vi-VN';
+}
+
+type TranslationValues = Record<string, string | number>;
+const messages = {
+  vi: {
+    'common.refresh': 'Làm mới',
+    'common.retry': 'Thử lại',
+    'common.logout': 'Đăng xuất',
+    'common.close': 'Đóng',
+    'common.confirm': 'Xác nhận',
+    'common.cancel': 'Hủy',
+    'common.language': 'Ngôn ngữ',
+    'common.loadingDashboard': 'Đang tải dashboard',
+    'nav.home': 'Trang chủ',
+    'nav.statistics': 'Thống kê',
+    'nav.contacts': 'Liên lạc',
+    'nav.debts': 'Công nợ',
+    'nav.expenses': 'Khoản chi',
+    'nav.reports': 'Báo cáo',
+    'nav.personalSpace': 'Không gian cá nhân',
+    'nav.dark': 'Giao diện tối',
+    'nav.light': 'Giao diện sáng',
+    'web.language.vi': 'Tiếng Việt',
+    'web.language.en': 'English',
+    'reminder.header.text': '⏰ *TING TING! LỜI NHẮC CỦA BẠN ĐÃ ĐẾN GIỜ!*',
+    'reminder.header.call': '📞 *CUỘC GỌI NHẮC NHỞ TỰ ĐỘNG (CALLME)!*',
+    'reminder.done': '✅ Đã xong',
+    'reminder.snooze': '⏳ Nhắc lại 15 phút',
+    'telegram.language.updated': '✅ Đã đổi ngôn ngữ sang Tiếng Việt.',
+    'telegram.language.choose': 'Chọn ngôn ngữ hiển thị:',
+  },
+  en: {
+    'common.refresh': 'Refresh',
+    'common.retry': 'Try again',
+    'common.logout': 'Log out',
+    'common.close': 'Close',
+    'common.confirm': 'Confirm',
+    'common.cancel': 'Cancel',
+    'common.language': 'Language',
+    'common.loadingDashboard': 'Loading dashboard',
+    'nav.home': 'Home',
+    'nav.statistics': 'Statistics',
+    'nav.contacts': 'Contacts',
+    'nav.debts': 'Debts',
+    'nav.expenses': 'Expenses',
+    'nav.reports': 'Reports',
+    'nav.personalSpace': 'Personal space',
+    'nav.dark': 'Dark mode',
+    'nav.light': 'Light mode',
+    'web.language.vi': 'Tiếng Việt',
+    'web.language.en': 'English',
+    'reminder.header.text': '⏰ *REMINDER: IT IS TIME!*',
+    'reminder.header.call': '📞 *AUTOMATED REMINDER CALL (CALLME)!*',
+    'reminder.done': '✅ Done',
+    'reminder.snooze': '⏳ Remind me in 15 minutes',
+    'telegram.language.updated': '✅ Language changed to English.',
+    'telegram.language.choose': 'Choose your display language:',
+  },
+} as const;
+
+export type TranslationKey = keyof (typeof messages)['vi'];
+export function translate(
+  locale: SupportedLocale,
+  key: TranslationKey,
+  values: TranslationValues = {},
+): string {
+  let text: string = messages[locale][key] ?? messages[DEFAULT_LOCALE][key];
+  for (const [name, value] of Object.entries(values))
+    text = text.replaceAll(`{${name}}`, String(value));
+  return text;
+}
+
 export interface IApiResponse<T> {
   data: T;
 }

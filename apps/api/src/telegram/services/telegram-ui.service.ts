@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
 import { getQuickMenuItems, getTelegramCommands } from '../telegram-menu.catalog';
+import { DEFAULT_LOCALE, type SupportedLocale, translate } from '@telebot/contracts';
 
 @Injectable()
 export class TelegramUiService {
@@ -52,16 +53,29 @@ export class TelegramUiService {
     return Markup.inlineKeyboard(this.groupButtons(buttons, 2));
   }
 
-  public async syncCommandMenu(ctx: Context, isAdmin: boolean): Promise<void> {
+  public async syncCommandMenu(
+    ctx: Context,
+    isAdmin: boolean,
+    locale: SupportedLocale = 'vi',
+  ): Promise<void> {
     if (!ctx.chat) return;
 
     try {
-      await ctx.telegram.setMyCommands(getTelegramCommands(isAdmin), {
+      await ctx.telegram.setMyCommands(getTelegramCommands(isAdmin, locale), {
         scope: { type: 'chat', chat_id: ctx.chat.id },
       });
     } catch (error) {
       this.logger.warn(`Unable to sync Telegram command menu: ${String(error)}`);
     }
+  }
+
+  public buildLanguageMarkup(locale: SupportedLocale = DEFAULT_LOCALE) {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback(translate(locale, 'web.language.vi'), 'locale:vi'),
+        Markup.button.callback(translate(locale, 'web.language.en'), 'locale:en'),
+      ],
+    ]);
   }
 
   /**

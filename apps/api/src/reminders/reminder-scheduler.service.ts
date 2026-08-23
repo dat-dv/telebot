@@ -4,6 +4,8 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf, Context, Markup } from 'telegraf';
 import { RemindersService } from './reminders.service';
 import { TelegramCallerService } from './telegram-caller.service';
+import { UsersService } from '../users/users.service';
+import { localeTag, translate } from '@telebot/contracts';
 
 @Injectable()
 export class ReminderSchedulerService {
@@ -12,6 +14,7 @@ export class ReminderSchedulerService {
   constructor(
     private readonly remindersService: RemindersService,
     private readonly callerService: TelegramCallerService,
+    private readonly usersService: UsersService,
     @InjectBot() private readonly bot: Telegraf<Context>,
   ) {}
 
@@ -27,7 +30,8 @@ export class ReminderSchedulerService {
         const userId = Number(reminder.userId);
         if (!userId || isNaN(userId)) continue;
 
-        const timeStr = new Intl.DateTimeFormat('vi-VN', {
+        const locale = await this.usersService.getPreferredLocale(userId);
+        const timeStr = new Intl.DateTimeFormat(localeTag(locale), {
           timeZone: 'Asia/Ho_Chi_Minh',
           hour: '2-digit',
           minute: '2-digit',
@@ -57,9 +61,10 @@ export class ReminderSchedulerService {
 
         // 2. Send Telegram rich message with action buttons
         const isCallMode = reminder.notifyType === 'call';
-        const reminderHeader = isCallMode
-          ? '📞 *CUỘC GỌI NHẮC NHỞ TỰ ĐỘNG (CALLME)!*'
-          : '⏰ *TING TING! LỜI NHẮC CỦA BẠN ĐÃ ĐẾN GIỜ!*';
+        const reminderHeader = translate(
+          locale,
+          isCallMode ? 'reminder.header.call' : 'reminder.header.text',
+        );
 
         const reminderMessage = `${reminderHeader}
 ━━━━━━━━━━━━━━━━━━━━
@@ -69,8 +74,18 @@ ${isCallMode ? '📞 *Hình thức*: Gọi đổ chuông Telegram (CallMe)\n' : 
 👉 Bạn có thể đánh dấu đã làm xong hoặc hoãn lại 15 phút bên dưới:`;
 
         const actionKeyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('✅ Đã xong', `done_reminder:${reminder.id}`)],
-          [Markup.button.callback('⏳ Nhắc lại 15 phút', `snooze_reminder:15:${reminder.id}`)],
+          [
+            Markup.button.callback(
+              translate(locale, 'reminder.done'),
+              `done_reminder:${reminder.id}`,
+            ),
+          ],
+          [
+            Markup.button.callback(
+              translate(locale, 'reminder.snooze'),
+              `snooze_reminder:15:${reminder.id}`,
+            ),
+          ],
         ]);
 
         try {

@@ -1,4 +1,5 @@
 export type TelegramMenuRole = 'member' | 'admin';
+import { translate, type SupportedLocale } from '@telebot/contracts';
 
 export interface TelegramMenuItem {
   readonly id: string;
@@ -83,6 +84,12 @@ const ADMIN_MENU_ITEMS: readonly TelegramMenuItem[] = [
 
 const SYSTEM_COMMANDS: readonly TelegramMenuItem[] = [
   {
+    id: 'language',
+    command: 'language',
+    commandDescription: 'Chọn ngôn ngữ hiển thị',
+    label: '🌐 Ngôn ngữ',
+  },
+  {
     id: 'help',
     command: 'help',
     commandDescription: 'Hướng dẫn sử dụng trợ lý',
@@ -96,12 +103,20 @@ const SYSTEM_COMMANDS: readonly TelegramMenuItem[] = [
   },
 ];
 
-export function getQuickMenuItems(isAdmin: boolean): readonly TelegramMenuItem[] {
+export function getQuickMenuItems(
+  isAdmin: boolean,
+  _locale: SupportedLocale = 'vi',
+): readonly TelegramMenuItem[] {
   return isAdmin ? [...PRIMARY_MENU_ITEMS, ...ADMIN_MENU_ITEMS] : PRIMARY_MENU_ITEMS;
 }
 
-export function getTelegramCommands(isAdmin: boolean) {
-  return [...getQuickMenuItems(isAdmin), ...SYSTEM_COMMANDS].map(
+export function getTelegramCommands(isAdmin: boolean, locale: SupportedLocale = 'vi') {
+  const localizedSystemCommands = SYSTEM_COMMANDS.map((item) =>
+    item.id === 'language'
+      ? { ...item, commandDescription: translate(locale, 'common.language') }
+      : item,
+  );
+  return [...getQuickMenuItems(isAdmin, locale), ...localizedSystemCommands].map(
     ({ command, commandDescription }) => ({
       command,
       description: commandDescription,

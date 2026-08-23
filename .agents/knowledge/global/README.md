@@ -17,6 +17,7 @@ This directory contains system-wide business policies, cross-cutting architectur
 - [Receipt Image Analysis](receipt-image-analysis.md): In-memory image analysis and confirmation-gated finance proposals.
 - [Web UI Direction](web-ui-direction.md): Shared data-dense dashboard and accessibility requirements.
 - [Backend CRUD API](backend-crud-api.md): Ownership-safe REST operations for finance, reminders, users, invites, Calendar, and Tasks.
+- [Internationalization](i18n.md): Supported locales, user preference persistence, and cross-channel formatting rules.
 
 ## Consumer Project Adoption
 

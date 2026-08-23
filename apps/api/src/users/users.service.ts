@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import { UserEntity } from '../database/entities/user.entity';
 import { InviteEntity } from '../database/entities/invite.entity';
 import { fromProjectRoot } from '../config/project-root';
+import { normalizeLocale, type SupportedLocale } from '@telebot/contracts';
 
 interface LegacyUserJson {
   id: number;
@@ -153,6 +154,21 @@ export class UsersService implements OnModuleInit {
   public isAllowed(userId: number): boolean {
     const strId = userId.toString();
     return this.allowedUserIdsCache.has(strId);
+  }
+
+  public async getPreferredLocale(userId: number): Promise<SupportedLocale> {
+    const user = await this.userRepo.findOne({ where: { id: userId.toString() } });
+    return normalizeLocale(user?.preferredLocale);
+  }
+
+  public async setPreferredLocale(
+    userId: number,
+    locale: SupportedLocale,
+  ): Promise<SupportedLocale> {
+    const user = await this.upsertUser(userId);
+    user.preferredLocale = normalizeLocale(locale);
+    await this.userRepo.save(user);
+    return user.preferredLocale;
   }
 
   public async createInvite(adminId: number): Promise<InviteEntity> {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { APP_ROUTES } from '@telebot/contracts';
 import { useTheme } from '@/shared/providers/theme-provider';
+import { useLocale } from '@/shared/providers/locale-provider';
 
 export type ReportsNavigationPage = 'home' | 'statistics' | 'contacts' | 'debts' | 'expenses';
 
@@ -12,14 +13,14 @@ type NavigationIcon = 'overview' | 'chart' | 'contacts' | 'debts' | 'expenses';
 const items: Array<{
   page: ReportsNavigationPage;
   href: string;
-  label: string;
+  label: 'nav.home' | 'nav.statistics' | 'nav.contacts' | 'nav.debts' | 'nav.expenses';
   icon: NavigationIcon;
 }> = [
-  { page: 'home', href: APP_ROUTES.reports, label: 'Trang chủ', icon: 'overview' },
-  { page: 'statistics', href: APP_ROUTES.statistics, label: 'Thống kê', icon: 'chart' },
-  { page: 'contacts', href: APP_ROUTES.contacts, label: 'Liên lạc', icon: 'contacts' },
-  { page: 'debts', href: APP_ROUTES.debts, label: 'Công nợ', icon: 'debts' },
-  { page: 'expenses', href: APP_ROUTES.expenses, label: 'Khoản chi', icon: 'expenses' },
+  { page: 'home', href: APP_ROUTES.reports, label: 'nav.home', icon: 'overview' },
+  { page: 'statistics', href: APP_ROUTES.statistics, label: 'nav.statistics', icon: 'chart' },
+  { page: 'contacts', href: APP_ROUTES.contacts, label: 'nav.contacts', icon: 'contacts' },
+  { page: 'debts', href: APP_ROUTES.debts, label: 'nav.debts', icon: 'debts' },
+  { page: 'expenses', href: APP_ROUTES.expenses, label: 'nav.expenses', icon: 'expenses' },
 ];
 
 export function ReportsNavigation({
@@ -30,21 +31,22 @@ export function ReportsNavigation({
   footer?: ReactNode;
 }) {
   const { theme, toggleTheme } = useTheme();
-  const nextThemeLabel = theme === 'light' ? 'Bật giao diện tối' : 'Bật giao diện sáng';
+  const { locale, setLocale, t } = useLocale();
+  const nextThemeLabel = theme === 'light' ? t('nav.dark') : t('nav.light');
 
   return (
-    <aside className="app-nav" aria-label="Điều hướng dashboard">
+    <aside className="app-nav" aria-label={t('nav.reports')}>
       <div className="app-nav__brand">
         <span className="app-nav__brand-mark" aria-hidden="true">
           T
         </span>
         <span>
           <strong>Telebot</strong>
-          <small>Không gian cá nhân</small>
+          <small>{t('nav.personalSpace')}</small>
         </span>
       </div>
-      <nav aria-label="Báo cáo">
-        <p className="app-nav__section-label">Báo cáo</p>
+      <nav aria-label={t('nav.reports')}>
+        <p className="app-nav__section-label">{t('nav.reports')}</p>
         {items.map((item) => (
           <Link
             className={item.page === active ? 'app-nav__item is-active' : 'app-nav__item'}
@@ -53,7 +55,7 @@ export function ReportsNavigation({
             key={item.page}
           >
             <NavigationItemIcon icon={item.icon} />
-            <span>{item.label}</span>
+            <span>{t(item.label)}</span>
           </Link>
         ))}
       </nav>
@@ -67,8 +69,19 @@ export function ReportsNavigation({
           type="button"
         >
           <ThemeIcon theme={theme} />
-          <span>{theme === 'light' ? 'Giao diện tối' : 'Giao diện sáng'}</span>
+          <span>{theme === 'light' ? t('nav.dark') : t('nav.light')}</span>
         </button>
+        <label className="theme-toggle">
+          <span>{t('common.language')}</span>
+          <select
+            aria-label={t('common.language')}
+            onChange={(event) => setLocale(event.target.value as typeof locale)}
+            value={locale}
+          >
+            <option value="vi">{t('web.language.vi')}</option>
+            <option value="en">{t('web.language.en')}</option>
+          </select>
+        </label>
       </div>
     </aside>
   );

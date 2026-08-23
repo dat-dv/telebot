@@ -19,9 +19,9 @@
     "@telebot/contracts": "file:../../packages/contracts",
     "axios": "^1.8.4",
     "next": "^16.3.2",
+    "next-intl": "^4.13.7",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "next": "^16.3.2"
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

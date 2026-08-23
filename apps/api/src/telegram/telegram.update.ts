@@ -15,6 +15,7 @@ import { FinanceService } from '../finance/finance.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '@nestjs/config';
 import { ReportsTokenService } from '../reports/reports-token.service';
+import { normalizeLocale, translate } from '@telebot/contracts';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -129,7 +130,8 @@ export class TelegramUpdate {
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
 
-    await this.uiService.syncCommandMenu(ctx, isAdmin);
+    const locale = await this.usersService.getPreferredLocale(userId);
+    await this.uiService.syncCommandMenu(ctx, isAdmin, locale);
 
     let authUrl = '';
     try {
@@ -202,6 +204,29 @@ ${googleStatus}
     );
 
     await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
+  }
+
+  @Command('language')
+  public async onLanguage(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = await this.usersService.getPreferredLocale(userId);
+    await ctx.reply(
+      translate(locale, 'telegram.language.choose'),
+      this.uiService.buildLanguageMarkup(locale),
+    );
+  }
+
+  @Action(/^locale:(vi|en)$/)
+  public async onLocale(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    const callback = ctx.callbackQuery;
+    if (!userId || !callback || !('data' in callback)) return;
+    const locale = normalizeLocale(callback.data.slice('locale:'.length));
+    await this.usersService.setPreferredLocale(userId, locale);
+    await this.uiService.syncCommandMenu(ctx, this.usersService.isAdmin(userId), locale);
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(translate(locale, 'telegram.language.updated'));
   }
 
   @Help()

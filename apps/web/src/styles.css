@@ -547,7 +547,10 @@ html[data-theme='dark'] body,
 html[data-theme='dark'] .app-nav,
 html[data-theme='dark'] .quick-actions a,
 html[data-theme='dark'] .data-table th,
-html[data-theme='dark'] .data-table tbody tr:not(.data-table__empty-row):not(.data-table__skeleton-row):hover {
+html[data-theme='dark']
+  .data-table
+  tbody
+  tr:not(.data-table__empty-row):not(.data-table__skeleton-row):hover {
   background: #0f172a;
 }
 html[data-theme='dark'] button,
@@ -563,7 +566,10 @@ html[data-theme='dark'] button:hover,
 html[data-theme='dark'] .theme-toggle:hover,
 html[data-theme='dark'] .app-nav__item:hover,
 html[data-theme='dark'] .quick-actions a:hover,
-html[data-theme='dark'] .data-table tbody tr:not(.data-table__empty-row):not(.data-table__skeleton-row):hover {
+html[data-theme='dark']
+  .data-table
+  tbody
+  tr:not(.data-table__empty-row):not(.data-table__skeleton-row):hover {
   background: #1e293b;
   color: #f8fafc;
 }

@@ -1,4 +1,5 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import type { SupportedLocale } from '@telebot/contracts';
 
 @Entity('users')
 export class UserEntity {
@@ -13,6 +14,9 @@ export class UserEntity {
 
   @Column({ type: 'varchar', default: 'user' })
   role: 'admin' | 'user';
+
+  @Column({ type: 'varchar', default: 'vi' })
+  preferredLocale: SupportedLocale;
 
   @CreateDateColumn()
   createdAt: Date;
