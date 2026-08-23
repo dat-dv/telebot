@@ -39,22 +39,17 @@ export class TelegramUiService {
       return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
     }
 
+    // One action per row keeps labels readable on narrow mobile screens.
     const rows = [
-      [
-        Markup.button.callback('📅 Lịch Hôm Nay', 'action:refresh_today'),
-        Markup.button.callback('📝 Việc Cần Làm', 'action:view_tasks'),
-      ],
-      [
-        Markup.button.callback('📊 Xem 7 Ngày Tới', 'action:view_week'),
-        Markup.button.callback('⚙️ Trạng Thái', 'action:refresh_status'),
-      ],
+      [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
+      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
+      [Markup.button.callback('📊 Xem 7 ngày tới', 'action:view_week')],
+      [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
     ];
 
     if (isAdmin) {
-      rows.push([
-        Markup.button.callback('👥 Danh Sách User', 'action:refresh_users'),
-        Markup.button.callback('🎟️ Tạo Link Mời', 'action:create_invite'),
-      ]);
+      rows.push([Markup.button.callback('👥 Danh sách user', 'action:refresh_users')]);
+      rows.push([Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')]);
     }
 
     return Markup.inlineKeyboard(rows);
@@ -70,7 +65,7 @@ export class TelegramUiService {
 
     const inlineButtons = validTasks.slice(0, 8).map((t, idx) => {
       const cleanTitle = (t.title || 'Task').trim();
-      const shortTitle = cleanTitle.length > 22 ? `${cleanTitle.slice(0, 20)}...` : cleanTitle;
+      const shortTitle = cleanTitle.length > 18 ? `${cleanTitle.slice(0, 16)}...` : cleanTitle;
       return [
         Markup.button.callback(`✅ Xong #${idx + 1}: ${shortTitle}`, `complete_task:${t.id}`),
       ];
@@ -84,10 +79,8 @@ export class TelegramUiService {
    */
   public buildTodayActionsMarkup() {
     return Markup.inlineKeyboard([
-      [
-        Markup.button.callback('🔄 Cập nhật lại', 'action:refresh_today'),
-        Markup.button.callback('📝 Xem việc cần làm', 'action:view_tasks'),
-      ],
+      [Markup.button.callback('🔄 Cập nhật', 'action:refresh_today')],
+      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
     ]);
   }
 
@@ -96,10 +89,8 @@ export class TelegramUiService {
    */
   public buildAdminUsersMarkup() {
     return Markup.inlineKeyboard([
-      [
-        Markup.button.callback('🎟️ Tạo Link Mời Mới', 'action:create_invite'),
-        Markup.button.callback('🔄 Làm mới danh sách', 'action:refresh_users'),
-      ],
+      [Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')],
+      [Markup.button.callback('🔄 Làm mới danh sách', 'action:refresh_users')],
     ]);
   }
 
@@ -113,21 +104,13 @@ export class TelegramUiService {
   ) {
     const isCall = currentNotifyType === 'call';
     const switchBtn = isCall
-      ? Markup.button.callback(
-          '💬 Đổi Sang Nhắn Tin (TextMe)',
-          `switch_reminder:text:${reminderId}`,
-        )
-      : Markup.button.callback(
-          '📞 Đổi Sang Gọi Nhá Máy (CallMe)',
-          `switch_reminder:call:${reminderId}`,
-        );
+      ? Markup.button.callback('💬 Đổi sang nhắn tin', `switch_reminder:text:${reminderId}`)
+      : Markup.button.callback('📞 Đổi sang báo động', `switch_reminder:call:${reminderId}`);
 
     return Markup.inlineKeyboard([
       [switchBtn],
-      [
-        Markup.button.callback('❌ Hủy Lời Nhắc', `cancel_reminder:${reminderId}`),
-        Markup.button.callback('🆗 Đã Hiểu (Ẩn Nút)', `dismiss_buttons:${reminderId}`),
-      ],
+      [Markup.button.callback('❌ Hủy lời nhắc', `cancel_reminder:${reminderId}`)],
+      [Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${reminderId}`)],
     ]);
   }
 
@@ -137,15 +120,13 @@ export class TelegramUiService {
   public buildCalendarConfirmationMarkup(eventId?: string, htmlLink?: string) {
     const buttons = [];
     if (htmlLink) {
-      buttons.push([Markup.button.url('📅 Mở Trên Google Calendar', htmlLink)]);
+      buttons.push([Markup.button.url('📅 Mở Google Calendar', htmlLink)]);
     }
     const actionRow = [];
     if (eventId) {
-      actionRow.push(Markup.button.callback('🗑️ Xóa Lịch Hẹn', `delete_calendar_event:${eventId}`));
+      buttons.push([Markup.button.callback('🗑️ Xóa lịch hẹn', `delete_calendar_event:${eventId}`)]);
     }
-    actionRow.push(
-      Markup.button.callback('🆗 Đã Hiểu (Ẩn Nút)', `dismiss_buttons:${eventId || 'cal'}`),
-    );
+    actionRow.push(Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${eventId || 'cal'}`));
     buttons.push(actionRow);
 
     return Markup.inlineKeyboard(buttons);

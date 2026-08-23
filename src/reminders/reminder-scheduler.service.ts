@@ -69,10 +69,8 @@ ${isCallMode ? '📞 *Hình thức*: Gọi đổ chuông Telegram (CallMe)\n' : 
 👉 Bạn có thể đánh dấu đã làm xong hoặc hoãn lại 15 phút bên dưới:`;
 
         const actionKeyboard = Markup.inlineKeyboard([
-          [
-            Markup.button.callback('✅ Đã Xong', `done_reminder:${reminder.id}`),
-            Markup.button.callback('⏳ Nhắc Lại 15 Phút', `snooze_reminder:15:${reminder.id}`),
-          ],
+          [Markup.button.callback('✅ Đã xong', `done_reminder:${reminder.id}`)],
+          [Markup.button.callback('⏳ Nhắc lại 15 phút', `snooze_reminder:15:${reminder.id}`)],
         ]);
 
         try {
