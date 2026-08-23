@@ -2,36 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TelegramUiService } from './telegram-ui.service';
 
-void test('buildMainMenuInlineMarkup opens Dashboard through its direct URL', () => {
-  const menu = new TelegramUiService().buildMainMenuInlineMarkup(
-    false,
-    true,
-    '',
-    'https://telebot.example/api/access?token=one-time-token',
-  );
+void test('buildMainMenuInlineMarkup requests a fresh Dashboard link by callback', () => {
+  const menu = new TelegramUiService().buildMainMenuInlineMarkup(false, true, '');
   const reportButton = menu.reply_markup.inline_keyboard
     .flat()
     .find((button) => button.text === '📊 Dashboard');
 
   assert.equal(reportButton?.text, '📊 Dashboard');
-  assert.equal(reportButton?.url, 'https://telebot.example/api/access?token=one-time-token');
-  assert.equal('callback_data' in (reportButton ?? {}), false);
+  assert.equal(reportButton?.callback_data, 'action:view_reports');
+  assert.equal('url' in (reportButton ?? {}), false);
 });
 
 void test('groups the main menu into compact rows of two controls', () => {
-  const menu = new TelegramUiService().buildMainMenuInlineMarkup(
-    true,
-    true,
-    '',
-    'https://telebot.example/api/access?token=one-time-token',
-  );
+  const menu = new TelegramUiService().buildMainMenuInlineMarkup(true, true, '');
   const rows = menu.reply_markup.inline_keyboard;
 
   assert.ok(rows.length > 0);
   assert.ok(rows.every((row) => row.length <= 2));
   assert.equal(
-    rows.flat().find((button) => button.text === '📊 Dashboard')?.url,
-    'https://telebot.example/api/access?token=one-time-token',
+    rows.flat().find((button) => button.text === '📊 Dashboard')?.callback_data,
+    'action:view_reports',
   );
   assert.equal(
     rows.flat().find((button) => button.text === '👥 Danh sách user')?.callback_data,
@@ -41,18 +31,8 @@ void test('groups the main menu into compact rows of two controls', () => {
 
 void test('buildMainMenuInlineMarkup has the same menu for start and help inputs', () => {
   const service = new TelegramUiService();
-  const startMenu = service.buildMainMenuInlineMarkup(
-    true,
-    true,
-    '',
-    'https://telebot.example/api/access?token=one-time-token',
-  );
-  const helpMenu = service.buildMainMenuInlineMarkup(
-    true,
-    true,
-    '',
-    'https://telebot.example/api/access?token=one-time-token',
-  );
+  const startMenu = service.buildMainMenuInlineMarkup(true, true, '');
+  const helpMenu = service.buildMainMenuInlineMarkup(true, true, '');
 
   assert.deepEqual(helpMenu.reply_markup, startMenu.reply_markup);
 });

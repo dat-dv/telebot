@@ -35,22 +35,15 @@ export class TelegramUiService {
   /**
    * Builds clean Inline Keyboard attached directly under start / help messages
    */
-  public buildMainMenuInlineMarkup(
-    isAdmin = false,
-    isGoogleConnected = false,
-    authUrl = '',
-    reportsUrl = '',
-  ) {
+  public buildMainMenuInlineMarkup(isAdmin = false, isGoogleConnected = false, authUrl = '') {
     if (!isGoogleConnected && authUrl) {
       return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
     }
 
-    const buttons: Array<
-      ReturnType<typeof Markup.button.callback> | ReturnType<typeof Markup.button.url>
-    > = [];
+    const buttons: Array<ReturnType<typeof Markup.button.callback>> = [];
     for (const item of getQuickMenuItems(isAdmin)) {
       if (item.opensDashboard) {
-        if (reportsUrl) buttons.push(Markup.button.url(item.label, reportsUrl));
+        buttons.push(Markup.button.callback(item.label, 'action:view_reports'));
         continue;
       }
       if (item.callbackData) buttons.push(Markup.button.callback(item.label, item.callbackData));

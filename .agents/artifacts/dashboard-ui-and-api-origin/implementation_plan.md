@@ -88,3 +88,81 @@ RequestFeedback: true
 - Đã thêm `CORS_ALLOW_ALL`; giá trị mặc định trong template là `false`, còn `.env` và `.env.local` trong workspace đang đặt `true` theo yêu cầu.
 - Khi bật, NestJS phản chiếu origin request với `credentials: true`; khi tắt, chỉ cho phép `WEB_ORIGIN` (và `http://localhost:5173` ở non-production).
 - Đã kiểm tra thành công: API typecheck, API lint, `git diff --check`, và `npm run agent-system:validate`.
+
+## Bổ sung: xử lý 401 cho link Dashboard một lần
+
+RequestFeedback: true
+
+### Dấu hiệu đã xác nhận
+
+- `GET /api/access?token=...` đã đến NestJS (trả JSON `401 Unauthorized`), vì vậy không phải lỗi Next.js static route, Nginx routing hay CORS.
+- `consumeExchangeToken` trả 401 khi token trống, hết hạn, đã tiêu thụ, không tồn tại trong database của instance nhận request, hoặc user ID lưu trong record không hợp lệ.
+
+### Kế hoạch khắc phục
+
+1. Thêm kiểm tra/diagnostic bảo mật cho exchange token: log có cấu trúc chỉ gồm mã lý do (`missing`, `expired`, `consumed`, `not-found`, `invalid-user`), không ghi token hoặc token hash.
+2. Thêm test regression cho luồng phát rồi tiêu thụ token cùng repository để khóa hành vi valid, expired và one-time use.
+3. Bổ sung health/check script xác nhận bot và `/api/access` nhìn thấy cùng database token trước khi phát hành; hướng dẫn production đảm bảo bot/API dùng cùng instance hoặc cùng persistent SQLite volume.
+4. Cập nhật runbook xử lý 401 và điều chỉnh response người dùng cuối tại endpoint access để hướng họ mở link mới từ bot, thay vì JSON 401 thô.
+5. Chạy test/typecheck/lint API và kiểm tra route qua Nginx. Việc deploy/restart production hoặc đồng bộ volume sẽ được báo riêng vì cần quyền hạ tầng.
+
+## Bổ sung: nút Dashboard sinh link mới khi bấm
+
+RequestFeedback: true
+
+### Hành vi hiện tại
+
+- Mỗi lần người dùng gửi `/help`, bot phát một exchange token mới và gắn trực tiếp vào URL button.
+- Bấm lại cùng URL button sẽ dùng lại token cũ; vì token chỉ dùng một lần, NestJS trả 401.
+
+### Hành vi mới
+
+1. Nút Dashboard trong menu `/start` và `/help` dùng `callback_data` thay vì chứa URL token cố định.
+2. Callback xác nhận user Telegram, phát token mới và cập nhật đúng nút đó thành URL `.../api/access?token=...`.
+3. Bot hiển thị hướng dẫn ngắn để người dùng bấm nút vừa được làm mới để mở dashboard. Một lần bấm callback không thể đồng thời mở external URL một cách đáng tin cậy trên mọi Telegram client.
+4. Thêm test cho keyboard callback và handler phát URL mới; giữ test one-time token hiện có.
+5. Cập nhật tài liệu dashboard/Telegram, chạy typecheck, lint và test liên quan.
+
+### An toàn
+
+- Không gửi token trong callback data hoặc log.
+- Callback chỉ phát link cho `ctx.from.id`; token vẫn còn TTL và one-time use như hiện tại.
+
+### Kết quả triển khai nút Dashboard
+
+- Menu `/start` và `/help` hiện phát callback `action:view_reports`, không tạo token sớm và không nhúng token vào URL button.
+- Callback phát token mới, rồi gửi URL one-time mới trong một tin nhắn phản hồi để người dùng mở dashboard.
+- Đã cập nhật regression test menu và sửa mock `AuditService` bị thiếu trong check script dashboard.
+- Đã kiểm tra thành công: API typecheck, API lint, 9 unit tests của Telegram UI, API build, dashboard routing check, `git diff --check`, và agent-system validation.
+
+## Bổ sung: inline edit cho bảng Dashboard
+
+RequestFeedback: true
+
+### Phạm vi dữ liệu
+
+| Bảng | Inline edit | Nơi lưu |
+| --- | --- | --- |
+| Liên lạc | Tên, biệt danh, mô tả | SQLite `debt_contacts` |
+| Công nợ | Hướng, đối tác, số tiền, hạn, ghi chú | SQLite `debts` |
+| Khoản chi / giao dịch | Danh mục, ghi chú, số tiền, ngày | SQLite `finance_transactions` |
+| Lời nhắc | Tiêu đề, thời gian, kênh gửi | SQLite `reminders` |
+| Google Tasks | Tiêu đề, hạn hoàn tất | Google Tasks API |
+| Google Calendar | Tiêu đề, thời gian bắt đầu | Google Calendar API |
+| Hoạt động gần đây / số liệu tổng hợp | Không chỉnh sửa | Audit log và dữ liệu dẫn xuất bất biến |
+
+### Thiết kế
+
+1. Khai báo request/response contract PATCH trong `@telebot/contracts`, sau đó thêm endpoint có Bearer auth và validation/server-side ownership checks trong Reports API.
+2. Bổ sung các mutation service cho SQLite, Google Tasks và Google Calendar; ghi audit cho dữ liệu nội bộ và không cho client sửa audit log.
+3. Tạo reusable inline-edit cell trong frontend: idle giống text, hover hiện affordance, click/Enter để sửa, Enter/blur để lưu, Escape để hủy, lỗi hiển thị sát cell và aria-live/focus state đầy đủ.
+4. Tạo TanStack Query mutation theo từng domain, optimistic update có rollback và invalidate cả bảng nguồn lẫn dashboard summary sau khi lưu thành công.
+5. Gắn cell editor vào Contacts, Debts, Expenses và các bảng Dashboard tương ứng; dashboard chỉ hiển thị input cho các cột được phép sửa.
+6. Không cài React Hook Form: các cell là mutation một-trường, không phải form nhiều-field; local state giúp giữ UX Excel-lite và dependency nhỏ hơn.
+7. Thêm test API ownership/validation, test UI cell keyboard behavior, typecheck/lint/build web+API và cập nhật tài liệu contract/operating guide.
+
+### Rủi ro và giới hạn
+
+- Sửa Google Tasks/Calendar yêu cầu Google token còn hiệu lực; cell sẽ rollback và hiển thị lỗi nếu token mất hiệu lực hoặc API ngoài từ chối.
+- Chỉnh số tiền/hướng công nợ phải duy trì invariant `remainingAmount <= originalAmount`; việc đổi đối tác phải đồng bộ contact relationship.
+- Đây là thay đổi API contract, UI và external integration có rủi ro cao; không bao gồm sửa audit log hoặc admin aggregate.

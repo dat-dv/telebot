@@ -199,7 +199,6 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
-      await this.getReportsUrl(userId),
     );
 
     await this.uiService.sendSafeReply(ctx, welcomeMessage, inlineMarkup);
@@ -223,7 +222,6 @@ ${googleStatus}
       isAdmin,
       isGoogleConnected,
       authUrl,
-      await this.getReportsUrl(userId),
     );
 
     if (isAdmin) {
@@ -336,12 +334,7 @@ ${googleStatus}
       });
 
       const isAdmin = this.usersService.isAdmin(userId);
-      const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
-        isAdmin,
-        true,
-        '',
-        await this.getReportsUrl(userId),
-      );
+      const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(isAdmin, true, '');
 
       await ctx.reply(
         '🎉 *KẾT NỐI GOOGLE THÀNH CÔNG!*\n\nTài khoản Google Calendar & Google Tasks của bạn đã sẵn sàng. Bạn có thể sử dụng các nút bấm bên dưới hoặc nhắn tin tự nhiên cho bot nhé!',
@@ -837,7 +830,7 @@ ${googleStatus}
     }
     await ctx.answerCbQuery('Đang mở báo cáo...');
     await ctx.reply(
-      '📊 Mở trang báo cáo tài chính:',
+      '📊 Link Dashboard mới đã sẵn sàng. Bấm nút bên dưới để mở:',
       Markup.inlineKeyboard([
         [Markup.button.url('📊 Xem báo cáo', reportsUrl)],
         [Markup.button.callback('❌ Đóng', 'message:close')],

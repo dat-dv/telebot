@@ -25,6 +25,7 @@ async function run() {
     {},
     {},
     {},
+    {},
     { get: () => 'https://telebot.example.test' },
     { issueExchangeToken: async () => 'one-time-token' },
   );
