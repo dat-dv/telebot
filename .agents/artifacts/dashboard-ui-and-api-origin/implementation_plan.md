@@ -82,3 +82,9 @@ RequestFeedback: true
 - Giữ mặc định production an toàn theo `WEB_ORIGIN`; chỉ bật mở toàn bộ khi biến `CORS_ALLOW_ALL=true` được đặt rõ ràng.
 - Thêm `CORS_ALLOW_ALL=false` vào template ENV và hướng dẫn: dùng `true` tạm thời để web local `http://localhost:5173` gọi remote API; tắt lại sau khi thử nghiệm.
 - Xác minh typecheck API và kiểm tra cấu hình CORS không làm thay đổi route `/api/*` hoặc redirect OAuth.
+
+### Kết quả triển khai CORS
+
+- Đã thêm `CORS_ALLOW_ALL`; giá trị mặc định trong template là `false`, còn `.env` và `.env.local` trong workspace đang đặt `true` theo yêu cầu.
+- Khi bật, NestJS phản chiếu origin request với `credentials: true`; khi tắt, chỉ cho phép `WEB_ORIGIN` (và `http://localhost:5173` ở non-production).
+- Đã kiểm tra thành công: API typecheck, API lint, `git diff --check`, và `npm run agent-system:validate`.
