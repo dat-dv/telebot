@@ -23,6 +23,7 @@ function createHandler() {
     {},
     {},
     {},
+    {},
     { get: () => 'https://telebot.example.test' },
     { issueExchangeToken: async () => Promise.reject(new Error('database unavailable')) },
   );
@@ -30,14 +31,15 @@ function createHandler() {
 }
 
 async function run() {
-  const context = {
-    from: { id: 42, first_name: 'Dat' },
-    message: { text: '/start' },
-  };
-
-  for (const command of ['onStart', 'onHelp']) {
+  for (const [command, text] of [
+    ['onStart', '/start'],
+    ['onHelp', '/help'],
+  ]) {
     const { handler, menuArguments, sentReplies } = createHandler();
-    await handler[command](context);
+    await handler[command]({
+      from: { id: 42, first_name: 'Dat' },
+      message: { text },
+    });
     assert.equal(sentReplies.length, 1, `${command} must still send a reply`);
     assert.equal(menuArguments[0][3], '', `${command} must omit the dashboard link`);
   }

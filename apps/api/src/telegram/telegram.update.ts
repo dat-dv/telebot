@@ -478,14 +478,15 @@ ${googleStatus}
 
     const { startAt, endAt } = this.financeService.getTodayRange();
     const summary = await this.financeService.getSummary(userId, startAt, endAt);
-    const transactionLines = summary.transactions.slice(0, 8).map((transaction) => {
+    const transactionLines = summary.transactions.slice(0, 5).map((transaction) => {
       const icon = transaction.type === 'income' ? '➕' : '➖';
       return `${icon} ${transaction.note} — ${this.financeService.formatMoney(transaction.amount)}`;
     });
-    const details = transactionLines.length > 0 ? `\n\n${transactionLines.join('\n')}` : '';
+    const details = transactionLines.length > 0 ? `\n${transactionLines.join('\n')}` : '';
 
     await ctx.reply(
-      `💰 SỔ THU–CHI HÔM NAY\n\nThu: ${this.financeService.formatMoney(summary.income)}\nChi: ${this.financeService.formatMoney(summary.expense)}\nCòn lại: ${this.financeService.formatMoney(summary.balance)}${details}\n\nNhắn ví dụ: “ăn trưa 65k” hoặc “nhận lương 20 triệu”.`,
+      `💰 <b>Thu–chi hôm nay</b>\nThu ${this.financeService.formatMoney(summary.income)} · Chi ${this.financeService.formatMoney(summary.expense)} · Còn ${this.financeService.formatMoney(summary.balance)}${details}`,
+      { parse_mode: 'HTML' },
     );
   }
 
@@ -567,20 +568,15 @@ ${googleStatus}
       );
 
       if (tasks.length === 0) {
-        await ctx.reply(
-          '🎉 *Tuyệt vời!* Bạn hiện không có công việc to-do nào chưa hoàn thành.\n\nNhắn cho tôi: _"Nhắc anh chuẩn bị báo cáo ngày mai"_ để thêm việc mới nhé!',
-          { parse_mode: 'Markdown' },
-        );
+        await ctx.reply('🎉 Bạn không có việc nào chưa hoàn thành.', { parse_mode: 'Markdown' });
         return;
       }
 
-      let taskListText = `📝 *DANH SÁCH VIỆC CẦN LÀM (${tasks.length}):*\n\n`;
+      let taskListText = `📝 *Việc cần làm · ${tasks.length}*\n`;
       tasks.slice(0, 10).forEach((t, index) => {
         const dueText = t.due ? ` _(Hạn: ${t.due.slice(0, 10)})_` : '';
         taskListText += `▫️ *#${index + 1}*: ${t.title}${dueText}\n`;
       });
-      taskListText += `\n👉 *Bấm vào các nút bên dưới để đánh dấu đã làm xong:*`;
-
       const checklistMarkup = this.uiService.buildTaskChecklistMarkup(tasks);
       await ctx.reply(taskListText, {
         parse_mode: 'Markdown',

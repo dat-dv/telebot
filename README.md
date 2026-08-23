@@ -11,7 +11,7 @@ data/              SQLite runtime data
 
 Chạy cả API và React: `npm run dev` · Chạy riêng API: `npm run dev:api` · Chạy riêng React: `npm run dev:web` · Build toàn bộ: `npm run build`.
 
-Dashboard mở từ bot cần `WEB_ORIGIN`, `NEXT_PUBLIC_API_URL`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET`. `NEXT_PUBLIC_API_URL` được đóng gói vào static output khi build. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
+Dashboard mở từ bot cần `SERVICE_URL_TELEBOT`, `NEXT_PUBLIC_API_URL`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET`. `NEXT_PUBLIC_API_URL` được đóng gói vào static output khi build. Chỉ thêm `WEB_ORIGIN` khi dashboard dùng domain khác `SERVICE_URL_TELEBOT`. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
 
 Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, được xây dựng bằng **NestJS**, tích hợp **Google Gemini AI (`gemini-3.5-flash-lite`)** với cơ chế Function Calling tự động 8 công cụ, lưu trữ **Database SQLite (TypeORM)** và hỗ trợ **Đa Người Dùng (Multi-User Isolation)** kết nối độc lập với toàn bộ hệ sinh thái **Google Workspace**.
 
@@ -108,16 +108,26 @@ Tạo file `.env` tại thư mục gốc của dự án:
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_ADMIN_ID=your_telegram_user_id_here
 
-# 2. GEMINI AI (500 LƯỢT MIỄN PHÍ MỖI NGÀY)
+# 2. GEMINI AI
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.5-flash-lite
 
 # 3. GOOGLE OAUTH CREDENTIALS (ZERO-FILE-MOUNT)
 GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-# 4. TIMEZONE
-DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh
+# 4. BẢO MẬT VÀ DASHBOARD
+DATA_ENCRYPTION_KEY=64_hex_characters
+DASHBOARD_ACCESS_TOKEN_SECRET=64_random_characters
+DASHBOARD_REFRESH_TOKEN_SECRET=another_64_random_characters
+
+# 5. URL PUBLIC (NEXT_PUBLIC_API_URL được dùng khi build dashboard)
+SERVICE_URL_TELEBOT=https://telebot.example.com
+NEXT_PUBLIC_API_URL=https://telebot.example.com
+
+# 6. CALLME
+TELEGRAM_API_ID=your_telegram_api_id
+TELEGRAM_API_HASH=your_telegram_api_hash
+TELEGRAM_SESSION=your_telegram_session
 ```
 
 ---

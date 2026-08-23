@@ -1,6 +1,6 @@
 # Kế hoạch triển khai: response Telegram gọn và nút xếp cùng hàng
 
-RequestFeedback: true
+RequestFeedback: false
 
 ## Mục tiêu
 
@@ -49,3 +49,11 @@ Giảm chiều cao các phản hồi Telegram thường dùng mà vẫn giữ th
 ## Rollback
 
 Hoàn tác các formatter và mảng button về bố cục cũ; không có dữ liệu hay migration cần khôi phục.
+
+## Kết quả triển khai
+
+- `/tasks` và thu–chi hôm nay đã bỏ các dòng hướng dẫn/dãn cách thừa, giữ số liệu và mục quan trọng.
+- Nút hoàn tất task dùng nhãn ngắn `✅ #n` và được xếp hai nút mỗi hàng; callback data không đổi.
+- Kết quả sau xác nhận được trình bày theo kết quả nghiệp vụ (tạo/hoàn thành task, lịch, reminder), không còn hiển thị JSON kỹ thuật.
+- Các nút thông báo ngắn được gom cùng hàng; Calendar/Reminder dùng nhãn ngắn hơn và không nhồi nhãn dài vào một hàng.
+- Đã chạy thành công test mục tiêu (10/10), `npm run typecheck`, `npm run lint` và `git diff --check`.

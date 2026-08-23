@@ -67,3 +67,31 @@ void test('warns about potential duplicate Google Tasks without blocking confirm
   assert.match(message, /Học C#/);
   assert.match(message, /vẫn có thể xác nhận/i);
 });
+
+void test('groups compact task completion controls into rows of two', () => {
+  const markup = new TelegramUiService().buildTaskChecklistMarkup([
+    { id: 'one', title: 'Việc 1' },
+    { id: 'two', title: 'Việc 2' },
+    { id: 'three', title: 'Việc 3' },
+  ]);
+
+  const rows = markup?.reply_markup.inline_keyboard ?? [];
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].length, 2);
+  assert.equal(rows[1].length, 1);
+  assert.equal(rows[0][0].callback_data, 'complete_task:one');
+  assert.equal(rows[0][1].callback_data, 'complete_task:two');
+  assert.equal(rows[1][0].callback_data, 'complete_task:three');
+});
+
+void test('formats completed task results without technical JSON', () => {
+  const message = new TelegramUiService().formatResultBox(
+    'complete_task',
+    { success: true, task: { title: 'Học Java' } },
+    'REQ-ABC123',
+  );
+
+  assert.match(message, /Đã hoàn thành/);
+  assert.match(message, /Học Java/);
+  assert.doesNotMatch(message, /JSON|taskId|API/);
+});

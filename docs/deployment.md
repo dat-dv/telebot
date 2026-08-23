@@ -47,7 +47,10 @@ GOOGLE_CLIENT_SECRET=GOCSPX-yyy
 # ============================================================
 # GEMINI_MODEL=gemini-3.5-flash-lite
 # DEFAULT_TIMEZONE=Asia/Ho_Chi_Minh
+# TELEGRAM_LONG_POLLING_ENABLED=true
 ```
+
+> Bot nhận lệnh như `/help` bằng long polling. Giữ `TELEGRAM_LONG_POLLING_ENABLED=true` trên đúng một instance dùng bot token. Chỉ đặt `false` khi đã cấu hình webhook hoặc một worker polling riêng nhận update thay cho API này.
 
 ---
 

@@ -74,13 +74,17 @@ export class TelegramUiService {
     const validTasks = tasks.filter((t) => t.id && t.title);
     if (validTasks.length === 0) return undefined;
 
-    const inlineButtons = validTasks.slice(0, 8).map((t, idx) => {
-      const cleanTitle = (t.title || 'Task').trim();
-      const shortTitle = cleanTitle.length > 18 ? `${cleanTitle.slice(0, 16)}...` : cleanTitle;
-      return [
-        Markup.button.callback(`✅ Xong #${idx + 1}: ${shortTitle}`, `complete_task:${t.id}`),
-      ];
-    });
+    const buttons = validTasks
+      .slice(0, 8)
+      .map((task, index) => Markup.button.callback(`✅ #${index + 1}`, `complete_task:${task.id}`));
+    const inlineButtons = buttons.reduce<Array<(typeof buttons)[number][]>>(
+      (rows, button, index) => {
+        if (index % 2 === 0) rows.push([button]);
+        else rows[rows.length - 1].push(button);
+        return rows;
+      },
+      [],
+    );
 
     return Markup.inlineKeyboard(inlineButtons);
   }
@@ -185,8 +189,51 @@ export class TelegramUiService {
     referenceId: string,
     cancelled = false,
   ): string {
-    const title = cancelled ? '❌ <b>ĐÃ HỦY THAO TÁC</b>' : '✅ <b>ĐÃ THỰC HIỆN</b>';
-    return `${title}\n\n<b>Mã yêu cầu</b>: <code>${this.escapeHtml(referenceId)}</code>\n<b>API</b>: <code>${this.escapeHtml(name)}</code>\n<b>Output JSON</b>:\n<pre>${this.escapeHtml(JSON.stringify({ requestId: referenceId, ...result }, null, 2))}</pre>`;
+    if (cancelled) return '❌ Đã hủy thao tác.';
+    if (result.success !== true) {
+      const error =
+        typeof result.error === 'string' ? result.error : 'Thao tác chưa thực hiện được.';
+      return `⚠️ <b>Chưa thực hiện được</b>\n${this.escapeHtml(error)}`;
+    }
+
+    if (name === 'create_task') {
+      const task = result.task as Record<string, unknown> | undefined;
+      const title = typeof task?.title === 'string' ? task.title : 'Công việc mới';
+      return `✅ <b>Đã thêm việc</b> · ${this.escapeHtml(title)}`;
+    }
+    if (name === 'create_tasks') {
+      const created: unknown[] = Array.isArray(result.created) ? result.created : [];
+      const titles = created
+        .slice(0, 3)
+        .map((task): string => {
+          if (!task || typeof task !== 'object') return '';
+          const title = (task as Record<string, unknown>).title;
+          return typeof title === 'string' ? title : '';
+        })
+        .filter((title): title is string => Boolean(title));
+      const remaining = created.length - titles.length;
+      const details =
+        titles.length > 0 ? `: ${titles.join(' · ')}${remaining > 0 ? ` +${remaining}` : ''}` : '';
+      return `✅ <b>Đã thêm ${created.length} việc</b>${this.escapeHtml(details)}`;
+    }
+    if (name === 'complete_task') {
+      const task = result.task as Record<string, unknown> | undefined;
+      const title = typeof task?.title === 'string' ? ` · ${task.title}` : '';
+      return `✅ <b>Đã hoàn thành</b>${this.escapeHtml(title)}`;
+    }
+    if (name === 'create_calendar_event') {
+      const event = result.event as Record<string, unknown> | undefined;
+      const summary = typeof event?.summary === 'string' ? event.summary : 'Lịch hẹn';
+      return `✅ <b>Đã tạo lịch</b> · ${this.escapeHtml(summary)}`;
+    }
+    if (name === 'create_reminder') {
+      const title = typeof result.title === 'string' ? result.title : 'Lời nhắc';
+      const time = typeof result.formattedTime === 'string' ? ` · ${result.formattedTime}` : '';
+      return `✅ <b>Đã cài nhắc</b> · ${this.escapeHtml(title)}${this.escapeHtml(time)}`;
+    }
+
+    const message = typeof result.message === 'string' ? result.message : 'Đã thực hiện thao tác.';
+    return `✅ ${this.escapeHtml(message)}`;
   }
 
   private escapeHtml(value: string): string {
@@ -199,8 +246,10 @@ export class TelegramUiService {
 
   public buildNotificationActionsMarkup() {
     return Markup.inlineKeyboard([
-      [Markup.button.callback('🆗 Đã hiểu', 'notice:ack')],
-      [Markup.button.callback('✖️ Đóng', 'notice:close')],
+      [
+        Markup.button.callback('🆗 Đã hiểu', 'notice:ack'),
+        Markup.button.callback('✖️ Đóng', 'notice:close'),
+      ],
     ]);
   }
 
@@ -235,8 +284,7 @@ export class TelegramUiService {
       : Markup.button.callback('📞 Đổi sang báo động', `switch_reminder:call:${reminderId}`);
 
     return Markup.inlineKeyboard([
-      [switchBtn],
-      [Markup.button.callback('❌ Hủy lời nhắc', `cancel_reminder:${reminderId}`)],
+      [switchBtn, Markup.button.callback('❌ Hủy', `cancel_reminder:${reminderId}`)],
       [Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${reminderId}`)],
     ]);
   }
@@ -246,15 +294,15 @@ export class TelegramUiService {
    */
   public buildCalendarConfirmationMarkup(eventId?: string, htmlLink?: string) {
     const buttons = [];
-    if (htmlLink) {
-      buttons.push([Markup.button.url('📅 Mở Google Calendar', htmlLink)]);
-    }
     const actionRow = [];
-    if (eventId) {
-      buttons.push([Markup.button.callback('🗑️ Xóa lịch hẹn', `delete_calendar_event:${eventId}`)]);
+    if (htmlLink) {
+      actionRow.push(Markup.button.url('📅 Mở lịch', htmlLink));
     }
-    actionRow.push(Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${eventId || 'cal'}`));
-    buttons.push(actionRow);
+    if (eventId) {
+      actionRow.push(Markup.button.callback('🗑️ Xóa', `delete_calendar_event:${eventId}`));
+    }
+    if (actionRow.length > 0) buttons.push(actionRow);
+    buttons.push([Markup.button.callback('🆗 Ẩn nút', `dismiss_buttons:${eventId || 'cal'}`)]);
 
     return Markup.inlineKeyboard(buttons);
   }

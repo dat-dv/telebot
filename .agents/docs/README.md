@@ -30,4 +30,5 @@ Thư mục này chứa toàn bộ tài liệu hướng dẫn dành cho lập tr�
    - **Tổng quan & Cách dùng**: Giải thích ngắn gọn mục đích sử dụng module cho lập trình viên mới (onboarding).
    - **Quy trình Chạy & Kiểm thử**: Các lệnh chạy thử, test cases chính cần chú ý.
    - **Xử lý Sự cố (Troubleshooting)**: Các lỗi thường gặp và cách khắc phục nhanh.
-4. **Hard Completion Gate**: Một nhiệm vụ `implement` chỉ hoàn thành khi đã cập nhật song song cả **Tri thức AI Agent (`.agents/knowledge/`)** và **Hướng dẫn Lập trình viên (`.agents/docs/`)**.
+4. **Cấu hình môi trường**: Quy tắc URL dashboard, ENV bắt buộc và biến tuỳ chọn được duy trì trong [`global/monorepo-architecture.md`](global/monorepo-architecture.md).
+5. **Hard Completion Gate**: Một nhiệm vụ `implement` chỉ hoàn thành khi đã cập nhật song song cả **Tri thức AI Agent (`.agents/knowledge/`)** và **Hướng dẫn Lập trình viên (`.agents/docs/`)**.
