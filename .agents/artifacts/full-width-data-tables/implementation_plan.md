@@ -4,7 +4,12 @@ RequestFeedback: true
 
 ## Trạng thái triển khai
 
-Đã được phê duyệt và triển khai theo đúng phạm vi nêu dưới đây.
+Đã được phê duyệt và triển khai theo đúng phạm vi nêu dưới đây. Quy tắc bảng dùng chung hiện là `width: 100%`.
+
+## Xác minh
+
+- `npm run build:web` hoàn tất thành công ngày 2026-08-23.
+- Build kiểm tra biên dịch, TypeScript và sinh tĩnh toàn bộ các route báo cáo.
 
 ## Mục tiêu
 

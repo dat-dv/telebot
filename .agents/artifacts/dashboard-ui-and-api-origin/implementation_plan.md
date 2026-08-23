@@ -63,3 +63,13 @@ Anh duyệt kế hoạch này, em sẽ triển khai UI dashboard và chuẩn ho�
 - Hoàn tất: chuẩn hoá API origin ở HTTP client, UI dashboard, template cấu hình production, ghi chú Nginx và tài liệu dashboard/kiến trúc.
 - Không thay đổi DTO, API contract hoặc session flow.
 - Đã kiểm tra: `git diff --check`, `npm run lint --workspace @telebot/web`, `npm run typecheck --workspace @telebot/web`, và `npm run build --workspace @telebot/web` đều thành công; 7 route web được xuất static.
+
+## Bổ sung: callback OAuth có prefix `/api`
+
+RequestFeedback: true
+
+- Bỏ ngoại lệ `oauth2callback` khỏi NestJS global prefix để callback chính thức là `https://telebot.datintech.site/api/oauth2callback`.
+- Đổi URL callback mặc định trong cấu hình OAuth sang `${APP_URL}/api/oauth2callback`.
+- Để Nginx định tuyến callback theo cùng rule `/api/*` sang NestJS; gỡ location `/oauth2callback` riêng để không còn public route không prefix.
+- Cập nhật tài liệu và test/check script liên quan; Google Cloud Console phải khai báo chính xác `https://telebot.datintech.site/api/oauth2callback` trong Authorized redirect URIs.
+- Xác minh bằng typecheck/test phù hợp cho API và Nginx config/diff review.
