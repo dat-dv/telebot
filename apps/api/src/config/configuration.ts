@@ -2,6 +2,7 @@ export interface AppConfig {
   port: number;
   appUrl: string;
   webOrigin: string;
+  cors: { allowAll: boolean };
   telegram: {
     token: string;
     longPollingEnabled: boolean;
@@ -76,6 +77,7 @@ export default (): AppConfig => {
     port: Number(cleanEnv(process.env.PORT, '3000')) || 3000,
     appUrl,
     webOrigin: cleanEnv(process.env.WEB_ORIGIN, appUrl),
+    cors: { allowAll: parseBooleanEnv(process.env.CORS_ALLOW_ALL, false) },
     telegram: {
       token: cleanEnv(process.env.TELEGRAM_BOT_TOKEN),
       longPollingEnabled: parseBooleanEnv(process.env.TELEGRAM_LONG_POLLING_ENABLED, true),

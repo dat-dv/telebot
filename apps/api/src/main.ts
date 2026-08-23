@@ -30,11 +30,14 @@ async function bootstrap() {
   const port = configService.get<number>('port', 3000);
   const appUrl = configService.get<string>('appUrl', 'http://localhost:3000');
   const webOrigin = configService.get<string>('webOrigin', '');
+  const corsAllowAll = configService.get<boolean>('cors.allowAll', false);
   const longPollingEnabled = configService.get<boolean>('telegram.longPollingEnabled', true);
 
   const corsOrigins = [webOrigin];
   if (process.env.NODE_ENV !== 'production') corsOrigins.push('http://localhost:5173');
-  if (corsOrigins.some(Boolean)) {
+  if (corsAllowAll) {
+    app.enableCors({ origin: true, credentials: true });
+  } else if (corsOrigins.some(Boolean)) {
     app.enableCors({ origin: corsOrigins.filter(Boolean), credentials: true });
   }
 

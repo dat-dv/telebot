@@ -73,3 +73,12 @@ RequestFeedback: true
 - Để Nginx định tuyến callback theo cùng rule `/api/*` sang NestJS; gỡ location `/oauth2callback` riêng để không còn public route không prefix.
 - Cập nhật tài liệu và test/check script liên quan; Google Cloud Console phải khai báo chính xác `https://telebot.datintech.site/api/oauth2callback` trong Authorized redirect URIs.
 - Xác minh bằng typecheck/test phù hợp cho API và Nginx config/diff review.
+
+## Bổ sung: mở CORS cho development từ mọi origin
+
+RequestFeedback: true
+
+- Đổi cấu hình CORS NestJS sang phản chiếu origin request (`origin: true`) khi `CORS_ALLOW_ALL=true`; cách này tương thích `credentials: true`, khác với `origin: '*'` vốn bị browser từ chối khi dùng cookie.
+- Giữ mặc định production an toàn theo `WEB_ORIGIN`; chỉ bật mở toàn bộ khi biến `CORS_ALLOW_ALL=true` được đặt rõ ràng.
+- Thêm `CORS_ALLOW_ALL=false` vào template ENV và hướng dẫn: dùng `true` tạm thời để web local `http://localhost:5173` gọi remote API; tắt lại sau khi thử nghiệm.
+- Xác minh typecheck API và kiểm tra cấu hình CORS không làm thay đổi route `/api/*` hoặc redirect OAuth.

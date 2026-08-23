@@ -50,6 +50,8 @@ Access token dashboard được lưu ở browser storage trong 15 phút theo yê
 
 Khi phát triển local, Next chạy tại `http://localhost:5173` và browser gọi API tại `http://localhost:3000`; API tự cho phép origin này ở non-production. Khi dashboard và API dùng cùng domain, đặt `APP_URL`, `WEB_ORIGIN` và `NEXT_PUBLIC_API_URL` cùng giá trị. Khi triển khai static web riêng, đặt `WEB_ORIGIN` là URL public của web; API dùng biến này cho CORS và redirect từ `/api/access`.
 
+Khi cần frontend local gọi API remote, đặt `NEXT_PUBLIC_API_URL=https://telebot.datintech.site` trong `apps/web/.env.local` và tạm đặt `CORS_ALLOW_ALL=true` trong ENV của API remote. Chế độ này phản chiếu origin thay vì dùng `*`, nên vẫn tương thích cookie refresh; phải đổi lại `false` sau khi thử nghiệm.
+
 ## Docker
 
 Dùng `docker compose up --build` tại root. Compose build API và static web qua `apps/api/Dockerfile` và `apps/web/Dockerfile`; web được phục vụ bởi Nginx tại `WEB_PORT` (mặc định 3001), đồng thời Nginx tự động reverse proxy các route `/api/*` và `/oauth2callback` sang container API backend (`http://api:3000`), còn API mount `./data` để giữ SQLite. Với kiến trúc này, Cloudflare Tunnel chỉ cần trỏ vào duy nhất cổng Web (`localhost:3001`).
