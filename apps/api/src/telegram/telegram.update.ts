@@ -129,6 +129,8 @@ export class TelegramUpdate {
     const message = ctx.message;
     const text = message && 'text' in message ? message.text : '';
 
+    await this.uiService.syncCommandMenu(ctx, isAdmin);
+
     let authUrl = '';
     try {
       authUrl = this.googleAuthService.generateAuthUrl(userId);

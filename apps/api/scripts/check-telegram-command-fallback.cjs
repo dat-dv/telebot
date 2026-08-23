@@ -19,6 +19,7 @@ function createHandler(appUrl = 'https://telebot.example.test', tokenIssueFails 
         menuArguments.push(args);
         return {};
       },
+      syncCommandMenu: async () => {},
       sendSafeReply: async (_ctx, text) => sentReplies.push(text),
     },
     {},
@@ -112,4 +113,3 @@ run().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

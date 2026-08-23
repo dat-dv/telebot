@@ -15,7 +15,7 @@ Tài liệu này hướng dẫn cơ chế xác thực phiên làm việc của D
 
 Bot tạo link `/api/access?token=...` với token ngẫu nhiên dùng một lần. Database chỉ lưu hash SHA-256 của token. Khi mở link, API xác minh token chưa dùng và chưa hết hạn, đánh dấu đã dùng rồi mới cấp phiên dashboard.
 
-Nút **📊 Xem báo cáo** trong menu inline chung của `/start` và `/help` là URL trực tiếp, vì vậy mở Dashboard ngay bằng một lần bấm. Người dùng cũng có thể dùng `/dashboard` hoặc nhắn `Dashboard`, `mở dashboard`, `xem dashboard`, `cho anh xem dashboard`; các yêu cầu này phải trả link thật, không chuyển sang Gemini để suy đoán. Nếu việc tạo token dashboard lỗi, bot vẫn phải trả lời `/start` và `/help`; chỉ ẩn nút báo cáo trong phản hồi đó. Callback cũ chỉ còn để các menu đã gửi trước khi nâng cấp vẫn trả về một link mới.
+Nút **📊 Dashboard** trong menu inline chung của `/start` và `/help` là URL trực tiếp, vì vậy mở Dashboard ngay bằng một lần bấm. Danh mục menu chung cũng là nguồn duy nhất cho command menu Telegram và các nút nhanh; các nút được ghép tối đa hai nút mỗi hàng để giảm chiều cao màn hình. Mục quản trị chỉ xuất hiện trong menu của chat Admin. Người dùng cũng có thể dùng `/dashboard` hoặc nhắn `Dashboard`, `mở dashboard`, `xem dashboard`, `cho anh xem dashboard`; các yêu cầu này phải trả link thật, không chuyển sang Gemini để suy đoán. Nếu việc tạo token dashboard lỗi, bot vẫn phải trả lời `/start` và `/help`; chỉ ẩn nút Dashboard trong phản hồi đó. Callback cũ chỉ còn để các menu đã gửi trước khi nâng cấp vẫn trả về một link mới.
 
 - Access token có hiệu lực 1 ngày và được web gửi trong header `Authorization`.
 - Refresh token có hiệu lực 7 ngày, được đổi mới sau mỗi lần refresh và chỉ nằm trong HTTP-only cookie.

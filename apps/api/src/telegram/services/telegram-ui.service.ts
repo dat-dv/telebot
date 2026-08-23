@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
+import { getQuickMenuItems, getTelegramCommands } from '../telegram-menu.catalog';
 
 @Injectable()
 export class TelegramUiService {
@@ -44,26 +45,30 @@ export class TelegramUiService {
       return Markup.inlineKeyboard([[Markup.button.url('🔗 Đăng Nhập Google Ngay', authUrl)]]);
     }
 
-    // One action per row keeps labels readable on narrow mobile screens.
-    const rows: Array<
-      Array<ReturnType<typeof Markup.button.callback> | ReturnType<typeof Markup.button.url>>
-    > = [
-      [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
-      [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
-      [Markup.button.callback('📊 Lịch 7 ngày', 'action:view_week')],
-      [Markup.button.callback('💰 Thu–chi', 'action:view_finance')],
-      [Markup.button.callback('💳 Công nợ', 'action:view_debts')],
-      [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
-    ];
-
-    if (reportsUrl) rows.splice(5, 0, [Markup.button.url('📊 Xem báo cáo', reportsUrl)]);
-
-    if (isAdmin) {
-      rows.push([Markup.button.callback('👥 Danh sách user', 'action:refresh_users')]);
-      rows.push([Markup.button.callback('🎟️ Tạo link mời', 'action:create_invite')]);
+    const buttons: Array<
+      ReturnType<typeof Markup.button.callback> | ReturnType<typeof Markup.button.url>
+    > = [];
+    for (const item of getQuickMenuItems(isAdmin)) {
+      if (item.opensDashboard) {
+        if (reportsUrl) buttons.push(Markup.button.url(item.label, reportsUrl));
+        continue;
+      }
+      if (item.callbackData) buttons.push(Markup.button.callback(item.label, item.callbackData));
     }
 
-    return Markup.inlineKeyboard(rows);
+    return Markup.inlineKeyboard(this.groupButtons(buttons, 2));
+  }
+
+  public async syncCommandMenu(ctx: Context, isAdmin: boolean): Promise<void> {
+    if (!ctx.chat) return;
+
+    try {
+      await ctx.telegram.setMyCommands(getTelegramCommands(isAdmin), {
+        scope: { type: 'chat', chat_id: ctx.chat.id },
+      });
+    } catch (error) {
+      this.logger.warn(`Unable to sync Telegram command menu: ${String(error)}`);
+    }
   }
 
   /**
@@ -238,6 +243,15 @@ export class TelegramUiService {
 
   private escapeHtml(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  private groupButtons<T>(buttons: readonly T[], columns: number): T[][] {
+    return buttons.reduce<T[][]>((rows, button) => {
+      const currentRow = rows[rows.length - 1];
+      if (!currentRow || currentRow.length === columns) rows.push([button]);
+      else currentRow.push(button);
+      return rows;
+    }, []);
   }
 
   private formatMoney(amount: number): string {

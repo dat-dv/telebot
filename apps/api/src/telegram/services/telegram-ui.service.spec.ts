@@ -11,11 +11,32 @@ void test('buildMainMenuInlineMarkup opens Dashboard through its direct URL', ()
   );
   const reportButton = menu.reply_markup.inline_keyboard
     .flat()
-    .find((button) => button.text === '📊 Xem báo cáo');
+    .find((button) => button.text === '📊 Dashboard');
 
-  assert.equal(reportButton?.text, '📊 Xem báo cáo');
+  assert.equal(reportButton?.text, '📊 Dashboard');
   assert.equal(reportButton?.url, 'https://telebot.example/api/access?token=one-time-token');
   assert.equal('callback_data' in (reportButton ?? {}), false);
+});
+
+void test('groups the main menu into compact rows of two controls', () => {
+  const menu = new TelegramUiService().buildMainMenuInlineMarkup(
+    true,
+    true,
+    '',
+    'https://telebot.example/api/access?token=one-time-token',
+  );
+  const rows = menu.reply_markup.inline_keyboard;
+
+  assert.ok(rows.length > 0);
+  assert.ok(rows.every((row) => row.length <= 2));
+  assert.equal(
+    rows.flat().find((button) => button.text === '📊 Dashboard')?.url,
+    'https://telebot.example/api/access?token=one-time-token',
+  );
+  assert.equal(
+    rows.flat().find((button) => button.text === '👥 Danh sách user')?.callback_data,
+    'action:refresh_users',
+  );
 });
 
 void test('buildMainMenuInlineMarkup has the same menu for start and help inputs', () => {
