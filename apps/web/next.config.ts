@@ -21,7 +21,7 @@ const apiOrigin = configuredApiOrigin;
 
 const nextConfig: NextConfig = {
   ...(isStaticExport ? { output: 'export' } : {}),
-  trailingSlash: true,
+  trailingSlash: false,
   ...(isStaticExport
     ? {}
     : {
