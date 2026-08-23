@@ -24,6 +24,7 @@ export interface AppConfig {
   receiptImage: {
     timeoutMs: number;
     maxBytes: number;
+    langPath: string;
   };
   timezone: string;
   google: {
@@ -101,6 +102,7 @@ export default (): AppConfig => {
       timeoutMs: Number(cleanEnv(process.env.RECEIPT_IMAGE_TIMEOUT_MS, '45000')) || 45_000,
       maxBytes:
         Number(cleanEnv(process.env.RECEIPT_IMAGE_MAX_BYTES, '10485760')) || 10 * 1024 * 1024,
+      langPath: cleanEnv(process.env.TESSERACT_LANG_PATH, '/app/assets/tessdata'),
     },
     timezone: cleanEnv(process.env.DEFAULT_TIMEZONE, 'Asia/Ho_Chi_Minh'),
     google: {

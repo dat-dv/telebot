@@ -136,6 +136,46 @@ export class TelegramUiService {
       const note = typeof payload.note === 'string' ? payload.note : 'Chưa có mô tả';
       return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
     }
+    if (name === 'create_task' || name === 'create_tasks') {
+      const tasks =
+        name === 'create_task'
+          ? [payload]
+          : Array.isArray(payload.tasks)
+            ? payload.tasks.filter(
+                (task): task is Record<string, unknown> =>
+                  Boolean(task) && typeof task === 'object',
+              )
+            : [];
+      const taskLines = tasks.map((task, index) => {
+        const title = typeof task.title === 'string' ? task.title : 'Chưa rõ';
+        const notes = typeof task.notes === 'string' && task.notes.trim() ? ` — ${task.notes}` : '';
+        return `${index + 1}. <b>${this.escapeHtml(title)}</b>${this.escapeHtml(notes)}`;
+      });
+      const warnings = Array.isArray(payload.duplicateWarnings)
+        ? (payload.duplicateWarnings as Array<Record<string, unknown>>)
+        : [];
+      const warningText = warnings
+        .map((warning) => {
+          const requestedTitle =
+            typeof warning.requestedTitle === 'string' ? warning.requestedTitle : 'Việc này';
+          const matches = Array.isArray(warning.matches)
+            ? warning.matches
+                .map((match) => {
+                  if (!match || typeof match !== 'object') return '';
+                  const title = (match as Record<string, unknown>).title;
+                  return typeof title === 'string' ? `• ${this.escapeHtml(title)}` : '';
+                })
+                .filter(Boolean)
+                .join('\n')
+            : '';
+          return matches
+            ? `⚠️ <b>Có thể trùng:</b> ${this.escapeHtml(requestedTitle)}\n${matches}`
+            : '';
+        })
+        .filter(Boolean)
+        .join('\n\n');
+      return `⚠️ <b>XÁC NHẬN THÊM VIỆC</b>\n\n${taskLines.join('\n')}${warningText ? `\n\n${warningText}\n\nBạn vẫn có thể xác nhận nếu đây là các việc riêng.` : ''}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thêm.`;
+    }
     return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\n<pre>${this.escapeHtml(JSON.stringify(payload, null, 2))}</pre>\nKiểm tra rồi bấm Xác nhận.`;
   }
 

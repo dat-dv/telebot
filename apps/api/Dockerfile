@@ -25,7 +25,10 @@ RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git && \
 FROM node:22-alpine AS runner
 
 WORKDIR /app
-RUN apk add --no-cache ffmpeg libgomp libstdc++ python3 make g++
+RUN apk add --no-cache curl ffmpeg libgomp libstdc++ python3 make g++ && \
+    mkdir -p /app/assets/tessdata && \
+    curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/vie.traineddata.gz -o /app/assets/tessdata/vie.traineddata.gz && \
+    curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/eng.traineddata.gz -o /app/assets/tessdata/eng.traineddata.gz
 ENV NODE_ENV=production
 EXPOSE 3000
 

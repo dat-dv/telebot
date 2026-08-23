@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegram } from 'telegraf';
+import { createWorker } from 'tesseract.js';
 import { GeminiService, ReceiptImageAnalysis } from '../../gemini/gemini.service';
 
 interface TelegramPhoto {
@@ -8,10 +9,22 @@ interface TelegramPhoto {
   file_size?: number;
 }
 
+export function normalizeOcrText(value: string): string {
+  return value
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 12_000);
+}
+
 @Injectable()
 export class ReceiptImageAnalysisService {
   private readonly maxBytes: number;
   private readonly timeoutMs: number;
+  private readonly langPath: string;
+  private workerPromise?: ReturnType<typeof createWorker>;
 
   constructor(
     configService: ConfigService,
@@ -19,6 +32,7 @@ export class ReceiptImageAnalysisService {
   ) {
     this.maxBytes = configService.get<number>('receiptImage.maxBytes', 10 * 1024 * 1024);
     this.timeoutMs = configService.get<number>('receiptImage.timeoutMs', 45_000);
+    this.langPath = configService.get<string>('receiptImage.langPath', '/app/assets/tessdata');
   }
 
   public async analyze(telegram: Telegram, photos: TelegramPhoto[]): Promise<ReceiptImageAnalysis> {
@@ -36,6 +50,21 @@ export class ReceiptImageAnalysisService {
     if (image.length === 0 || image.length > this.maxBytes) {
       throw new Error('Ảnh không hợp lệ hoặc vượt quá giới hạn 10 MB.');
     }
-    return this.geminiService.analyzeReceiptImage(image, 'image/jpeg');
+    const worker = await this.getWorker();
+    const result = await worker.recognize(image);
+    const ocrText = normalizeOcrText(result.data.text);
+    if (!ocrText) throw new Error('Không đọc được chữ trong ảnh. Vui lòng gửi ảnh rõ hơn.');
+    return this.geminiService.analyzeReceiptText(ocrText);
+  }
+
+  private async getWorker() {
+    if (this.workerPromise === undefined) {
+      this.workerPromise = createWorker(['vie', 'eng'], undefined, {
+        langPath: this.langPath,
+        cacheMethod: 'none',
+        gzip: true,
+      });
+    }
+    return this.workerPromise;
   }
 }

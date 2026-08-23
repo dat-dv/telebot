@@ -38,6 +38,7 @@
     "rxjs": "^7.8.1",
     "telegraf": "^4.16.3",
     "telegram": "^2.26.22",
+    "tesseract.js": "^7.0.0",
     "typeorm": "^1.1.0"
   },
   "devDependencies": {
@@ -51,18 +52,18 @@
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
+    "graphology": "^0.26.0",
+    "graphology-components": "^1.5.4",
+    "graphology-dag": "^0.4.1",
+    "graphology-traversal": "^0.3.1",
+    "gray-matter": "^4.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.1",
-    "typescript": "5.9.3",
-    "graphology": "^0.26.0",
-    "graphology-components": "^1.5.4",
-    "graphology-dag": "^0.4.1",
-    "graphology-traversal": "^0.3.1",
-    "gray-matter": "^4.0.3"
+    "typescript": "5.9.3"
   },
   "lint-staged": {
     "*.ts": [

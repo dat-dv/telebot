@@ -26,6 +26,7 @@ import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 import { randomUUID } from 'crypto';
+import { GoogleTasksService } from '../google/google-tasks.service';
 
 export interface ReceiptImageAnalysis {
   kind: 'ready' | 'missing_fields' | 'not_receipt';
@@ -130,6 +131,8 @@ export class GeminiService {
     'update_reminder',
   ]);
 
+  private readonly taskCreationTools = new Set(['create_task', 'create_tasks']);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly createCalendarTool: CreateCalendarTool,
@@ -154,6 +157,7 @@ export class GeminiService {
     private readonly resolveDebtContactTool: ResolveDebtContactTool,
     private readonly updateDebtContactTool: UpdateDebtContactTool,
     private readonly updateReminderTool: UpdateReminderTool,
+    private readonly tasksService: GoogleTasksService,
   ) {
     const apiKey = this.configService.get<string>('gemini.apiKey', '');
     const rawModel = this.configService.get<string>('gemini.model', 'gemini-3.5-flash-lite');
@@ -200,20 +204,20 @@ export class GeminiService {
     return getCurrentTimeInfo(this.defaultTimeZone);
   }
 
-  public async analyzeReceiptImage(image: Buffer, mimeType: string): Promise<ReceiptImageAnalysis> {
+  public async analyzeReceiptText(ocrText: string): Promise<ReceiptImageAnalysis> {
     const model = this.genAI.getGenerativeModel({ model: this.primaryModelName });
-    const prompt = `Phân tích ảnh do người dùng gửi. Chỉ trả JSON hợp lệ, không Markdown và không gọi tool.
-Nếu là hoá đơn, bill hoặc ảnh chụp giao dịch với đủ dữ liệu, trả:
+    const prompt = `Phân tích text OCR do Tesseract trích xuất từ ảnh. Chỉ trả JSON hợp lệ, không Markdown và không gọi tool.
+Nếu text là hoá đơn, bill hoặc ảnh chụp giao dịch với đủ dữ liệu, trả:
 {"kind":"ready","type":"income"|"expense","amount":số_VND_dương,"category":"...","note":"...","occurredAt":"ISO-8601 nếu đọc chắc chắn","summary":"..."}
 Nếu là giao dịch nhưng thiếu loại hoặc số tiền, trả:
 {"kind":"missing_fields","missingFields":["type"|"amount"],"summary":"..."}
-Nếu không phải giao dịch/hoá đơn, trả:
+Nếu text không phải giao dịch/hoá đơn, trả:
 {"kind":"not_receipt","summary":"..."}
-Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là VND đầy đủ.`;
-    const response = await model.generateContent([
-      { text: prompt },
-      { inlineData: { data: image.toString('base64'), mimeType } },
-    ]);
+Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là VND đầy đủ.
+
+TEXT OCR:
+${ocrText}`;
+    const response = await model.generateContent(prompt);
     return parseReceiptImageAnalysis(response.response.text());
   }
 
@@ -229,11 +233,47 @@ Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là
     this.pendingActions.delete(actionId);
     const tool = this.toolsMap.get(pending.name);
     if (!tool) throw new Error('Không tìm thấy thao tác cần thực hiện.');
-    const result = await tool.execute(pending.payload, {
+    const { duplicateWarnings: _duplicateWarnings, ...payload } = pending.payload;
+    const result = await tool.execute(payload, {
       userId,
       botUsername: pending.botUsername,
     });
     return { referenceId: pending.referenceId, name: pending.name, result };
+  }
+
+  private async addTaskDuplicateWarnings(
+    name: string,
+    payload: Record<string, unknown>,
+    userId: number,
+  ): Promise<Record<string, unknown>> {
+    if (!this.taskCreationTools.has(name)) return payload;
+
+    const requestedTitles =
+      name === 'create_task'
+        ? typeof payload.title === 'string'
+          ? [payload.title]
+          : []
+        : Array.isArray(payload.tasks)
+          ? payload.tasks.flatMap((task) => {
+              if (!task || typeof task !== 'object') return [];
+              const title = (task as Record<string, unknown>).title;
+              return typeof title === 'string' ? [title] : [];
+            })
+          : [];
+
+    if (requestedTitles.length === 0) return payload;
+
+    try {
+      const duplicateWarnings = await this.tasksService.findPotentialDuplicateTasks(
+        requestedTitles,
+        userId,
+      );
+      return duplicateWarnings.length > 0 ? { ...payload, duplicateWarnings } : payload;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Could not check Google Tasks duplicates: ${message}`);
+      return payload;
+    }
   }
 
   public cancelPendingAction(actionId: string, userId: number): boolean {
@@ -321,7 +361,11 @@ Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là
             if (!userId) {
               return { text: 'Không xác định được danh tính người dùng để xác nhận thao tác.' };
             }
-            const payload = call.args as Record<string, unknown>;
+            const payload = await this.addTaskDuplicateWarnings(
+              call.name,
+              call.args as Record<string, unknown>,
+              userId,
+            );
             const pendingAction = this.queueToolConfirmation(
               call.name,
               payload,

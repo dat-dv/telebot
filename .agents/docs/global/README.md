@@ -12,6 +12,7 @@ metadata:
       - .agents/knowledge/global/google-tasks.md
       - .agents/knowledge/global/receipt-image-analysis.md
       - .agents/knowledge/global/voice-transcription.md
+      - .agents/knowledge/global/local-first-ai-usage.md
 ---
 
 # Global Developer Guides
@@ -24,8 +25,9 @@ This directory contains human-facing operational guides for system-wide architec
 - [Quy Chuẩn Type Safety & Zero-Any](type-safety.md): Hướng dẫn chi tiết về chính sách cấm `any`, mẫu code thay thế chuẩn và cơ chế hook kiểm tra tự động (Ánh xạ: [`type-safety.md`](../../knowledge/global/type-safety.md)).
 - [Quy Chuẩn Quản Lý Route & API Constants](route-constants.md): Hướng dẫn định nghĩa và sử dụng `APP_ROUTES` và `API_ROUTES` tập trung, cấm tuyệt đối hardcode đường dẫn (Ánh xạ: [`route-constants.md`](../../knowledge/global/route-constants.md)).
 - [Nhận Diện Voice Cục Bộ](voice-transcription.md): Cấu hình Whisper, luồng xác nhận transcript và xử lý sự cố.
+- [Xử lý cục bộ trước AI](local-first-ai-usage.md): Quy tắc tiết kiệm token và giảm dữ liệu gửi tới AI.
 - [Phiên Dashboard và các trang web](dashboard-session.md): One-time exchange token, thời hạn phiên, phân quyền danh bạ và kiểm tra UI.
-- [Google Tasks: tạo một hoặc nhiều việc](google-tasks.md): Xác nhận batch, kết quả thành công một phần và aliases `/task`/`/tasks`.
+- [Google Tasks: tạo một hoặc nhiều việc](google-tasks.md): Cảnh báo task có khả năng trùng, xác nhận batch, kết quả thành công một phần và aliases `/task`/`/tasks`.
 - [Phân tích ảnh hoá đơn và thu-chi](receipt-image-analysis.md): Đọc ảnh trong bộ nhớ, đề xuất giao dịch và bắt buộc xác nhận.
 - [Định hướng UI web](web-ui-direction.md): Quy chuẩn giao diện dashboard dùng chung, bảng dữ liệu và khả năng truy cập.
 

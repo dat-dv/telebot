@@ -1,6 +1,6 @@
 # Receipt Image Analysis
 
-Telegram photos are analyzed in memory by Gemini for receipt or transaction data. The highest-resolution Telegram photo is downloaded only after size validation, then passed to Gemini as inline image data; neither image bytes nor extracted text are persisted or logged.
+Telegram photos are transcribed locally with Tesseract `vie+eng` before semantic analysis. Gemini receives only normalized OCR text; it never receives image bytes, base64 image data, or Telegram file URLs. Neither image bytes nor extracted text are persisted or logged.
 
 The model returns one of three states: `ready`, `missing_fields`, or `not_receipt`. Only `ready` with a valid income/expense type, positive VND amount, and note can enqueue `create_finance_transaction`. The existing confirmation action remains mandatory before the finance record is written.
 

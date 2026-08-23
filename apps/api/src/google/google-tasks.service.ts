@@ -18,6 +18,40 @@ export interface ListTasksOptions {
   maxResults?: number;
 }
 
+export interface PotentialDuplicateTask {
+  id: string;
+  title: string;
+  notes?: string | null;
+}
+
+export interface TaskDuplicateWarning {
+  requestedTitle: string;
+  matches: PotentialDuplicateTask[];
+}
+
+export function normalizeTaskTitle(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .toLocaleLowerCase('vi-VN')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+export function arePotentialDuplicateTaskTitles(left: string, right: string): boolean {
+  const normalizedLeft = normalizeTaskTitle(left);
+  const normalizedRight = normalizeTaskTitle(right);
+  if (!normalizedLeft || !normalizedRight) return false;
+  if (normalizedLeft === normalizedRight) return true;
+
+  const shorter =
+    normalizedLeft.length <= normalizedRight.length ? normalizedLeft : normalizedRight;
+  const longer = normalizedLeft.length <= normalizedRight.length ? normalizedRight : normalizedLeft;
+  return shorter.split(' ').length >= 2 && longer.includes(shorter);
+}
+
 @Injectable()
 export class GoogleTasksService {
   private readonly logger = new Logger(GoogleTasksService.name);
@@ -57,6 +91,26 @@ export class GoogleTasksService {
     });
 
     return res.data.items || [];
+  }
+
+  public async findPotentialDuplicateTasks(
+    requestedTitles: string[],
+    userId?: number,
+  ): Promise<TaskDuplicateWarning[]> {
+    const tasks = await this.listTasks({ showCompleted: false, maxResults: 50 }, userId);
+    const activeTasks: PotentialDuplicateTask[] = tasks.flatMap((task) => {
+      if (!task.id || !task.title?.trim()) return [];
+      return [{ id: task.id, title: task.title.trim(), notes: task.notes }];
+    });
+
+    return requestedTitles.flatMap((requestedTitle) => {
+      const title = requestedTitle.trim();
+      if (!title) return [];
+      const matches = activeTasks.filter((task) =>
+        arePotentialDuplicateTaskTitles(title, task.title),
+      );
+      return matches.length > 0 ? [{ requestedTitle: title, matches }] : [];
+    });
   }
 
   public async createTask(

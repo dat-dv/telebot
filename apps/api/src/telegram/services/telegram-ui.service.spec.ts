@@ -47,3 +47,23 @@ void test('formats finance confirmation as compact mobile-friendly text', () => 
   assert.match(message, /65\.000đ/);
   assert.doesNotMatch(message, /Payload JSON/);
 });
+
+void test('warns about potential duplicate Google Tasks without blocking confirmation', () => {
+  const message = new TelegramUiService().formatConfirmationBox(
+    'create_task',
+    {
+      title: 'Học C# (ánh xạ bằng TS)',
+      duplicateWarnings: [
+        {
+          requestedTitle: 'Học C# (ánh xạ bằng TS)',
+          matches: [{ id: 'task-1', title: 'Học C#' }],
+        },
+      ],
+    },
+    'REQ-ABC123',
+  );
+
+  assert.match(message, /Có thể trùng/);
+  assert.match(message, /Học C#/);
+  assert.match(message, /vẫn có thể xác nhận/i);
+});
