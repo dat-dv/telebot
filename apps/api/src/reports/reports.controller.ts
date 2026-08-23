@@ -41,7 +41,7 @@ export class ReportsController {
     const refresh = this.tokens.issueRefreshToken(userId);
     this.setRefreshCookie(res, refresh.token);
     const webOrigin = this.config.getOrThrow<string>('webOrigin').replace(/\/+$/, '');
-    res.redirect(`${webOrigin}/reports#dashboard_token=${encodeURIComponent(access.token)}`);
+    res.redirect(`${webOrigin}/#dashboard_token=${encodeURIComponent(access.token)}`);
   }
 
   private renderAccessError(res: Response): void {

@@ -8,7 +8,7 @@
 
 ## UI and state
 
-The contacts screen provides refresh and logout actions. It renders loading, empty, successful, and recoverable error states; its table uses the full available desktop width after navigation and remains horizontally scrollable on narrow screens.
+The contacts screen provides refresh and logout actions, quick client-side search filtering across names, aliases, and descriptors, and i18n localized date-time formatting. It renders loading, empty, successful, and recoverable error states; its table uses the full available desktop width after navigation and remains horizontally scrollable on narrow screens.
 
 ## Integration seams
 

@@ -20,10 +20,14 @@ type DataTableProps<T> = {
 export function DataPanel({
   title,
   description,
+  toolbar,
+  counter,
   children,
 }: {
   title: string;
   description?: string;
+  toolbar?: ReactNode;
+  counter?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -33,6 +37,12 @@ export function DataPanel({
           <h2>{title}</h2>
           {description && <p>{description}</p>}
         </div>
+        {(toolbar || counter) && (
+          <div className="data-panel__toolbar">
+            {counter && <span className="data-panel__counter">{counter}</span>}
+            {toolbar}
+          </div>
+        )}
       </header>
       {children}
     </section>

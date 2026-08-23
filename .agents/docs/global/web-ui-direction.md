@@ -15,6 +15,6 @@ Các primitive dùng chung trong `apps/web/src/shared/ui/` chịu trách nhiệm
 
 Nút phải có focus rõ, độ tương phản đủ và lỗi phải kèm cách thử lại.
 
-Thanh điều hướng báo cáo dùng chung (`apps/web/src/shared/ui/reports-navigation.tsx`) theo kiểu sidebar quản trị trên desktop: có dấu nhận diện sản phẩm, nhãn nhóm ngắn, icon đi cùng chữ và trạng thái trang đang mở. Khi thêm mục mới, luôn giữ nhãn chữ hiển thị, SVG chỉ là phần hỗ trợ quét nhanh, và đặt `aria-current="page"` cho mục active.
+Thanh điều hướng dùng chung (`apps/web/src/shared/ui/app-navigation.tsx`) theo kiểu sidebar quản trị trên desktop: phân thành 4 nhóm nghiệp vụ rõ ràng (TỔNG QUAN, TÀI CHÍNH, KẾ HOẠCH, DỮ LIỆU), có dấu nhận diện sản phẩm, icon đi cùng chữ và tự động nhận diện trạng thái trang đang mở theo `usePathname()`. Khi thêm mục mới, luôn giữ nhãn chữ hiển thị qua hệ thống i18n, SVG chỉ là phần hỗ trợ quét nhanh, và đặt `aria-current="page"` cho mục active.
 
 Trên màn hình hẹp, sidebar chuyển thành dải điều hướng cuộn ngang. Không đổi thành menu chỉ icon hoặc nhiều tầng; cần kiểm tra rằng mục active, hover và focus bàn phím vẫn dễ nhận biết, không làm tràn viewport.

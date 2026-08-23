@@ -57,6 +57,29 @@ async function bootstrap() {
   );
 }
 
+// Global Process Resilience Guards
+process.on('unhandledRejection', (reason: unknown) => {
+  const logger = new Logger('UnhandledRejection');
+  let message = 'Unknown rejection';
+  if (reason instanceof Error) {
+    message = reason.stack || reason.message;
+  } else if (typeof reason === 'string') {
+    message = reason;
+  } else if (typeof reason === 'object' && reason !== null) {
+    try {
+      message = JSON.stringify(reason);
+    } catch {
+      message = '[Non-serializable object]';
+    }
+  }
+  logger.error(`Unhandled Promise Rejection trapped: ${message}`);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  const logger = new Logger('UncaughtException');
+  logger.error(`Uncaught Exception trapped: ${error.stack || error.message}`);
+});
+
 bootstrap().catch((err) => {
   const logger = new Logger('Bootstrap');
   logger.error('Fatal error starting application', err);

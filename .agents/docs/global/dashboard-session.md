@@ -21,13 +21,18 @@ Nút **📊 Dashboard** trong menu inline chung của `/start` và `/help` là U
 - Refresh token có hiệu lực 7 ngày, được đổi mới sau mỗi lần refresh và chỉ nằm trong HTTP-only cookie.
 - Không gửi refresh token qua URL hay response body. Một link Telegram đã mở thành công không thể dùng lại.
 
-## Các trang
+## Các trang (Nhóm private)
 
-- `/reports`: Trang chủ, tổng quan số dư, việc cần làm, nhắc nhở, lịch và hoạt động gần đây.
-- `/reports/statistics`: Thống kê thu–chi, công nợ và giao dịch tháng hiện tại.
-- `/reports/contacts`: Danh bạ công nợ chỉ-đọc của người đang đăng nhập.
+- `/`: Tổng quan, chỉ số tài chính nhanh, việc cần làm, nhắc nhở, lịch và hoạt động gần đây.
+- `/transactions`: Thu chi, lịch sử dòng tiền với bộ lọc `[Tất cả] [Thu] [Chi]`.
+- `/debts`: Vay & cho vay, công nợ cần thu / cần trả đang mở.
+- `/analytics`: Phân tích thu–chi, cơ cấu danh mục và biến động số dư.
+- `/calendar`: Lịch trình 7 ngày tới kết nối Google Calendar.
+- `/tasks`: Danh sách nhiệm vụ từ Google Tasks.
+- `/reminders`: Danh sách lời nhắc tự động.
+- `/contacts`: Danh bạ người liên quan của người đang đăng nhập.
 
-Trang Liên lạc gọi `GET /reports/contacts`. API tự lấy user từ access token; không nhận `userId` từ client, vì vậy không thể xem danh bạ của người khác.
+Trang Người liên quan gọi `GET /api/contacts`. API tự lấy user từ access token; không nhận `userId` từ client, vì vậy không thể xem danh bạ của người khác.
 
 ## Kiểm tra
 

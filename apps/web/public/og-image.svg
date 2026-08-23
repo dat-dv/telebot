@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="ogBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="40%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+
+    <!-- Logo & Accent Gradient -->
+    <linearGradient id="ogAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+
+    <!-- Card Background -->
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- Ambient Glow Orbs -->
+    <radialGradient id="glowTopLeft" cx="15%" cy="20%" r="45%">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowBottomRight" cx="85%" cy="80%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#090d16" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Grid Pattern -->
+    <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.18" />
+    </pattern>
+
+    <!-- Card Drop Shadow -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="630" fill="url(#ogBg)" />
+
+  <!-- Ambient Glows -->
+  <rect width="1200" height="630" fill="url(#glowTopLeft)" />
+  <rect width="1200" height="630" fill="url(#glowBottomRight)" />
+
+  <!-- Subtle Grid Lines -->
+  <rect width="1200" height="630" fill="url(#gridPattern)" />
+
+  <!-- Outer Frame Border -->
+  <rect x="24" y="24" width="1152" height="582" rx="20" fill="none" stroke="#1e293b" stroke-width="2" stroke-opacity="0.7" />
+
+  <!-- ================= LEFT COLUMN: BRAND & VALUE PROP ================= -->
+  <g transform="translate(80, 80)">
+    <!-- Brand Pill / Category -->
+    <g transform="translate(0, 0)">
+      <rect width="270" height="36" rx="18" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+      <circle cx="20" cy="18" r="5" fill="#38bdf8" />
+      <text x="36" y="23" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.5">TELEGRAM BOT &amp; DASHBOARD</text>
+    </g>
+
+    <!-- Logo Icon + App Name -->
+    <g transform="translate(0, 60)">
+      <!-- Logo Mark -->
+      <rect width="72" height="72" rx="18" fill="url(#ogAccent)" />
+      <!-- Monogram T -->
+      <path d="M 20 22 L 52 22 L 52 30 L 39 30 L 39 52 L 33 52 L 33 30 L 20 30 Z" fill="#ffffff" />
+      <circle cx="53" cy="21" r="4.5" fill="#ffffff" />
+
+      <!-- Typography -->
+      <text x="90" y="46" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" letter-spacing="-1">Telebot</text>
+      <text x="92" y="68" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600">Personal AI &amp; Finance Suite</text>
+    </g>
+
+    <!-- Main Headline / Slogan -->
+    <g transform="translate(0, 175)">
+      <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5">Trợ lý Cá nhân &amp;</text>
+      <text x="0" y="44" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5">Quản lý Tài chính Thông minh</text>
+    </g>
+
+    <!-- Description -->
+    <text x="0" y="270" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="400" line-height="1.5">
+      <tspan x="0" dy="0">Ghi chép thu chi tức thì, theo dõi công nợ, quản lý lịch trình</tspan>
+      <tspan x="0" dy="26">và nhắc nhở tự động đồng bộ qua Telegram Bot.</tspan>
+    </text>
+
+    <!-- Feature Badges -->
+    <g transform="translate(0, 345)">
+      <!-- Badge 1: Thu Chi -->
+      <rect x="0" y="0" width="130" height="34" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      <text x="14" y="22" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">📊 Thu − Chi</text>
+
+      <!-- Badge 2: Cong No -->
+      <rect x="142" y="0" width="136" height="34" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      <text x="156" y="22" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">🤝 Vay &amp; Nợ</text>
+
+      <!-- Badge 3: Lich Trinh -->
+      <rect x="290" y="0" width="126" height="34" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      <text x="304" y="22" fill="#fbbf24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">📅 Lịch &amp; Việc</text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT COLUMN: INTERACTIVE PREVIEW CARD ================= -->
+  <g transform="translate(680, 80)" filter="url(#cardShadow)">
+    <!-- Main Dashboard Preview Card -->
+    <rect width="440" height="470" rx="16" fill="url(#cardBg)" stroke="#334155" stroke-width="1.5" />
+
+    <!-- Card Header -->
+    <rect x="0" y="0" width="440" height="54" rx="16" fill="#1e293b" fill-opacity="0.6" />
+    <circle cx="26" cy="27" r="6" fill="#ef4444" />
+    <circle cx="44" cy="27" r="6" fill="#f59e0b" />
+    <circle cx="62" cy="27" r="6" fill="#10b981" />
+    <text x="90" y="32" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">telebot-dashboard • cá nhân</text>
+    <rect x="360" y="16" width="60" height="22" rx="4" fill="#0f172a" />
+    <text x="372" y="31" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700">ONLINE</text>
+
+    <!-- Metric Card 1: Balance -->
+    <g transform="translate(24, 76)">
+      <rect width="392" height="76" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+      <text x="16" y="28" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" letter-spacing="0.5">TỔNG SỐ DƯ THÁNG NÀY</text>
+      <text x="16" y="58" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800">+18.450.000 đ</text>
+      <rect x="300" y="24" width="76" height="28" rx="5" fill="#064e3b" />
+      <text x="312" y="42" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">▲ 14.2%</text>
+    </g>
+
+    <!-- Mini Metric 2 & 3: Income & Expense -->
+    <g transform="translate(24, 166)">
+      <!-- Thu -->
+      <rect x="0" y="0" width="190" height="68" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+      <text x="12" y="24" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700">TỔNG THU</text>
+      <text x="12" y="50" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700">24.500.000 đ</text>
+
+      <!-- Chi -->
+      <rect x="202" y="0" width="190" height="68" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+      <text x="214" y="24" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700">TỔNG CHI</text>
+      <text x="214" y="50" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700">6.050.000 đ</text>
+    </g>
+
+    <!-- Recent Activity List -->
+    <g transform="translate(24, 250)">
+      <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="0.5">GIAO DỊCH GẦN ĐÂY</text>
+
+      <!-- Row 1 -->
+      <g transform="translate(0, 28)">
+        <rect width="392" height="42" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+        <circle cx="20" cy="21" r="5" fill="#38bdf8" />
+        <text x="34" y="25" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Thanh toán lương dự án A</text>
+        <text x="300" y="25" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">+15.000.000 đ</text>
+      </g>
+
+      <!-- Row 2 -->
+      <g transform="translate(0, 78)">
+        <rect width="392" height="42" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+        <circle cx="20" cy="21" r="5" fill="#f87171" />
+        <text x="34" y="25" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Đi siêu thị &amp; ăn uống cuối tuần</text>
+        <text x="325" y="25" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">-650.000 đ</text>
+      </g>
+
+      <!-- Row 3 -->
+      <g transform="translate(0, 128)">
+        <rect width="392" height="42" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+        <circle cx="20" cy="21" r="5" fill="#fbbf24" />
+        <text x="34" y="25" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Cho bạn Nam mượn tiền</text>
+        <text x="315" y="25" fill="#fbbf24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">2.000.000 đ</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -14,7 +14,7 @@ const LOCALE_COOKIE = 'telebot-locale';
 type LocaleContextValue = {
   locale: SupportedLocale;
   setLocale: (locale: SupportedLocale) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string;
 };
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
@@ -31,7 +31,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(next);
   };
   const value = useMemo(
-    () => ({ locale, setLocale, t: (key: TranslationKey) => translate(locale, key) }),
+    () => ({
+      locale,
+      setLocale,
+      t: (key: TranslationKey, values?: Record<string, string | number>) =>
+        translate(locale, key, values),
+    }),
     [locale],
   );
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

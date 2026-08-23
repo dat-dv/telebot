@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
@@ -12,6 +13,7 @@ import { FinanceModule } from './finance/finance.module';
 import { AuditModule } from './audit/audit.module';
 import { ReportsModule } from './reports/reports.module';
 import { fromProjectRoot } from './config/project-root';
+import { GlobalExceptionsFilter } from './common/filters/global-exceptions.filter';
 
 @Module({
   imports: [
@@ -30,6 +32,12 @@ import { fromProjectRoot } from './config/project-root';
     ReportsModule,
     GeminiModule,
     TelegramModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionsFilter,
+    },
   ],
 })
 export class AppModule {}

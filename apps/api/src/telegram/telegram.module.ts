@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramUpdate } from './telegram.update';
 import { TelegramUiService } from './services/telegram-ui.service';
+import { TelegramLauncherService } from './services/telegram-launcher.service';
 import { VoiceTranscriptionService } from './services/voice-transcription.service';
 import { ReceiptImageAnalysisService } from './services/receipt-image-analysis.service';
 import { AuthGuard } from './guards/auth.guard';
@@ -25,9 +26,7 @@ import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
         }
         return {
           token,
-          launchOptions: configService.getOrThrow<boolean>('telegram.longPollingEnabled')
-            ? undefined
-            : false,
+          launchOptions: false,
         };
       },
       inject: [ConfigService],
@@ -43,10 +42,11 @@ import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
   providers: [
     TelegramUpdate,
     TelegramUiService,
+    TelegramLauncherService,
     VoiceTranscriptionService,
     ReceiptImageAnalysisService,
     AuthGuard,
   ],
-  exports: [TelegramUiService],
+  exports: [TelegramUiService, TelegramLauncherService],
 })
 export class TelegramModule {}

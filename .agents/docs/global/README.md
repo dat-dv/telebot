@@ -16,6 +16,7 @@ metadata:
       - .agents/knowledge/global/voice-transcription.md
       - .agents/knowledge/global/local-first-ai-usage.md
       - .agents/knowledge/global/backend-crud-api.md
+      - .agents/knowledge/global/backend-exception-filter.md
       - .agents/knowledge/global/i18n.md
 ---
 
@@ -38,6 +39,7 @@ This directory contains human-facing operational guides for system-wide architec
 - [Phân tích ảnh hoá đơn và thu-chi](receipt-image-analysis.md): Đọc ảnh trong bộ nhớ, đề xuất giao dịch và bắt buộc xác nhận.
 - [Định hướng UI web](web-ui-direction.md): Quy chuẩn giao diện dashboard dùng chung, bảng dữ liệu và khả năng truy cập.
 - [REST CRUD Backend](backend-crud-api.md): API nghiệp vụ có kiểm tra ownership, admin và tích hợp Google.
+- [Global Exception Filter Backend](backend-exception-filter.md): Bộ lọc ngoại lệ toàn cục chuẩn hóa response lỗi và phân loại lỗi TypeORM / HttpException (Ánh xạ: [`backend-exception-filter.md`](../../knowledge/global/backend-exception-filter.md)).
 - [Đa Ngôn Ngữ](i18n.md): Chuẩn locale dùng chung, cách đổi ngôn ngữ Telegram và cookie dashboard (Ánh xạ: [`i18n.md`](../../knowledge/global/i18n.md)).
 
 ## Checklist áp dụng Base Agents cho dự án mới

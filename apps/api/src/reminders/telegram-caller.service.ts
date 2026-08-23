@@ -42,6 +42,13 @@ export class TelegramCallerService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       const error = err as Error;
       this.logger.warn(`Could not initialize GramJS Client: ${error.message}`);
+      if (this.client) {
+        try {
+          await this.client.disconnect();
+        } catch {
+          // ignore cleanup errors
+        }
+      }
       this.client = null;
       this.isConnected = false;
     }

@@ -16,7 +16,7 @@ const PRIMARY_MENU_ITEMS: readonly TelegramMenuItem[] = [
     id: 'dashboard',
     command: 'dashboard',
     commandDescription: 'Tổng quan công việc, lịch và tài chính',
-    label: '📊 Dashboard',
+    label: '📊 Tổng quan',
     opensDashboard: true,
   },
   {
@@ -44,14 +44,14 @@ const PRIMARY_MENU_ITEMS: readonly TelegramMenuItem[] = [
     id: 'finance',
     command: 'finance',
     commandDescription: 'Thu chi trong hôm nay',
-    label: '💰 Thu–chi',
+    label: '💰 Thu chi',
     callbackData: 'action:view_finance',
   },
   {
     id: 'debts',
     command: 'debts',
-    commandDescription: 'Các khoản công nợ đang mở',
-    label: '💳 Công nợ đang mở',
+    commandDescription: 'Các khoản cho vay và đi vay đang mở',
+    label: '💳 Vay & cho vay',
     callbackData: 'action:view_debts',
   },
   {

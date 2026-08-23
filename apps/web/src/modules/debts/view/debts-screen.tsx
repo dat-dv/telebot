@@ -1,118 +1,196 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_ROUTES, APP_ROUTES, type IDebtListItem } from '@telebot/contracts';
-import { clearAccessToken } from '@/modules/auth/client/auth-storage';
-import { httpClient } from '@/shared/api/http-client';
+import { localeTag, type IDebtListItem } from '@telebot/contracts';
+import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { ReportsNavigation } from '@/shared/ui/reports-navigation';
+import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { debtsQueryKeys, useDebtsQuery } from '../api/debts-query';
 
-const money = (value: number) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value);
-const date = (value?: string) =>
-  value
-    ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(new Date(value))
-    : 'Chưa đặt';
+type DirectionFilter = 'all' | 'receivable' | 'payable';
 
 export function DebtsScreen() {
   const queryClient = useQueryClient();
+  const { locale, t } = useLocale();
+  const [filter, setFilter] = useState<DirectionFilter>('all');
+  const [search, setSearch] = useState('');
   const debts = useDebtsQuery();
+
   const refresh = () => void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
-  const logout = async () => {
-    await httpClient.post(API_ROUTES.dashboardLogout);
-    clearAccessToken();
-    queryClient.clear();
-    window.location.assign(APP_ROUTES.reports);
-  };
+
+  const rawList = useMemo(() => debts.data ?? [], [debts.data]);
+  const totalReceivable = useMemo(
+    () =>
+      rawList
+        .filter((d) => d.direction === 'receivable')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+    [rawList],
+  );
+  const totalPayable = useMemo(
+    () =>
+      rawList
+        .filter((d) => d.direction === 'payable')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+    [rawList],
+  );
+
+  const filteredDebts = useMemo(() => {
+    return rawList.filter((item) => {
+      if (filter !== 'all' && item.direction !== filter) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        item.counterparty.toLowerCase().includes(q) ||
+        (item.counterpartyAlias && item.counterpartyAlias.toLowerCase().includes(q)) ||
+        (item.note && item.note.toLowerCase().includes(q))
+      );
+    });
+  }, [rawList, filter, search]);
+
+  const money = (value: number) =>
+    new Intl.NumberFormat(localeTag(locale), {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const date = (value?: string) =>
+    value
+      ? new Intl.DateTimeFormat(localeTag(locale), { dateStyle: 'short' }).format(new Date(value))
+      : t('common.notSet');
+
+  const debtColumns: DataTableColumn<IDebtListItem>[] = [
+    {
+      id: 'direction',
+      header: t('dashboard.columns.direction'),
+      cell: (item) => (
+        <span
+          className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
+        >
+          {item.direction === 'receivable'
+            ? t('table.filter.receivable')
+            : t('table.filter.payable')}
+        </span>
+      ),
+    },
+    {
+      id: 'counterparty',
+      header: t('dashboard.columns.counterparty'),
+      cell: (item) => (
+        <span className="cell-primary">
+          {item.counterparty}
+          {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
+        </span>
+      ),
+    },
+    {
+      id: 'originalAmount',
+      header: t('dashboard.columns.original'),
+      align: 'right',
+      cell: (item) => <span>{money(item.originalAmount)}</span>,
+    },
+    {
+      id: 'remainingAmount',
+      header: t('dashboard.columns.remaining'),
+      align: 'right',
+      cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
+    },
+    {
+      id: 'dueAt',
+      header: t('dashboard.columns.dueDate'),
+      cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
+    },
+    {
+      id: 'note',
+      header: t('dashboard.columns.note'),
+      cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
+    },
+  ];
+
   return (
-    <main className="workspace workspace--full app-shell">
-      <ReportsNavigation active="debts" />
-      <section className="app-content">
-        <header className="workspace__header">
-          <div>
-            <p className="eyebrow">Telebot</p>
-            <h1>Công nợ</h1>
-            <p className="muted">Khoản cần thu và cần trả đang mở</p>
-          </div>
-          <div className="header-status">
-            <button onClick={refresh}>Làm mới</button>
-            <button className="button--quiet" onClick={() => void logout()}>
-              Đăng xuất
-            </button>
-          </div>
-        </header>
-        {debts.isError ? (
-          <section className="inline-alert" role="alert">
-            <strong>Không tải được công nợ</strong>
-            <button onClick={refresh}>Thử lại</button>
-          </section>
-        ) : (
-          <section className="content-grid content-grid--wide">
-            <DataPanel
-              title="Công nợ đang mở"
-              description="Theo dõi từng khoản cần thu hoặc cần trả"
-            >
-              <DataTable
-                ariaLabel="Danh sách công nợ"
-                rows={debts.data ?? []}
-                loading={debts.isLoading}
-                emptyMessage="Không có công nợ đang mở"
-                columns={debtColumns}
-                getRowKey={(item) => item.id}
-              />
-            </DataPanel>
-          </section>
-        )}
+    <>
+      <WorkspaceHeader
+        title={t('debts.title')}
+        subtitle={t('debts.subtitle')}
+        onRefresh={refresh}
+      />
+
+      <section className="metric-grid" aria-label={t('debts.title')}>
+        <article className="metric metric--positive">
+          <span>{t('dashboard.receivableTotal')}</span>
+          <strong>{money(totalReceivable)}</strong>
+        </article>
+        <article className="metric metric--warning">
+          <span>{t('dashboard.payableTotal')}</span>
+          <strong>{money(totalPayable)}</strong>
+        </article>
+        <article
+          className={`metric ${totalReceivable >= totalPayable ? 'metric--positive' : 'metric--negative'}`}
+        >
+          <span>{t('dashboard.netDebt')}</span>
+          <strong>{money(totalReceivable - totalPayable)}</strong>
+        </article>
       </section>
-    </main>
+
+      {debts.isError ? (
+        <section className="inline-alert" role="alert">
+          <strong>{t('dashboard.error.title')}</strong>
+          <button type="button" onClick={refresh}>
+            {t('common.retry')}
+          </button>
+        </section>
+      ) : (
+        <section className="content-grid content-grid--wide">
+          <DataPanel
+            title={t('dashboard.openDebts')}
+            description={t('debts.subtitle')}
+            counter={t('table.rowsCount', { count: filteredDebts.length })}
+            toolbar={
+              <>
+                <button
+                  type="button"
+                  className={`filter-pill ${filter === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setFilter('all')}
+                >
+                  {t('table.filter.all')}
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill ${filter === 'receivable' ? 'is-active' : ''}`}
+                  onClick={() => setFilter('receivable')}
+                >
+                  {t('table.filter.receivable')}
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill ${filter === 'payable' ? 'is-active' : ''}`}
+                  onClick={() => setFilter('payable')}
+                >
+                  {t('table.filter.payable')}
+                </button>
+                <input
+                  type="search"
+                  className="table-search-input"
+                  placeholder={t('table.searchPlaceholder')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label={t('table.searchPlaceholder')}
+                />
+              </>
+            }
+          >
+            <DataTable
+              ariaLabel={t('debts.title')}
+              rows={filteredDebts}
+              loading={debts.isLoading}
+              emptyMessage={t('dashboard.noDebts')}
+              columns={debtColumns}
+              getRowKey={(item) => item.id}
+            />
+          </DataPanel>
+        </section>
+      )}
+    </>
   );
 }
-
-const debtColumns: DataTableColumn<IDebtListItem>[] = [
-  {
-    id: 'direction',
-    header: 'Hướng',
-    cell: (item) => (
-      <span className="cell-primary">
-        {item.direction === 'receivable' ? 'Cần thu' : 'Cần trả'}
-      </span>
-    ),
-  },
-  {
-    id: 'counterparty',
-    header: 'Người liên quan',
-    cell: (item) => (
-      <span className="cell-primary">
-        {item.counterparty}
-        {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
-      </span>
-    ),
-  },
-  {
-    id: 'originalAmount',
-    header: 'Ban đầu',
-    align: 'right',
-    cell: (item) => <span>{money(item.originalAmount)}</span>,
-  },
-  {
-    id: 'remainingAmount',
-    header: 'Còn lại',
-    align: 'right',
-    cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
-  },
-  {
-    id: 'dueAt',
-    header: 'Hạn trả',
-    cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
-  },
-  {
-    id: 'note',
-    header: 'Ghi chú',
-    cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
-  },
-];
