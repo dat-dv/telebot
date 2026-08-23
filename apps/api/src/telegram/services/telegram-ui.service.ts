@@ -45,7 +45,9 @@ export class TelegramUiService {
     }
 
     // One action per row keeps labels readable on narrow mobile screens.
-    const rows = [
+    const rows: Array<
+      Array<ReturnType<typeof Markup.button.callback> | ReturnType<typeof Markup.button.url>>
+    > = [
       [Markup.button.callback('📅 Lịch hôm nay', 'action:refresh_today')],
       [Markup.button.callback('📝 Việc cần làm', 'action:view_tasks')],
       [Markup.button.callback('📊 Xem 7 ngày tới', 'action:view_week')],
@@ -54,8 +56,7 @@ export class TelegramUiService {
       [Markup.button.callback('⚙️ Trạng thái', 'action:refresh_status')],
     ];
 
-    if (reportsUrl)
-      rows.splice(5, 0, [Markup.button.callback('📊 Xem báo cáo', 'action:view_reports')]);
+    if (reportsUrl) rows.splice(5, 0, [Markup.button.url('📊 Xem báo cáo', reportsUrl)]);
 
     if (isAdmin) {
       rows.push([Markup.button.callback('👥 Danh sách user', 'action:refresh_users')]);

@@ -15,6 +15,8 @@ Tài liệu này hướng dẫn cơ chế xác thực phiên làm việc của D
 
 Bot tạo link `/api/access?token=...` với token ngẫu nhiên dùng một lần. Database chỉ lưu hash SHA-256 của token. Khi mở link, API xác minh token chưa dùng và chưa hết hạn, đánh dấu đã dùng rồi mới cấp phiên dashboard.
 
+Nút **📊 Xem báo cáo** trong menu inline chung của `/start` và `/help` là URL trực tiếp, vì vậy mở Dashboard ngay bằng một lần bấm. Callback cũ chỉ còn để các menu đã gửi trước khi nâng cấp vẫn trả về một link mới.
+
 - Access token có hiệu lực 1 ngày và được web gửi trong header `Authorization`.
 - Refresh token có hiệu lực 7 ngày, được đổi mới sau mỗi lần refresh và chỉ nằm trong HTTP-only cookie.
 - Không gửi refresh token qua URL hay response body. Một link Telegram đã mở thành công không thể dùng lại.
