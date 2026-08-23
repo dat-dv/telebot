@@ -21,7 +21,7 @@
 - The bot creates a five-minute browser entry URL from a user-specific HMAC signature and expiry.
 - `GET /api/access` validates the Telegram exchange token, writes the refresh cookie, then redirects to `/reports`.
 - The React dashboard requests `GET /api/dashboard` with its short-lived Bearer token. The API derives the user exclusively from that signed token; it never accepts a frontend `userId`.
-- `SERVICE_URL_TELEBOT` is the canonical same-origin URL and CORS fallback. Set `WEB_ORIGIN` only when the static dashboard is deployed on a different origin.
+- `SERVICE_URL_TELEBOT` is the canonical same-origin URL and CORS fallback. Set `WEB_ORIGIN` only when the static dashboard is deployed on a different origin. In single-origin deployments, Web Nginx proxies `/api/*` and `/oauth2callback` directly to the backend API container (`http://api:3000`).
 - Dashboard access and refresh tokens are signed with the two private dashboard token secrets. During local tunnel development, Vite proxies dashboard API routes to the exposed API Docker port at `localhost:3000`.
 - The frontend stores only the 15-minute dashboard access token. A rotated seven-day refresh token remains in an `HttpOnly` cookie and Axios uses it after a 401.
 - The browser routes `/reports`, `/reports/statistics`, and `/reports/contacts` are exported as static files. UI ownership is split into `modules/auth`, `modules/dashboard`, `modules/contacts`, and reusable `shared/api` and `shared/ui` components.

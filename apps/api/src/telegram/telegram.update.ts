@@ -40,6 +40,9 @@ export class TelegramUpdate {
   private async getReportsUrl(userId?: number): Promise<string> {
     const appUrl = this.configService.get<string>('appUrl', '').replace(/\/+$/, '');
     if (!appUrl || !userId) return '';
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.test(appUrl)) {
+      return '';
+    }
     try {
       const token = await this.reportsTokens.issueExchangeToken(userId);
       return `${appUrl}/api/access?token=${encodeURIComponent(token)}`;
@@ -592,7 +595,9 @@ ${googleStatus}
   public async onDashboard(@Ctx() ctx: Context): Promise<void> {
     const reportsUrl = await this.getReportsUrl(ctx.from?.id);
     if (!reportsUrl) {
-      await ctx.reply('⚠️ Chưa thể tạo link Dashboard. Vui lòng thử lại sau ít phút.');
+      await ctx.reply(
+        '⚠️ Chưa thể tạo link Dashboard. Vui lòng kiểm tra cấu hình domain public (SERVICE_URL_TELEBOT) trên server.',
+      );
       return;
     }
 

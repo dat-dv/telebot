@@ -18,7 +18,7 @@ FROM alpine:3.21 AS whisper-builder
 RUN apk add --no-cache cmake curl g++ git make
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git && \
-    cmake -S whisper.cpp -B whisper.cpp/build -DCMAKE_BUILD_TYPE=Release && \
+    cmake -S whisper.cpp -B whisper.cpp/build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF && \
     cmake --build whisper.cpp/build --target whisper-server -j"$(nproc)" && \
     whisper.cpp/models/download-ggml-model.sh base whisper.cpp/models
 

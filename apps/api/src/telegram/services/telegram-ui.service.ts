@@ -347,13 +347,26 @@ export class TelegramUiService {
         } else {
           await ctx.reply(chunk, { parse_mode: 'Markdown', ...this.getRemoveKeyboard() });
         }
-      } catch (markdownError) {
-        const err = markdownError as Error;
-        this.logger.warn(`Markdown reply failed, falling back to plain text: ${err.message}`);
-        if (markupToSend) {
-          await ctx.reply(chunk, markupToSend);
-        } else {
-          await ctx.reply(chunk, this.getRemoveKeyboard());
+      } catch (firstError) {
+        const err = firstError as Error;
+        this.logger.warn(`Markdown reply failed (${err.message}). Retrying with plain text...`);
+        try {
+          if (markupToSend) {
+            await ctx.reply(chunk, markupToSend);
+          } else {
+            await ctx.reply(chunk, this.getRemoveKeyboard());
+          }
+        } catch (secondError) {
+          const err2 = secondError as Error;
+          this.logger.warn(
+            `Reply with markup failed (${err2.message}). Falling back to pure text without custom buttons...`,
+          );
+          try {
+            await ctx.reply(chunk, this.getRemoveKeyboard());
+          } catch (thirdError) {
+            const err3 = thirdError as Error;
+            this.logger.error(`Failed to deliver message completely: ${err3.message}`);
+          }
         }
       }
     }

@@ -15,4 +15,4 @@ Bot API nhận các lệnh như `/help` bằng long polling khi `TELEGRAM_LONG_P
 
 Nếu đặt biến này thành `false`, phải có webhook hoặc worker polling riêng chuyển update vào bot; nếu không, Telegram không thể đến handler nên bot sẽ im lặng. Sau khi đổi biến môi trường, build và restart/redeploy đúng instance API, rồi kiểm tra log có dòng `Listening for messages and commands on Telegram (Long Polling)...`.
 
-Lệnh kiểm tra hồi quy: `node apps/api/scripts/check-telegram-command-fallback.cjs`. Script xác minh `/start` và `/help` vẫn trả lời kể cả khi tạo link dashboard thất bại.
+Lệnh kiểm tra hồi quy: `node apps/api/scripts/check-telegram-command-fallback.cjs`. Script xác minh `/start`, `/help` và `/dashboard` luôn trả lời kể cả khi tạo link dashboard thất bại, khi cấu hình URL là localhost, hoặc khi Telegram API từ chối inline markup.
