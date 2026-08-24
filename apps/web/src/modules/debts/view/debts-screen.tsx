@@ -15,11 +15,13 @@ import {
 } from '../api/debts-query';
 
 type DirectionFilter = 'all' | 'receivable' | 'payable';
+type StatusFilter = 'all' | 'active' | 'settled';
 
 export function DebtsScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
-  const [filter, setFilter] = useState<DirectionFilter>('all');
+  const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
@@ -57,24 +59,47 @@ export function DebtsScreen() {
   const rawList = useMemo(() => debts.data ?? [], [debts.data]);
   const contactsList = useMemo(() => contactsQuery.data ?? [], [contactsQuery.data]);
 
+  const getDebtStatus = (item: IDebtListItem): 'active' | 'settled' => {
+    if (item.status) return item.status;
+    return item.remainingAmount === 0 || item.settledAt ? 'settled' : 'active';
+  };
+
+  const stats = useMemo(() => {
+    let active = 0;
+    let settled = 0;
+    for (const d of rawList) {
+      if (getDebtStatus(d) === 'settled') {
+        settled++;
+      } else {
+        active++;
+      }
+    }
+    return {
+      total: rawList.length,
+      active,
+      settled,
+    };
+  }, [rawList]);
+
   const totalReceivable = useMemo(
     () =>
       rawList
-        .filter((d) => d.direction === 'receivable')
+        .filter((d) => d.direction === 'receivable' && getDebtStatus(d) === 'active')
         .reduce((sum, d) => sum + d.remainingAmount, 0),
     [rawList],
   );
   const totalPayable = useMemo(
     () =>
       rawList
-        .filter((d) => d.direction === 'payable')
+        .filter((d) => d.direction === 'payable' && getDebtStatus(d) === 'active')
         .reduce((sum, d) => sum + d.remainingAmount, 0),
     [rawList],
   );
 
   const filteredDebts = useMemo(() => {
     return rawList.filter((item) => {
-      if (filter !== 'all' && item.direction !== filter) return false;
+      if (directionFilter !== 'all' && item.direction !== directionFilter) return false;
+      if (statusFilter !== 'all' && getDebtStatus(item) !== statusFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -83,7 +108,7 @@ export function DebtsScreen() {
         (item.note && item.note.toLowerCase().includes(q))
       );
     });
-  }, [rawList, filter, search]);
+  }, [rawList, directionFilter, statusFilter, search]);
 
   const money = (value: number) =>
     new Intl.NumberFormat(localeTag(locale), {
@@ -210,6 +235,21 @@ export function DebtsScreen() {
   };
 
   const debtColumns: DataTableColumn<IDebtListItem>[] = [
+    {
+      id: 'status',
+      header: t('debts.columns.status'),
+      minWidth: '100px',
+      width: '100px',
+      hideable: false,
+      cell: (item) => {
+        const isSettled = getDebtStatus(item) === 'settled';
+        return (
+          <span className={`badge ${isSettled ? 'badge--completed' : 'badge--pending'}`}>
+            {isSettled ? t('debts.status.settled') : t('debts.status.active')}
+          </span>
+        );
+      },
+    },
     {
       id: 'direction',
       header: t('dashboard.columns.direction'),
@@ -539,28 +579,53 @@ export function DebtsScreen() {
             description={t('debts.subtitle')}
             counter={t('table.rowsCount', { count: filteredDebts.length })}
             toolbar={
-              <>
-                <button
-                  type="button"
-                  className={`filter-pill ${filter === 'all' ? 'is-active' : ''}`}
-                  onClick={() => setFilter('all')}
-                >
-                  {t('table.filter.all')}
-                </button>
-                <button
-                  type="button"
-                  className={`filter-pill ${filter === 'receivable' ? 'is-active' : ''}`}
-                  onClick={() => setFilter('receivable')}
-                >
-                  {t('table.filter.receivable')}
-                </button>
-                <button
-                  type="button"
-                  className={`filter-pill ${filter === 'payable' ? 'is-active' : ''}`}
-                  onClick={() => setFilter('payable')}
-                >
-                  {t('table.filter.payable')}
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-flex', gap: '4px' }}>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === 'all' ? 'is-active' : ''}`}
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    {t('debts.filter.statusAll')} ({stats.total})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === 'active' ? 'is-active' : ''}`}
+                    onClick={() => setStatusFilter('active')}
+                  >
+                    {t('debts.filter.statusActive')} ({stats.active})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === 'settled' ? 'is-active' : ''}`}
+                    onClick={() => setStatusFilter('settled')}
+                  >
+                    {t('debts.filter.statusSettled')} ({stats.settled})
+                  </button>
+                </div>
+                <div style={{ display: 'inline-flex', gap: '4px' }}>
+                  <button
+                    type="button"
+                    className={`filter-pill ${directionFilter === 'all' ? 'is-active' : ''}`}
+                    onClick={() => setDirectionFilter('all')}
+                  >
+                    {t('debts.filter.directionAll')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${directionFilter === 'receivable' ? 'is-active' : ''}`}
+                    onClick={() => setDirectionFilter('receivable')}
+                  >
+                    {t('table.filter.receivable')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${directionFilter === 'payable' ? 'is-active' : ''}`}
+                    onClick={() => setDirectionFilter('payable')}
+                  >
+                    {t('table.filter.payable')}
+                  </button>
+                </div>
                 <input
                   type="search"
                   className="table-search-input"
@@ -569,7 +634,7 @@ export function DebtsScreen() {
                   onChange={(e) => setSearch(e.target.value)}
                   aria-label={t('table.searchPlaceholder')}
                 />
-              </>
+              </div>
             }
           >
             <DataTable

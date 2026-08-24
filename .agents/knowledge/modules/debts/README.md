@@ -8,15 +8,16 @@
 
 ## UI and state
 
-The table shows direction, counterparty, original and remaining amounts, due date, settled date, and note. It supports full inline editing:
+The table shows status, direction, counterparty, original and remaining amounts, due date, settled date, and note. It supports full inline editing:
+- **Status**: Status badge indicating whether the debt is open (`active`) or paid in full (`settled`).
 - **Direction**: Toggle between receivable and payable.
 - **Counterparty**: Autocomplete input integrated with the contacts directory (`useContactsQuery`) linking `contactId` and `counterpartyAlias`.
 - **Original & Remaining Amount**: Inline editable currency inputs with automatic status resolution (`settled` vs `active` when balance hits 0).
 - **Due Date & Note**: Inline editable date picker and note text.
 - **Actions**: Save / Cancel with `Enter` / `Escape` keyboard shortcuts, Quick Repay (`+`) and Edit (`✎`).
 
-It includes KPI summary metrics for total receivable and payable balances, direction filter pills (All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. The table utilizes `DataTable` with column persistence (`id="debts"`), defined column minimum widths (`minWidth`), and non-hideable core columns (`counterparty`, `remainingAmount`). It supports loading, empty, success, and retryable-error states.
+It includes KPI summary metrics for active total receivable and payable balances, dual filter pill groups (Status: All / Active / Settled with real-time count badges, Direction: All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. The table utilizes `DataTable` with column persistence (`id="debts"`), defined column minimum widths (`minWidth`), and non-hideable core columns (`status`, `counterparty`, `remainingAmount`). It supports loading, empty, success, and retryable-error states.
 
 ## Integration seams
 
-`getDebts` calls `API_ROUTES.debts`; `updateDebt` patches debt records (direction, counterparty, contactId, counterpartyAlias, originalAmount, remainingAmount, note, dueAt) via `API_ROUTES.debts`, and `createDebtPayment` posts new payments to `API_ROUTES.debtPayments`. Custom hooks `useDebtsQuery`, `useUpdateDebtMutation`, and `useCreateDebtPaymentMutation` manage server state and invalidate both `debts` and `dashboard` query keys on mutation success. `ReportsController` scopes records by access-token user ID and `FinanceService.getActiveDebts` supplies active debt entities.
+`getDebts` calls `API_ROUTES.debts`; `updateDebt` patches debt records (direction, counterparty, contactId, counterpartyAlias, originalAmount, remainingAmount, note, dueAt) via `API_ROUTES.debts`, and `createDebtPayment` posts new payments to `API_ROUTES.debtPayments`. Custom hooks `useDebtsQuery`, `useUpdateDebtMutation`, and `useCreateDebtPaymentMutation` manage server state and invalidate both `debts` and `dashboard` query keys on mutation success. `ReportsController` scopes records by access-token user ID and `FinanceService.listDebts` supplies active and settled debt entities mapped to `IDebtListItem`.

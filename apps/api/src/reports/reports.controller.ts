@@ -172,9 +172,9 @@ export class ReportsController {
   @Get('debts')
   @ApiBearerAuth('bearer-jwt')
   @ApiOperation({ summary: 'Lấy danh sách các khoản nợ / cho vay' })
-  public async debts(@Req() req: Request) {
+  public async debts(@Req() req: Request, @Query('status') status?: 'active' | 'settled') {
     const userId = this.getAccessUserId(req);
-    const debts = await this.finance.getActiveDebts(userId);
+    const debts = await this.finance.listDebts(userId, status);
     return {
       data: debts.map((debt) => ({
         id: debt.id,
@@ -184,9 +184,13 @@ export class ReportsController {
         contactId: debt.contactId,
         originalAmount: debt.originalAmount,
         remainingAmount: debt.remainingAmount,
+        status: debt.status || (debt.remainingAmount === 0 ? 'settled' : 'active'),
+        currency: debt.currency,
         note: debt.note || undefined,
         dueAt: debt.dueAt?.toISOString(),
+        settledAt: debt.settledAt?.toISOString(),
         createdAt: debt.createdAt.toISOString(),
+        updatedAt: debt.updatedAt?.toISOString(),
       })),
     };
   }

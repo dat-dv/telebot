@@ -196,8 +196,15 @@ const messages = {
     'contacts.columns.phone': 'Số điện thoại',
     'contacts.columns.bankAccount': 'Tài khoản ngân hàng',
     'contacts.columns.bankName': 'Ngân hàng',
+    'debts.columns.status': 'Trạng thái',
     'debts.columns.settledAt': 'Ngày tất toán',
     'debts.columns.currency': 'Tiền tệ',
+    'debts.status.active': 'Đang mở',
+    'debts.status.settled': 'Đã tất toán',
+    'debts.filter.statusAll': 'Tất cả trạng thái',
+    'debts.filter.statusActive': 'Đang mở',
+    'debts.filter.statusSettled': 'Đã tất toán',
+    'debts.filter.directionAll': 'Tất cả luồng',
     'debts.history.title': 'Lịch sử trả nợ',
     'debts.history.paidAmount': 'Đã trả',
     'debts.history.paymentDate': 'Ngày trả',
@@ -464,8 +471,15 @@ const messages = {
     'contacts.columns.phone': 'Phone number',
     'contacts.columns.bankAccount': 'Bank account',
     'contacts.columns.bankName': 'Bank name',
+    'debts.columns.status': 'Status',
     'debts.columns.settledAt': 'Settled date',
     'debts.columns.currency': 'Currency',
+    'debts.status.active': 'Active',
+    'debts.status.settled': 'Settled',
+    'debts.filter.statusAll': 'All status',
+    'debts.filter.statusActive': 'Active',
+    'debts.filter.statusSettled': 'Settled',
+    'debts.filter.directionAll': 'All directions',
     'debts.history.title': 'Repayment history',
     'debts.history.paidAmount': 'Paid amount',
     'debts.history.paymentDate': 'Payment date',
@@ -663,6 +677,7 @@ export interface IDebtListItem {
   contactId?: string;
   originalAmount: number;
   remainingAmount: number;
+  status?: 'active' | 'settled';
   currency?: string;
   note?: string;
   dueAt?: string;
