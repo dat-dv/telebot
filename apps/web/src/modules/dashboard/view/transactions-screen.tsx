@@ -3,7 +3,12 @@
 import { useState, useMemo, useTransition } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { localeTag, type TransactionType } from '@telebot/contracts';
+import {
+  localeTag,
+  DEFAULT_INCOME_CATEGORIES,
+  DEFAULT_EXPENSE_CATEGORIES,
+  type TransactionType,
+} from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
@@ -71,6 +76,17 @@ export function TransactionsScreen() {
   };
 
   const rawList = useMemo(() => dashboard.data?.transactions ?? [], [dashboard.data]);
+
+  const categorySuggestions = useMemo(() => {
+    const set = new Set<string>();
+    rawList.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    const defaults =
+      editDraft.type === 'income' ? DEFAULT_INCOME_CATEGORIES : DEFAULT_EXPENSE_CATEGORIES;
+    defaults.forEach((cat) => set.add(cat));
+    return Array.from(set).sort();
+  }, [rawList, editDraft.type]);
 
   // Filter by period first
   const periodTransactions = useMemo(() => {
@@ -237,6 +253,7 @@ export function TransactionsScreen() {
           return (
             <input
               type="text"
+              list="transaction-categories-autocomplete"
               className="table-inline-input"
               value={editDraft.category}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, category: e.target.value }))}
@@ -434,6 +451,12 @@ export function TransactionsScreen() {
         subtitle={t('transactions.subtitle')}
         onRefresh={refresh}
       />
+
+      <datalist id="transaction-categories-autocomplete">
+        {categorySuggestions.map((cat) => (
+          <option key={cat} value={cat} />
+        ))}
+      </datalist>
 
       {toastMessage && (
         <div className="toast-notification" role="status" aria-live="polite">

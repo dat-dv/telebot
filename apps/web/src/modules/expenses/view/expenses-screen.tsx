@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { localeTag, type IExpenseListItem } from '@telebot/contracts';
+import { localeTag, DEFAULT_EXPENSE_CATEGORIES, type IExpenseListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
@@ -46,6 +46,15 @@ export function ExpensesScreen() {
   const refresh = () => void queryClient.invalidateQueries({ queryKey: expensesQueryKeys.list() });
 
   const rawList = useMemo(() => expenses.data ?? [], [expenses.data]);
+
+  const categorySuggestions = useMemo(() => {
+    const set = new Set<string>();
+    rawList.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    DEFAULT_EXPENSE_CATEGORIES.forEach((cat) => set.add(cat));
+    return Array.from(set).sort();
+  }, [rawList]);
 
   // Filter by period first
   const periodExpenses = useMemo(() => {
@@ -183,6 +192,7 @@ export function ExpensesScreen() {
           return (
             <input
               type="text"
+              list="expense-categories-autocomplete"
               className="table-inline-input"
               value={editDraft.category}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, category: e.target.value }))}
@@ -406,6 +416,12 @@ export function ExpensesScreen() {
         subtitle={t('expenses.subtitle')}
         onRefresh={refresh}
       />
+
+      <datalist id="expense-categories-autocomplete">
+        {categorySuggestions.map((cat) => (
+          <option key={cat} value={cat} />
+        ))}
+      </datalist>
 
       {toastMessage && (
         <div className="toast-notification" role="status" aria-live="polite">

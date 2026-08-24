@@ -852,6 +852,30 @@ export interface IContactListResponse {
 }
 
 export type TransactionType = 'income' | 'expense';
+
+export const DEFAULT_INCOME_CATEGORIES = [
+  'Lương',
+  'Thưởng',
+  'Đầu tư',
+  'Thu nợ',
+  'Kinh doanh',
+  'Quà tặng',
+  'Khác',
+] as const;
+
+export const DEFAULT_EXPENSE_CATEGORIES = [
+  'Ăn uống',
+  'Di chuyển',
+  'Mua sắm',
+  'Hóa đơn & Tiện ích',
+  'Giải trí',
+  'Nhà cửa',
+  'Sức khỏe',
+  'Giáo dục',
+  'Gia đình',
+  'Khác',
+] as const;
+
 export type DebtDirection = 'receivable' | 'payable';
 export type ReminderNotifyType = 'text' | 'call';
 export type ReminderRepeatType = 'none' | 'daily' | 'weekly';
