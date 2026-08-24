@@ -21,8 +21,8 @@ const entities = [
   UserTokenEntity,
   ReminderEntity,
   FinanceTransactionEntity,
-  DebtEntity,
   DebtContactEntity,
+  DebtEntity,
   DebtPaymentEntity,
   AuditLogEntity,
   DashboardExchangeTokenEntity,
@@ -35,9 +35,9 @@ function required(name) {
   return value;
 }
 
-async function copyEntity(source, target, entity) {
+async function copyEntity(source, targetManager, entity) {
   const sourceRepository = source.getRepository(entity);
-  const targetRepository = target.getRepository(entity);
+  const targetRepository = targetManager.getRepository(entity);
   const rows = await sourceRepository.find();
   const targetCount = await targetRepository.count();
   const tableName = sourceRepository.metadata.tableName;
@@ -78,7 +78,9 @@ async function main() {
   await target.initialize();
   try {
     await target.synchronize();
-    for (const entity of entities) await copyEntity(source, target, entity);
+    await target.transaction(async (targetManager) => {
+      for (const entity of entities) await copyEntity(source, targetManager, entity);
+    });
     console.log('SQLite → PostgreSQL migration completed successfully.');
   } finally {
     await Promise.all([source.destroy(), target.destroy()]);
