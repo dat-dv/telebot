@@ -87,6 +87,43 @@ void test('formats finance confirmation with JSON payload and details', () => {
   assert.match(message, /REQ-ABC123/);
 });
 
+void test('adds an escaped execution JSON preview to every confirmation card', () => {
+  const service = new TelegramUiService();
+  const confirmations: Array<[string, Record<string, unknown>]> = [
+    ['create_calendar_event', { summary: 'Họp &lt;khẩn&gt;' }],
+    ['delete_calendar_event', { eventId: 'calendar-1' }],
+    ['create_task', { title: 'Nộp báo cáo' }],
+    ['create_tasks', { tasks: [{ title: 'Mua sữa' }] }],
+    ['complete_task', { taskId: 'task-1' }],
+    ['create_invite_link', { expiresInDays: 7 }],
+    ['ban_user', { targetUserId: '123' }],
+    ['create_reminder', { title: 'Uống thuốc' }],
+    ['delete_reminder', { reminderId: 'reminder-1' }],
+    ['create_finance_transaction', { type: 'income', amount: 5000, note: 'Lương' }],
+    ['create_finance_transactions', { transactions: [{ type: 'expense', amount: 5000 }] }],
+    ['update_finance_transaction', { amount: 6000 }],
+    ['create_debt', { direction: 'receivable', counterparty: 'Nam', amount: 5000 }],
+    ['record_debt_payment', { debtId: 'debt-1', amount: 5000 }],
+    ['update_debt_contact', { contactId: 'contact-1', name: 'Nam' }],
+    ['update_reminder', { reminderId: 'reminder-1', action: 'snooze', minutes: 15 }],
+    ['delete_debt', { debtId: 'debt-1' }],
+  ];
+
+  for (const [name, payload] of confirmations) {
+    const message = service.formatConfirmationBox(name, payload, 'REQ-JSON');
+    assert.match(message, /Payload JSON/, name);
+    assert.match(message, /language-json/, name);
+  }
+
+  const escaped = service.formatConfirmationBox(
+    'create_task',
+    { title: '<script>alert(1)</script>', duplicateWarnings: [{ internal: true }] },
+    'REQ-ESCAPE',
+  );
+  assert.match(escaped, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.doesNotMatch(escaped, /"duplicateWarnings"/);
+});
+
 void test('warns about potential duplicate Google Tasks without blocking confirmation', () => {
   const message = new TelegramUiService().formatConfirmationBox(
     'create_task',

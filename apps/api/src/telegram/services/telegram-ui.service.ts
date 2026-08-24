@@ -246,6 +246,23 @@ export class TelegramUiService {
     payload: Record<string, unknown>,
     referenceId: string,
   ): string {
+    return this.withConfirmationPayloadJson(
+      this.formatConfirmationContent(name, payload, referenceId),
+      payload,
+    );
+  }
+
+  private withConfirmationPayloadJson(message: string, payload: Record<string, unknown>): string {
+    const { duplicateWarnings: _duplicateWarnings, ...actionPayload } = payload;
+    const json = this.escapeHtml(JSON.stringify(actionPayload, null, 2));
+    return `${message}\n\n📄 <b>Payload JSON:</b>\n<pre><code class="language-json">${json}</code></pre>`;
+  }
+
+  private formatConfirmationContent(
+    name: string,
+    payload: Record<string, unknown>,
+    referenceId: string,
+  ): string {
     if (name === 'create_finance_transaction') {
       const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
       const amount =
@@ -261,17 +278,7 @@ export class TelegramUiService {
         ? `\n📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`
         : '';
 
-      const jsonPayload = {
-        type: payload.type,
-        amount: payload.amount,
-        category: payload.category || 'Khác',
-        note: payload.note,
-        ...(payload.placeName ? { placeName: payload.placeName } : {}),
-        ...(payload.occurredAt ? { occurredAt: payload.occurredAt } : {}),
-      };
-      const jsonBlock = `<pre><code class="language-json">${this.escapeHtml(JSON.stringify(jsonPayload, null, 2))}</code></pre>`;
-
-      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\n📄 <b>Payload JSON:</b>\n${jsonBlock}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
+      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
     }
     if (name === 'update_finance_transaction') {
       const type =
@@ -394,18 +401,7 @@ export class TelegramUiService {
       const dueLine = dueFormatted ? `\n⏳ Hạn trả: <i>${this.escapeHtml(dueFormatted)}</i>` : '';
       const contactLine =
         payload.createNewContact === true ? '\n👤 Danh bạ: <i>Lưu liên hệ mới vào danh bạ</i>' : '';
-      const jsonPayload = {
-        direction: payload.direction,
-        counterparty: payload.counterparty,
-        ...(payload.counterpartyAlias ? { counterpartyAlias: payload.counterpartyAlias } : {}),
-        amount: payload.amount,
-        note: payload.note,
-        ...(payload.dueAt ? { dueAt: payload.dueAt } : {}),
-        ...(payload.createNewContact === true ? { createNewContact: true } : {}),
-      };
-      const jsonBlock = `<pre><code class="language-json">${this.escapeHtml(JSON.stringify(jsonPayload, null, 2))}</code></pre>`;
-
-      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\n📄 <b>Payload JSON:</b>\n${jsonBlock}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu vào sổ nợ.`;
+      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu vào sổ nợ.`;
     }
     if (name === 'record_debt_payment') {
       const amount =
@@ -474,7 +470,7 @@ export class TelegramUiService {
         typeof payload.targetUserId === 'string' ? payload.targetUserId : 'Chưa rõ';
       return `⚠️ <b>XÁC NHẬN KHÓA QUYỀN NGƯỜI DÙNG</b>\n\n👤 ID: <code>${this.escapeHtml(targetUserId)}</code>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thu hồi quyền truy cập.`;
     }
-    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\n<pre>${this.escapeHtml(JSON.stringify(payload, null, 2))}</pre>\nKiểm tra rồi bấm Xác nhận.`;
+    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\nKiểm tra rồi bấm Xác nhận.`;
   }
 
   public formatResultBox(

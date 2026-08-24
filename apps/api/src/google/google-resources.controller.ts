@@ -32,10 +32,15 @@ export class GoogleResourcesController {
   @Get('calendar/events')
   @ApiOperation({ summary: 'Lấy danh sách sự kiện Google Calendar' })
   async listEvents(@Req() req: Request, @Query() query: Record<string, string | undefined>) {
+    const timeMin = query.timeMin ? this.date(query.timeMin, 'timeMin') : undefined;
+    const timeMax = query.timeMax ? this.date(query.timeMax, 'timeMax') : undefined;
+    if (timeMin && timeMax && new Date(timeMin) >= new Date(timeMax)) {
+      throw new BadRequestException('timeMin must be earlier than timeMax.');
+    }
     const items = await this.calendar.listEvents(
       {
-        timeMin: query.timeMin,
-        timeMax: query.timeMax,
+        timeMin,
+        timeMax,
         query: query.query,
         maxResults: query.maxResults ? this.limit(query.maxResults) : 100,
       },

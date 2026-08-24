@@ -13,6 +13,7 @@ import {
   useUpdateCalendarEventMutation,
 } from '@/modules/calendar/api/calendar-query';
 import { CalendarGrid } from '@/modules/calendar/view/calendar-grid';
+import { getCalendarGridRange } from '@/modules/calendar/model/calendar-date-utils';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 export function CalendarScreen() {
@@ -40,21 +41,17 @@ export function CalendarScreen() {
   const [, startTransition] = useTransition();
 
   const dashboard = useDashboardQuery();
-  const calendarQuery = useCalendarEventsQuery();
+  const calendarRange = useMemo(() => getCalendarGridRange(currentMonth), [currentMonth]);
+  const calendarQuery = useCalendarEventsQuery(calendarRange);
   const updateMutation = useUpdateCalendarEventMutation();
   const deleteMutation = useDeleteCalendarEventMutation();
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.list() });
+    void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all() });
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
   };
 
-  const rawList = useMemo(() => {
-    if (calendarQuery.data && calendarQuery.data.length > 0) {
-      return calendarQuery.data;
-    }
-    return dashboard.data?.calendar ?? [];
-  }, [calendarQuery.data, dashboard.data?.calendar]);
+  const rawList = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
 
   const isGoogleConnected = dashboard.data?.user.googleConnected;
 

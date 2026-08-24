@@ -1,15 +1,22 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ICalendarEventItem, IUpdateCalendarEventRequest } from '@telebot/contracts';
+import type {
+  ICalendarEventItem,
+  ICalendarEventsQuery,
+  IUpdateCalendarEventRequest,
+} from '@telebot/contracts';
 import { deleteCalendarEvent, getCalendarEvents, updateCalendarEvent } from './calendar-api';
 
-export const calendarQueryKeys = { list: () => ['calendarEvents'] as const };
+export const calendarQueryKeys = {
+  all: () => ['calendarEvents'] as const,
+  list: (params: ICalendarEventsQuery) => ['calendarEvents', params] as const,
+};
 
-export function useCalendarEventsQuery() {
+export function useCalendarEventsQuery(params: ICalendarEventsQuery) {
   return useQuery<ICalendarEventItem[]>({
-    queryKey: calendarQueryKeys.list(),
-    queryFn: ({ signal }) => getCalendarEvents(signal),
+    queryKey: calendarQueryKeys.list(params),
+    queryFn: ({ signal }) => getCalendarEvents(params, signal),
   });
 }
 
@@ -18,7 +25,7 @@ export function useUpdateCalendarEventMutation() {
   return useMutation<ICalendarEventItem, Error, { id: string; data: IUpdateCalendarEventRequest }>({
     mutationFn: ({ id, data }) => updateCalendarEvent(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all() });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -29,7 +36,7 @@ export function useDeleteCalendarEventMutation() {
   return useMutation<boolean, Error, string>({
     mutationFn: (id) => deleteCalendarEvent(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all() });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });

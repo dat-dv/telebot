@@ -2,14 +2,18 @@ import {
   API_ROUTES,
   type IApiResponse,
   type ICalendarEventItem,
+  type ICalendarEventsQuery,
   type IUpdateCalendarEventRequest,
 } from '@telebot/contracts';
 import { httpClient } from '@/shared/api/http-client';
 
-export async function getCalendarEvents(signal?: AbortSignal): Promise<ICalendarEventItem[]> {
+export async function getCalendarEvents(
+  params: ICalendarEventsQuery,
+  signal?: AbortSignal,
+): Promise<ICalendarEventItem[]> {
   const response = await httpClient.get<IApiResponse<ICalendarEventItem[]>>(
     API_ROUTES.calendarEvents,
-    { signal },
+    { params, signal },
   );
   return response.data.data;
 }

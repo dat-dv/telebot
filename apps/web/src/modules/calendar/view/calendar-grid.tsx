@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { localeTag, type ICalendarEventItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
+import { getEventDateKeys } from '../model/calendar-date-utils';
 
 interface ICalendarGridProps {
   events: ICalendarEventItem[];
@@ -87,13 +88,11 @@ export function CalendarGrid({
   const eventsByDate = useMemo(() => {
     const map = new Map<string, ICalendarEventItem[]>();
     for (const event of events) {
-      if (!event.startAt) continue;
-      const eventDate = new Date(event.startAt);
-      if (Number.isNaN(eventDate.getTime())) continue;
-      const key = toDateKey(eventDate);
-      const list = map.get(key) || [];
-      list.push(event);
-      map.set(key, list);
+      for (const key of getEventDateKeys(event)) {
+        const list = map.get(key) || [];
+        list.push(event);
+        map.set(key, list);
+      }
     }
     return map;
   }, [events]);
@@ -173,6 +172,7 @@ export function CalendarGrid({
 
   const formatTime = (isoString?: string) => {
     if (!isoString) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) return '';
     const d = new Date(isoString);
     if (Number.isNaN(d.getTime())) return '';
     return new Intl.DateTimeFormat(localeTag(locale), {

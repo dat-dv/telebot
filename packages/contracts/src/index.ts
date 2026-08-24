@@ -938,6 +938,12 @@ export interface ICalendarEventItem {
   timeZone?: string;
 }
 
+export interface ICalendarEventsQuery {
+  timeMin: string;
+  timeMax: string;
+  query?: string;
+}
+
 export interface IUpdateCalendarEventRequest {
   summary?: string;
   description?: string;

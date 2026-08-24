@@ -579,34 +579,56 @@ export class FinanceService {
     paymentDate?: string,
     note?: string,
   ): Promise<{ debt: DebtEntity; payment: DebtPaymentEntity }> {
-    const debt = await this.debtRepo.findOne({
-      where: { id: debtId, userId: userId.toString(), status: 'active' },
-    });
-    if (!debt) throw new Error('Không tìm thấy khoản nợ đang mở.');
     const payment = Math.round(Number(amount));
     if (!Number.isFinite(payment) || payment <= 0) throw new Error('Số tiền trả phải lớn hơn 0.');
-    if (payment > debt.remainingAmount) throw new Error('Số tiền trả lớn hơn số nợ còn lại.');
 
     const pDate = paymentDate ? new Date(paymentDate) : new Date();
     if (Number.isNaN(pDate.getTime())) throw new Error('Ngày thanh toán không hợp lệ.');
 
-    const paymentRecord = await this.debtPaymentRepo.save(
-      this.debtPaymentRepo.create({
-        debtId: debt.id,
-        userId: userId.toString(),
-        amount: payment,
-        paymentDate: pDate,
-        note: note?.trim() || undefined,
-      }),
-    );
+    return this.transactionRepo.manager.transaction(async (manager) => {
+      const debtRepo = manager.getRepository(DebtEntity);
+      const debtPaymentRepo = manager.getRepository(DebtPaymentEntity);
+      const transactionRepo = manager.getRepository(FinanceTransactionEntity);
+      const debt = await debtRepo.findOne({
+        where: { id: debtId, userId: userId.toString(), status: 'active' },
+      });
+      if (!debt) throw new Error('Không tìm thấy khoản nợ đang mở.');
+      if (payment > debt.remainingAmount) throw new Error('Số tiền trả lớn hơn số nợ còn lại.');
 
-    debt.remainingAmount -= payment;
-    if (debt.remainingAmount === 0) {
-      debt.status = 'settled';
-      debt.settledAt = new Date();
-    }
-    const updatedDebt = await this.debtRepo.save(debt);
-    return { debt: updatedDebt, payment: paymentRecord };
+      const paymentRecord = await debtPaymentRepo.save(
+        debtPaymentRepo.create({
+          debtId: debt.id,
+          userId: userId.toString(),
+          amount: payment,
+          paymentDate: pDate,
+          note: note?.trim() || undefined,
+        }),
+      );
+
+      debt.remainingAmount -= payment;
+      if (debt.remainingAmount === 0) {
+        debt.status = 'settled';
+        debt.settledAt = new Date();
+      }
+      const updatedDebt = await debtRepo.save(debt);
+      const isRecovery = debt.direction === 'receivable';
+      const description = `${isRecovery ? 'Thu hồi nợ từ' : 'Trả nợ cho'} ${debt.counterparty}`;
+
+      await transactionRepo.save(
+        transactionRepo.create({
+          userId: userId.toString(),
+          type: isRecovery ? 'income' : 'expense',
+          amount: payment,
+          currency: debt.currency,
+          category: isRecovery ? 'Thu hồi nợ' : 'Trả nợ',
+          contactId: debt.contactId || undefined,
+          note: note?.trim() ? `${description}: ${note.trim()}` : description,
+          occurredAt: pDate,
+        }),
+      );
+
+      return { debt: updatedDebt, payment: paymentRecord };
+    });
   }
 
   public async getDebtPayments(userId: number, debtId: string): Promise<DebtPaymentEntity[]> {

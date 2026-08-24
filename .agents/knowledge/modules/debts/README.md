@@ -21,3 +21,5 @@ It includes KPI summary metrics for active total receivable and payable balances
 ## Integration seams
 
 `getDebts` calls `API_ROUTES.debts`; `updateDebt` patches debt records (direction, counterparty, contactId, counterpartyAlias, originalAmount, remainingAmount, note, dueAt) via `API_ROUTES.debts`, and `createDebtPayment` posts new payments to `API_ROUTES.debtPayments`. Custom hooks `useDebtsQuery`, `useUpdateDebtMutation`, and `useCreateDebtPaymentMutation` manage server state and invalidate both `debts` and `dashboard` query keys on mutation success. `ReportsController` scopes records by access-token user ID and `FinanceService.listDebts` supplies active and settled debt entities mapped to `IDebtListItem`.
+
+Each debt payment is atomic with its finance transaction: a `receivable` payment creates an `income` transaction in `Thu hồi nợ`, while a `payable` payment creates an `expense` transaction in `Trả nợ`. Both use the payment amount, currency, date, and linked contact, so dashboard balance stays consistent with debt settlement.
