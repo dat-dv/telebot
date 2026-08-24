@@ -170,3 +170,5 @@ docker compose run --rm --no-deps -e MIGRATION_CREATE_SCHEMA=true api \
 ```
 
 The command refuses a non-empty PostgreSQL target unless `MIGRATION_ALLOW_NONEMPTY=true` is explicitly supplied after reconciliation. After counts are verified, keep `TYPEORM_SYNCHRONIZE=false`, remove `MIGRATION_CREATE_SCHEMA`, and restart the API with `DATABASE_URL` and `REDIS_URL` configured. Do not run the migration against a live writer; pause the API first.
+
+For an intentional fresh start only, delete the Telebot data, PostgreSQL, and Redis volumes, set `TYPEORM_SYNCHRONIZE=true` in the deployment environment for one deploy against the empty PostgreSQL database, then immediately set it back to `false` and redeploy. This bootstrap path permanently discards all prior bot data.

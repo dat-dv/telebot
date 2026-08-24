@@ -41,7 +41,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-telebot}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local}@postgres:5432/${POSTGRES_DB:-telebot}
       DATABASE_SSL: "false"
       REDIS_URL: redis://redis:6379
-      TYPEORM_SYNCHRONIZE: "false"
+      TYPEORM_SYNCHRONIZE: ${TYPEORM_SYNCHRONIZE:-false}
     volumes:
       - telebot-data:/app/data
     depends_on:
