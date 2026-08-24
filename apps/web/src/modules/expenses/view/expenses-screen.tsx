@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { localeTag, type IExpenseListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
@@ -9,7 +9,12 @@ import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
-import { expensesQueryKeys, useExpensesQuery } from '../api/expenses-query';
+import {
+  expensesQueryKeys,
+  useDeleteExpenseMutation,
+  useExpensesQuery,
+  useUpdateExpenseMutation,
+} from '../api/expenses-query';
 
 export function ExpensesScreen() {
   const queryClient = useQueryClient();
@@ -17,7 +22,26 @@ export function ExpensesScreen() {
   const periodFilter = usePeriodFilter('month');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    category: string;
+    note: string;
+    amount: string;
+    paymentMethod: string;
+    occurredAt: string;
+  }>({
+    category: '',
+    note: '',
+    amount: '',
+    paymentMethod: '',
+    occurredAt: '',
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
   const expenses = useExpensesQuery();
+  const updateMutation = useUpdateExpenseMutation();
+  const deleteMutation = useDeleteExpenseMutation();
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: expensesQueryKeys.list() });
 
@@ -82,30 +106,168 @@ export function ExpensesScreen() {
       timeStyle: 'short',
     }).format(new Date(value));
 
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      startTransition(() => {
+        setToastMessage(null);
+      });
+    }, 3000);
+  };
+
+  const handleStartEdit = (item: IExpenseListItem) => {
+    setEditingId(item.id);
+    setEditDraft({
+      category: item.category,
+      note: item.note || '',
+      amount: String(item.amount),
+      paymentMethod: item.paymentMethod || '',
+      occurredAt: item.occurredAt ? item.occurredAt.slice(0, 16) : '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDraft({
+      category: '',
+      note: '',
+      amount: '',
+      paymentMethod: '',
+      occurredAt: '',
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const trimmedCategory = editDraft.category.trim();
+    const parsedAmount = Number(editDraft.amount);
+    if (!trimmedCategory || Number.isNaN(parsedAmount) || parsedAmount <= 0) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: {
+          category: trimmedCategory,
+          note: editDraft.note.trim() || undefined,
+          amount: parsedAmount,
+          paymentMethod: editDraft.paymentMethod.trim() || undefined,
+          occurredAt: editDraft.occurredAt
+            ? new Date(editDraft.occurredAt).toISOString()
+            : undefined,
+        },
+      });
+      setEditingId(null);
+      showToast(t('expenses.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('expenses.delete.confirm'))) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+      showToast(t('expenses.delete.success'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
   const expenseColumns: DataTableColumn<IExpenseListItem>[] = [
     {
       id: 'category',
       header: t('dashboard.columns.category'),
       minWidth: '160px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.category}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.category}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, category: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('expenses.placeholder.category')}
+              autoFocus
+              required
+              aria-label={t('dashboard.columns.category')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-primary"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.category}
+          >
+            {item.category}
+          </span>
+        );
+      },
     },
     {
       id: 'note',
       header: t('dashboard.columns.note'),
       minWidth: '180px',
-      cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.note}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, note: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('expenses.placeholder.note')}
+              aria-label={t('dashboard.columns.note')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.note}
+          >
+            {item.note || '—'}
+          </span>
+        );
+      },
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
-      minWidth: '130px',
+      minWidth: '140px',
       hideable: false,
       cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="number"
+              className="table-inline-input"
+              value={editDraft.amount}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, amount: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('expenses.placeholder.amount')}
+              style={{ textAlign: 'right' }}
+              required
+              aria-label={t('dashboard.columns.amount')}
+            />
+          );
+        }
         const pct = Math.min(Math.round((item.amount / maxExpenseAmount) * 100), 100);
         return (
-          <div className="amount-cell">
+          <div className="amount-cell" onDoubleClick={() => handleStartEdit(item)}>
             <strong className="text-warning">{money(item.amount)}</strong>
             <div className="amount-cell__bar-track">
               <div className="amount-cell__bar-fill bg-warning" style={{ width: `${pct}%` }} />
@@ -118,7 +280,29 @@ export function ExpensesScreen() {
       id: 'paymentMethod',
       header: t('expenses.columns.paymentMethod'),
       minWidth: '120px',
-      cell: (item) => <span className="badge">{item.paymentMethod || t('common.notSet')}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.paymentMethod}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('expenses.placeholder.paymentMethod')}
+              aria-label={t('expenses.columns.paymentMethod')}
+            />
+          );
+        }
+        return (
+          <span className="badge" onDoubleClick={() => handleStartEdit(item)}>
+            {item.paymentMethod || t('common.notSet')}
+          </span>
+        );
+      },
     },
     {
       id: 'currency',
@@ -130,8 +314,88 @@ export function ExpensesScreen() {
       id: 'occurredAt',
       header: t('dashboard.columns.date'),
       align: 'right',
-      minWidth: '130px',
-      cell: (item) => <span className="cell-muted">{date(item.occurredAt)}</span>,
+      minWidth: '150px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="datetime-local"
+              className="table-inline-input"
+              value={editDraft.occurredAt}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, occurredAt: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              aria-label={t('dashboard.columns.date')}
+            />
+          );
+        }
+        return (
+          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+            {date(item.occurredAt)}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: t('dashboard.columns.action'),
+      align: 'right',
+      minWidth: '110px',
+      hideable: false,
+      cell: (item) => {
+        const isEditing = editingId === item.id;
+        if (isEditing) {
+          return (
+            <div className="table-inline-actions">
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--save"
+                onClick={() => void handleSaveEdit(item.id)}
+                disabled={
+                  updateMutation.isPending ||
+                  !editDraft.category.trim() ||
+                  !Number(editDraft.amount)
+                }
+                title={t('expenses.actions.save')}
+              >
+                ✓ {t('expenses.actions.save')}
+              </button>
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--cancel"
+                onClick={handleCancelEdit}
+                disabled={updateMutation.isPending}
+                title={t('expenses.actions.cancel')}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div className="table-inline-actions">
+            <button
+              type="button"
+              className="table-inline-action-btn"
+              onClick={() => handleStartEdit(item)}
+              title={t('expenses.actions.edit')}
+            >
+              ✎ {t('expenses.actions.edit')}
+            </button>
+            <button
+              type="button"
+              className="table-inline-action-btn table-inline-action-btn--cancel"
+              onClick={() => void handleDelete(item.id)}
+              disabled={deleteMutation.isPending}
+              title={t('expenses.actions.delete')}
+            >
+              🗑
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -142,6 +406,12 @@ export function ExpensesScreen() {
         subtitle={t('expenses.subtitle')}
         onRefresh={refresh}
       />
+
+      {toastMessage && (
+        <div className="toast-notification" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
 
       <PeriodFilterToolbar filter={periodFilter} />
 

@@ -15,6 +15,7 @@ export interface CreateFinanceTransactionDto {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeName?: string;
   note: string;
   occurredAt?: string;
 }
@@ -86,6 +87,19 @@ export class FinanceService {
     private readonly debtPaymentRepo: Repository<DebtPaymentEntity>,
   ) {}
 
+  public async resolveOrCreatePlaceContact(
+    userId: number,
+    placeName: string,
+  ): Promise<DebtContactEntity | null> {
+    const trimmed = placeName?.trim();
+    if (!trimmed) return null;
+    const existing = await this.resolveContacts(userId, trimmed);
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    return this.createContact(userId, trimmed, undefined, 'Địa điểm / Quán ăn');
+  }
+
   public async createTransaction(
     dto: CreateFinanceTransactionDto,
   ): Promise<FinanceTransactionEntity> {
@@ -104,6 +118,17 @@ export class FinanceService {
       throw new Error('Cần có nội dung cho khoản thu hoặc chi.');
     }
 
+    let contactId = dto.contactId;
+    if (!contactId && dto.placeName) {
+      const parsedUserId = typeof dto.userId === 'number' ? dto.userId : Number(dto.userId);
+      if (!Number.isNaN(parsedUserId)) {
+        const contact = await this.resolveOrCreatePlaceContact(parsedUserId, dto.placeName);
+        if (contact) {
+          contactId = contact.id;
+        }
+      }
+    }
+
     const transaction = this.transactionRepo.create({
       userId: dto.userId.toString(),
       type: dto.type,
@@ -112,7 +137,7 @@ export class FinanceService {
       category: dto.category?.trim() || 'Khác',
       paymentMethod: dto.paymentMethod?.trim() || undefined,
       receiptUrl: dto.receiptUrl?.trim() || undefined,
-      contactId: dto.contactId || undefined,
+      contactId: contactId || undefined,
       note,
       occurredAt,
     });

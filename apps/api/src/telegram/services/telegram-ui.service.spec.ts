@@ -253,7 +253,7 @@ void test('formats create_task result box with due date', () => {
   assert.match(message, /Hạn:/);
 });
 
-void test('formats create_finance_transaction result box with details and date', () => {
+void test('formats create_finance_transaction result box with details, place and date', () => {
   const message = new TelegramUiService().formatResultBox(
     'create_finance_transaction',
     {
@@ -265,6 +265,7 @@ void test('formats create_finance_transaction result box with details and date',
         amountText: '65.000đ',
         category: 'Ăn uống',
         note: 'Cơm trưa',
+        placeName: 'Quán chay Vườn Lài',
         occurredAt: '2026-08-24T12:30:00+07:00',
       },
     },
@@ -276,5 +277,215 @@ void test('formats create_finance_transaction result box with details and date',
   assert.match(message, /65\.000đ/);
   assert.match(message, /Ăn uống/);
   assert.match(message, /Cơm trưa/);
+  assert.match(message, /Quán chay Vườn Lài/);
   assert.match(message, /24\/08\/2026/);
+});
+
+void test('formats create_finance_transactions confirmation box and result box', () => {
+  const service = new TelegramUiService();
+  const confirmation = service.formatConfirmationBox(
+    'create_finance_transactions',
+    {
+      transactions: [
+        {
+          type: 'expense',
+          amount: 35000,
+          category: 'Ăn uống',
+          note: 'Ly cà phê',
+          placeName: 'Highlands',
+        },
+        { type: 'expense', amount: 40000, category: 'Ăn uống', note: 'Ly nước cam' },
+      ],
+    },
+    'REQ-FINBATCH',
+  );
+
+  assert.match(confirmation, /XÁC NHẬN THU–CHI HÀNG LOẠT \(2 khoản\)/);
+  assert.match(confirmation, /Ly cà phê/);
+  assert.match(confirmation, /Highlands/);
+  assert.match(confirmation, /Ly nước cam/);
+  assert.match(confirmation, /75\.000đ/);
+
+  const result = service.formatResultBox(
+    'create_finance_transactions',
+    {
+      success: true,
+      totalAmount: 75000,
+      totalAmountText: '75.000đ',
+      created: [
+        {
+          id: '1',
+          amount: 35000,
+          amountText: '35.000đ',
+          note: 'Ly cà phê',
+          placeName: 'Highlands',
+        },
+        { id: '2', amount: 40000, amountText: '40.000đ', note: 'Ly nước cam' },
+      ],
+    },
+    'REQ-FINBATCH',
+  );
+
+  assert.match(result, /Đã ghi sổ 2 khoản/);
+  assert.match(result, /75\.000đ/);
+  assert.match(result, /Ly cà phê/);
+  assert.match(result, /Highlands/);
+  assert.match(result, /Ly nước cam/);
+});
+
+void test('formats create_debt confirmation box for receivable loan with alias and due date', () => {
+  const message = new TelegramUiService().formatConfirmationBox(
+    'create_debt',
+    {
+      direction: 'receivable',
+      counterparty: 'Trí',
+      counterpartyAlias: 'Trí Đen',
+      amount: 500000,
+      note: 'chưa trả',
+      dueAt: '2026-08-30T17:00:00.000Z',
+      createNewContact: true,
+    },
+    'REQ-DEBT001',
+  );
+
+  assert.match(message, /XÁC NHẬN GHI NỢ \/ CHO VAY/);
+  assert.match(message, /Cho vay \(Người khác nợ bạn\)/);
+  assert.match(message, /Trí \(Trí Đen\)/);
+  assert.match(message, /500\.000đ/);
+  assert.match(message, /chưa trả/);
+  assert.match(message, /Hạn trả/);
+  assert.match(message, /Lưu liên hệ mới vào danh bạ/);
+  assert.match(message, /REQ-DEBT001/);
+  assert.doesNotMatch(message, /<pre>.*JSON.*<\/pre>/s);
+});
+
+void test('formats create_debt confirmation box for payable debt without due date', () => {
+  const message = new TelegramUiService().formatConfirmationBox(
+    'create_debt',
+    {
+      direction: 'payable',
+      counterparty: 'Lan',
+      amount: 200000,
+      note: 'tiền ăn trưa',
+    },
+    'REQ-DEBT002',
+  );
+
+  assert.match(message, /XÁC NHẬN GHI NỢ \/ CHO VAY/);
+  assert.match(message, /Đi vay \(Bạn nợ người khác\)/);
+  assert.match(message, /Lan/);
+  assert.match(message, /200\.000đ/);
+  assert.match(message, /tiền ăn trưa/);
+  assert.doesNotMatch(message, /Hạn trả/);
+});
+
+void test('formats create_debt result box for receivable and payable', () => {
+  const service = new TelegramUiService();
+
+  const receivableResult = service.formatResultBox(
+    'create_debt',
+    {
+      success: true,
+      debt: {
+        id: 'd-1',
+        direction: 'receivable',
+        counterparty: 'Trí',
+        counterpartyAlias: 'Trí Đen',
+        remainingText: '500.000đ',
+        note: 'chưa trả',
+      },
+    },
+    'REQ-DEBT001',
+  );
+
+  assert.match(receivableResult, /Đã ghi khoản cho vay/);
+  assert.match(receivableResult, /Trí \(Trí Đen\)/);
+  assert.match(receivableResult, /500\.000đ/);
+  assert.match(receivableResult, /chưa trả/);
+
+  const payableResult = service.formatResultBox(
+    'create_debt',
+    {
+      success: true,
+      debt: {
+        id: 'd-2',
+        direction: 'payable',
+        counterparty: 'Lan',
+        remainingText: '200.000đ',
+      },
+    },
+    'REQ-DEBT002',
+  );
+
+  assert.match(payableResult, /Đã ghi khoản vay/);
+  assert.match(payableResult, /Lan/);
+  assert.match(payableResult, /200\.000đ/);
+});
+
+void test('formats record_debt_payment confirmation and result box', () => {
+  const service = new TelegramUiService();
+
+  const confirmation = service.formatConfirmationBox(
+    'record_debt_payment',
+    { amount: 200000 },
+    'REQ-PAY001',
+  );
+
+  assert.match(confirmation, /XÁC NHẬN TRẢ NỢ/);
+  assert.match(confirmation, /200\.000đ/);
+
+  const partialResult = service.formatResultBox(
+    'record_debt_payment',
+    {
+      success: true,
+      settled: false,
+      counterparty: 'Trí',
+      remainingText: '300.000đ',
+    },
+    'REQ-PAY001',
+  );
+
+  assert.match(partialResult, /Đã ghi nhận trả nợ/);
+  assert.match(partialResult, /Trí/);
+  assert.match(partialResult, /Còn lại: 300\.000đ/);
+
+  const settledResult = service.formatResultBox(
+    'record_debt_payment',
+    {
+      success: true,
+      settled: true,
+      counterparty: 'Trí',
+      remainingText: '0đ',
+    },
+    'REQ-PAY002',
+  );
+
+  assert.match(settledResult, /Đã ghi nhận trả nợ/);
+  assert.match(settledResult, /Trí/);
+  assert.match(settledResult, /Đã tất toán/);
+});
+
+void test('formats update_debt_contact confirmation and result box', () => {
+  const service = new TelegramUiService();
+
+  const confirmation = service.formatConfirmationBox(
+    'update_debt_contact',
+    { name: 'Trí Nguyễn', alias: 'Trí Đen' },
+    'REQ-CONTACT001',
+  );
+
+  assert.match(confirmation, /XÁC NHẬN CẬP NHẬT DANH BẠ NỢ/);
+  assert.match(confirmation, /Trí Nguyễn \(Trí Đen\)/);
+
+  const result = service.formatResultBox(
+    'update_debt_contact',
+    {
+      success: true,
+      contact: { name: 'Trí Nguyễn', alias: 'Trí Đen' },
+    },
+    'REQ-CONTACT001',
+  );
+
+  assert.match(result, /Đã cập nhật danh bạ/);
+  assert.match(result, /Trí Nguyễn \(Trí Đen\)/);
 });

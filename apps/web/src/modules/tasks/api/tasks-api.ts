@@ -1,0 +1,35 @@
+import {
+  API_ROUTES,
+  type IApiResponse,
+  type ITaskListItem,
+  type IUpdateTaskRequest,
+} from '@telebot/contracts';
+import { httpClient } from '@/shared/api/http-client';
+
+export async function getTasks(signal?: AbortSignal): Promise<ITaskListItem[]> {
+  const response = await httpClient.get<IApiResponse<ITaskListItem[]>>(API_ROUTES.tasks, {
+    signal,
+  });
+  return response.data.data;
+}
+
+export async function updateTask(
+  id: string,
+  data: IUpdateTaskRequest,
+  signal?: AbortSignal,
+): Promise<ITaskListItem> {
+  const response = await httpClient.patch<IApiResponse<ITaskListItem>>(
+    `${API_ROUTES.tasks}/${id}`,
+    data,
+    { signal },
+  );
+  return response.data.data;
+}
+
+export async function deleteTask(id: string, signal?: AbortSignal): Promise<boolean> {
+  const response = await httpClient.delete<IApiResponse<{ deleted: boolean }>>(
+    `${API_ROUTES.tasks}/${id}`,
+    { signal },
+  );
+  return response.data.data.deleted;
+}

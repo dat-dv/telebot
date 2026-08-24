@@ -12,4 +12,4 @@ The table shows direction, counterparty, original and remaining amounts, due dat
 
 ## Integration seams
 
-`getDebts` calls `API_ROUTES.debts`; `ReportsController` scopes records by access-token user ID and `FinanceService.getActiveDebts` supplies active debt entities.
+`getDebts` calls `API_ROUTES.debts`; `updateDebt` patches debt records via `API_ROUTES.debts`, and `createDebtPayment` posts new payments to `API_ROUTES.debtPayments`. Custom hooks `useDebtsQuery`, `useUpdateDebtMutation`, and `useCreateDebtPaymentMutation` manage server state and invalidate both `debts` and `dashboard` query keys on mutation success. `ReportsController` scopes records by access-token user ID and `FinanceService.getActiveDebts` supplies active debt entities.

@@ -17,6 +17,7 @@ import { CreateReminderTool } from './tools/create-reminder.tool';
 import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
+import { CreateFinanceTransactionsTool } from './tools/create-finance-transactions.tool';
 import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
 import { CreateDebtTool } from './tools/create-debt.tool';
 import { ListDebtsTool } from './tools/list-debts.tool';
@@ -125,6 +126,7 @@ export class GeminiService {
     'create_reminder',
     'delete_reminder',
     'create_finance_transaction',
+    'create_finance_transactions',
     'create_debt',
     'record_debt_payment',
     'update_debt_contact',
@@ -150,6 +152,7 @@ export class GeminiService {
     private readonly listRemindersTool: ListRemindersTool,
     private readonly deleteReminderTool: DeleteReminderTool,
     private readonly createFinanceTransactionTool: CreateFinanceTransactionTool,
+    private readonly createFinanceTransactionsTool: CreateFinanceTransactionsTool,
     private readonly getFinanceSummaryTool: GetFinanceSummaryTool,
     private readonly createDebtTool: CreateDebtTool,
     private readonly listDebtsTool: ListDebtsTool,
@@ -182,6 +185,7 @@ export class GeminiService {
       this.listRemindersTool,
       this.deleteReminderTool,
       this.createFinanceTransactionTool,
+      this.createFinanceTransactionsTool,
       this.getFinanceSummaryTool,
       this.createDebtTool,
       this.listDebtsTool,
@@ -291,6 +295,19 @@ ${ocrText}`;
     const finalPayload = { ...payload };
     if (name === 'create_finance_transaction' && !finalPayload.occurredAt) {
       finalPayload.occurredAt = this.getCurrentTimeInfo().nowIso;
+    }
+    if (name === 'create_finance_transactions' && Array.isArray(finalPayload.transactions)) {
+      const nowIso = this.getCurrentTimeInfo().nowIso;
+      finalPayload.transactions = finalPayload.transactions.map((tx: unknown) => {
+        if (tx && typeof tx === 'object') {
+          const item = tx as Record<string, unknown>;
+          return {
+            ...item,
+            occurredAt: item.occurredAt || nowIso,
+          };
+        }
+        return tx;
+      });
     }
     const id = randomUUID();
     const referenceId = `REQ-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;

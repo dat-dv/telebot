@@ -1,57 +1,362 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { localeTag } from '@telebot/contracts';
+import { localeTag, type ICalendarEventItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import {
+  calendarQueryKeys,
+  useCalendarEventsQuery,
+  useDeleteCalendarEventMutation,
+  useUpdateCalendarEventMutation,
+} from '@/modules/calendar/api/calendar-query';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
-
-type CalendarItem = NonNullable<ReturnType<typeof useDashboardQuery>['data']>['calendar'][number];
 
 export function CalendarScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    summary: string;
+    location: string;
+    description: string;
+    startDateTime: string;
+    endDateTime: string;
+  }>({
+    summary: '',
+    location: '',
+    description: '',
+    startDateTime: '',
+    endDateTime: '',
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
   const dashboard = useDashboardQuery();
+  const calendarQuery = useCalendarEventsQuery();
+  const updateMutation = useUpdateCalendarEventMutation();
+  const deleteMutation = useDeleteCalendarEventMutation();
 
-  const refresh = () =>
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.list() });
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
+  };
 
-  const rawList = useMemo(() => dashboard.data?.calendar ?? [], [dashboard.data]);
+  const rawList = useMemo(() => {
+    if (calendarQuery.data && calendarQuery.data.length > 0) {
+      return calendarQuery.data;
+    }
+    return dashboard.data?.calendar ?? [];
+  }, [calendarQuery.data, dashboard.data?.calendar]);
+
   const isGoogleConnected = dashboard.data?.user.googleConnected;
 
   const filteredCalendar = useMemo(() => {
     if (!search.trim()) return rawList;
     const q = search.toLowerCase();
-    return rawList.filter((item) => item.title.toLowerCase().includes(q));
+    return rawList.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        (item.location && item.location.toLowerCase().includes(q)) ||
+        (item.description && item.description.toLowerCase().includes(q)),
+    );
   }, [rawList, search]);
 
   const date = (value?: string) =>
     value
       ? new Intl.DateTimeFormat(localeTag(locale), {
-          dateStyle: 'full',
+          dateStyle: 'short',
           timeStyle: 'short',
         }).format(new Date(value))
       : t('common.notSet');
 
-  const calendarColumns: DataTableColumn<CalendarItem>[] = [
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      startTransition(() => {
+        setToastMessage(null);
+      });
+    }, 3000);
+  };
+
+  const handleStartEdit = (item: ICalendarEventItem) => {
+    setEditingId(item.id);
+    setEditDraft({
+      summary: item.title,
+      location: item.location || '',
+      description: item.description || '',
+      startDateTime: item.startAt ? item.startAt.slice(0, 16) : '',
+      endDateTime: item.endAt ? item.endAt.slice(0, 16) : '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDraft({
+      summary: '',
+      location: '',
+      description: '',
+      startDateTime: '',
+      endDateTime: '',
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const trimmedSummary = editDraft.summary.trim();
+    if (!trimmedSummary) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: {
+          summary: trimmedSummary,
+          location: editDraft.location.trim() || undefined,
+          description: editDraft.description.trim() || undefined,
+          startDateTime: editDraft.startDateTime
+            ? new Date(editDraft.startDateTime).toISOString()
+            : undefined,
+          endDateTime: editDraft.endDateTime
+            ? new Date(editDraft.endDateTime).toISOString()
+            : undefined,
+        },
+      });
+      setEditingId(null);
+      showToast(t('calendar.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('calendar.delete.confirm'))) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+      showToast(t('calendar.delete.success'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const calendarColumns: DataTableColumn<ICalendarEventItem>[] = [
     {
       id: 'title',
       header: t('dashboard.columns.title'),
-      minWidth: '180px',
+      minWidth: '200px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.title}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.summary}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, summary: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('calendar.placeholder.title')}
+              autoFocus
+              required
+              aria-label={t('dashboard.columns.title')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-primary"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.title}
+          >
+            {item.title}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'location',
+      header: t('calendar.columns.location'),
+      minWidth: '150px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.location}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, location: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('calendar.placeholder.location')}
+              aria-label={t('calendar.columns.location')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.location}
+          >
+            {item.location || '—'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'description',
+      header: t('calendar.columns.description'),
+      minWidth: '180px',
+      defaultHidden: false,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.description}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, description: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('calendar.placeholder.description')}
+              aria-label={t('calendar.columns.description')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.description}
+          >
+            {item.description || '—'}
+          </span>
+        );
+      },
     },
     {
       id: 'startAt',
       header: t('dashboard.columns.date'),
       align: 'right',
-      minWidth: '150px',
-      cell: (item) => <span className="cell-muted">{date(item.startAt)}</span>,
+      minWidth: '140px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="datetime-local"
+              className="table-inline-input"
+              value={editDraft.startDateTime}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, startDateTime: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              aria-label={t('dashboard.columns.date')}
+            />
+          );
+        }
+        return (
+          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+            {date(item.startAt)}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'endAt',
+      header: t('calendar.columns.endAt'),
+      align: 'right',
+      minWidth: '140px',
+      defaultHidden: false,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="datetime-local"
+              className="table-inline-input"
+              value={editDraft.endDateTime}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, endDateTime: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              aria-label={t('calendar.columns.endAt')}
+            />
+          );
+        }
+        return (
+          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+            {item.endAt ? date(item.endAt) : '—'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: t('dashboard.columns.action'),
+      align: 'right',
+      minWidth: '110px',
+      hideable: false,
+      cell: (item) => {
+        const isEditing = editingId === item.id;
+        if (isEditing) {
+          return (
+            <div className="table-inline-actions">
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--save"
+                onClick={() => void handleSaveEdit(item.id)}
+                disabled={updateMutation.isPending || !editDraft.summary.trim()}
+                title={t('calendar.actions.save')}
+              >
+                ✓ {t('calendar.actions.save')}
+              </button>
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--cancel"
+                onClick={handleCancelEdit}
+                disabled={updateMutation.isPending}
+                title={t('calendar.actions.cancel')}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div className="table-inline-actions">
+            <button
+              type="button"
+              className="table-inline-action-btn"
+              onClick={() => handleStartEdit(item)}
+              title={t('calendar.actions.edit')}
+            >
+              ✎ {t('calendar.actions.edit')}
+            </button>
+            <button
+              type="button"
+              className="table-inline-action-btn table-inline-action-btn--cancel"
+              onClick={() => void handleDelete(item.id)}
+              disabled={deleteMutation.isPending}
+              title={t('calendar.actions.delete')}
+            >
+              🗑
+            </button>
+          </div>
+        );
+      },
     },
   ];
+
+  const isLoading = dashboard.isLoading || calendarQuery.isLoading;
+  const isError = dashboard.isError && calendarQuery.isError;
 
   return (
     <>
@@ -61,7 +366,13 @@ export function CalendarScreen() {
         onRefresh={refresh}
       />
 
-      {dashboard.isError ? (
+      {toastMessage && (
+        <div className="toast-notification" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
+
+      {isError ? (
         <section className="inline-alert" role="alert">
           <strong>{t('dashboard.error.title')}</strong>
           <button type="button" onClick={refresh}>
@@ -89,7 +400,7 @@ export function CalendarScreen() {
               id="calendar"
               ariaLabel={t('dashboard.calendar')}
               rows={filteredCalendar}
-              loading={dashboard.isLoading}
+              loading={isLoading}
               emptyMessage={t('dashboard.noCalendar')}
               columns={calendarColumns}
               getRowKey={(item) => item.id}

@@ -13,7 +13,12 @@ Each module document covers:
 
 ## Modules Index
 - [Authentication](auth/README.md): Dashboard access token storage and lifecycle.
+- [Calendar](calendar/README.md): Google Calendar event queries, updates, and deletions.
 - [Contacts](contacts/README.md): Debt-contact retrieval and presentation.
 - [Debts](debts/README.md): Active receivables and payables reporting.
 - [Dashboard](dashboard/README.md): Personal reports, statistics, and operational data views.
 - [Expenses](expenses/README.md): Expense-only transaction history reporting.
+- [Reminders](reminders/README.md): Scheduled user reminders management and status updates.
+- [Tasks](tasks/README.md): Google Tasks retrieval, updates, and state synchronization.
+
+

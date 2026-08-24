@@ -203,6 +203,24 @@ const messages = {
     'debts.history.paymentDate': 'Ngày trả',
     'expenses.columns.paymentMethod': 'Nguồn tiền',
     'expenses.columns.currency': 'Tiền tệ',
+    'expenses.actions.edit': 'Sửa',
+    'expenses.actions.save': 'Lưu',
+    'expenses.actions.cancel': 'Hủy',
+    'expenses.actions.delete': 'Xóa',
+    'expenses.inlineEdit.saved': 'Đã cập nhật chi tiêu',
+    'expenses.delete.confirm': 'Bạn có chắc chắn muốn xóa khoản chi tiêu này không?',
+    'expenses.delete.success': 'Đã xóa khoản chi tiêu',
+    'expenses.placeholder.category': 'Nhập danh mục...',
+    'expenses.placeholder.note': 'Nhập ghi chú chi tiêu...',
+    'expenses.placeholder.amount': 'Nhập số tiền...',
+    'expenses.placeholder.paymentMethod': 'Nguồn tiền...',
+    'debts.actions.edit': 'Sửa',
+    'debts.actions.save': 'Lưu',
+    'debts.actions.cancel': 'Hủy',
+    'debts.actions.repay': 'Trả nợ',
+    'debts.inlineEdit.saved': 'Đã cập nhật khoản vay nợ',
+    'debts.placeholder.note': 'Nhập ghi chú...',
+    'debts.placeholder.due': 'Hạn chót...',
     'contacts.selectedCount': 'Đã chọn {count}',
     'contacts.selectAll': 'Chọn tất cả',
     'contacts.deselectAll': 'Bỏ chọn',
@@ -212,10 +230,59 @@ const messages = {
     'analytics.subtitle': 'Tổng quan xu hướng tài chính và phân bổ chi tiêu',
     'calendar.title': 'Lịch',
     'calendar.subtitle': 'Lịch trình sự kiện 7 ngày tới',
+    'calendar.columns.description': 'Mô tả',
+    'calendar.columns.location': 'Địa điểm',
+    'calendar.columns.endAt': 'Kết thúc',
+    'calendar.actions.edit': 'Sửa',
+    'calendar.actions.save': 'Lưu',
+    'calendar.actions.cancel': 'Hủy',
+    'calendar.actions.delete': 'Xóa',
+    'calendar.inlineEdit.saved': 'Đã cập nhật sự kiện',
+    'calendar.delete.confirm': 'Bạn có chắc chắn muốn xóa sự kiện này không?',
+    'calendar.delete.success': 'Đã xóa sự kiện',
+    'calendar.placeholder.title': 'Nhập tiêu đề sự kiện...',
+    'calendar.placeholder.location': 'Nhập địa điểm...',
+    'calendar.placeholder.description': 'Nhập mô tả chi tiết...',
     'tasks.title': 'Việc cần làm',
     'tasks.subtitle': 'Danh sách công việc từ Google Tasks',
+    'tasks.columns.status': 'Trạng thái',
+    'tasks.columns.notes': 'Ghi chú',
+    'tasks.columns.updatedAt': 'Cập nhật',
+    'tasks.status.needsAction': 'Cần làm',
+    'tasks.status.completed': 'Đã xong',
+    'tasks.placeholder.title': 'Nhập tiêu đề công việc...',
+    'tasks.placeholder.notes': 'Nhập ghi chú...',
+    'tasks.placeholder.due': 'Hạn chót...',
+    'tasks.actions.edit': 'Sửa',
+    'tasks.actions.save': 'Lưu',
+    'tasks.actions.cancel': 'Hủy',
+    'tasks.actions.delete': 'Xóa',
+    'tasks.actions.complete': 'Hoàn thành',
+    'tasks.inlineEdit.saved': 'Đã cập nhật công việc',
+    'tasks.delete.confirm': 'Bạn có chắc chắn muốn xóa công việc này không?',
+    'tasks.delete.success': 'Đã xóa công việc',
+    'tasks.filter.all': 'Tất cả',
+    'tasks.filter.needsAction': 'Cần làm',
+    'tasks.filter.completed': 'Đã xong',
     'reminders.title': 'Nhắc nhở',
     'reminders.subtitle': 'Danh sách lời nhắc tự động qua Telegram & Gọi điện',
+    'reminders.columns.notifyType': 'Hình thức',
+    'reminders.columns.repeatType': 'Lặp lại',
+    'reminders.actions.edit': 'Sửa',
+    'reminders.actions.save': 'Lưu',
+    'reminders.actions.cancel': 'Hủy',
+    'reminders.actions.delete': 'Xóa',
+    'reminders.actions.snooze': 'Hoãn 15p',
+    'reminders.inlineEdit.saved': 'Đã cập nhật lời nhắc',
+    'reminders.delete.confirm': 'Bạn có chắc chắn muốn xóa lời nhắc này không?',
+    'reminders.delete.success': 'Đã xóa lời nhắc',
+    'reminders.snooze.success': 'Đã hoãn lời nhắc thêm 15 phút',
+    'reminders.notifyType.call': 'Gọi điện',
+    'reminders.notifyType.text': 'Nhắn tin',
+    'reminders.repeatType.none': 'Không lặp',
+    'reminders.repeatType.daily': 'Hàng ngày',
+    'reminders.repeatType.weekly': 'Hàng tuần',
+    'reminders.placeholder.title': 'Nhập tiêu đề lời nhắc...',
     'period.week': 'Tuần',
     'period.month': 'Tháng',
     'period.quarter': 'Quý',
@@ -383,6 +450,24 @@ const messages = {
     'debts.history.paymentDate': 'Payment date',
     'expenses.columns.paymentMethod': 'Payment method',
     'expenses.columns.currency': 'Currency',
+    'expenses.actions.edit': 'Edit',
+    'expenses.actions.save': 'Save',
+    'expenses.actions.cancel': 'Cancel',
+    'expenses.actions.delete': 'Delete',
+    'expenses.inlineEdit.saved': 'Expense updated successfully',
+    'expenses.delete.confirm': 'Are you sure you want to delete this expense?',
+    'expenses.delete.success': 'Expense deleted successfully',
+    'expenses.placeholder.category': 'Category...',
+    'expenses.placeholder.note': 'Expense note...',
+    'expenses.placeholder.amount': 'Amount...',
+    'expenses.placeholder.paymentMethod': 'Payment method...',
+    'debts.actions.edit': 'Edit',
+    'debts.actions.save': 'Save',
+    'debts.actions.cancel': 'Cancel',
+    'debts.actions.repay': 'Repay',
+    'debts.inlineEdit.saved': 'Debt updated successfully',
+    'debts.placeholder.note': 'Debt note...',
+    'debts.placeholder.due': 'Due date...',
     'contacts.selectedCount': '{count} selected',
     'contacts.selectAll': 'Select all',
     'contacts.deselectAll': 'Deselect all',
@@ -392,10 +477,59 @@ const messages = {
     'analytics.subtitle': 'Financial trends and spending breakdown',
     'calendar.title': 'Calendar',
     'calendar.subtitle': 'Upcoming 7-day schedule and events',
+    'calendar.columns.description': 'Description',
+    'calendar.columns.location': 'Location',
+    'calendar.columns.endAt': 'End time',
+    'calendar.actions.edit': 'Edit',
+    'calendar.actions.save': 'Save',
+    'calendar.actions.cancel': 'Cancel',
+    'calendar.actions.delete': 'Delete',
+    'calendar.inlineEdit.saved': 'Event updated successfully',
+    'calendar.delete.confirm': 'Are you sure you want to delete this event?',
+    'calendar.delete.success': 'Event deleted successfully',
+    'calendar.placeholder.title': 'Event title...',
+    'calendar.placeholder.location': 'Location...',
+    'calendar.placeholder.description': 'Event description...',
     'tasks.title': 'Tasks',
     'tasks.subtitle': 'Task list from Google Tasks',
+    'tasks.columns.status': 'Status',
+    'tasks.columns.notes': 'Notes',
+    'tasks.columns.updatedAt': 'Updated',
+    'tasks.status.needsAction': 'Pending',
+    'tasks.status.completed': 'Completed',
+    'tasks.placeholder.title': 'Enter task title...',
+    'tasks.placeholder.notes': 'Enter notes...',
+    'tasks.placeholder.due': 'Due date...',
+    'tasks.actions.edit': 'Edit',
+    'tasks.actions.save': 'Save',
+    'tasks.actions.cancel': 'Cancel',
+    'tasks.actions.delete': 'Delete',
+    'tasks.actions.complete': 'Complete',
+    'tasks.inlineEdit.saved': 'Task updated successfully',
+    'tasks.delete.confirm': 'Are you sure you want to delete this task?',
+    'tasks.delete.success': 'Task deleted successfully',
+    'tasks.filter.all': 'All',
+    'tasks.filter.needsAction': 'Pending',
+    'tasks.filter.completed': 'Completed',
     'reminders.title': 'Reminders',
     'reminders.subtitle': 'Automated reminders via Telegram & Call',
+    'reminders.columns.notifyType': 'Type',
+    'reminders.columns.repeatType': 'Repeat',
+    'reminders.actions.edit': 'Edit',
+    'reminders.actions.save': 'Save',
+    'reminders.actions.cancel': 'Cancel',
+    'reminders.actions.delete': 'Delete',
+    'reminders.actions.snooze': 'Snooze 15m',
+    'reminders.inlineEdit.saved': 'Reminder updated successfully',
+    'reminders.delete.confirm': 'Are you sure you want to delete this reminder?',
+    'reminders.delete.success': 'Reminder deleted successfully',
+    'reminders.snooze.success': 'Reminder snoozed for 15 minutes',
+    'reminders.notifyType.call': 'Call',
+    'reminders.notifyType.text': 'Message',
+    'reminders.repeatType.none': 'None',
+    'reminders.repeatType.daily': 'Daily',
+    'reminders.repeatType.weekly': 'Weekly',
+    'reminders.placeholder.title': 'Reminder title...',
     'period.week': 'Week',
     'period.month': 'Month',
     'period.quarter': 'Quarter',
@@ -536,11 +670,105 @@ export interface IDashboardData {
     dueAt?: string;
     settledAt?: string;
   }>;
-  calendar: Array<{ id: string; title: string; startAt?: string }>;
-  tasks: Array<{ id: string; title: string; dueAt?: string }>;
-  reminders: Array<{ id: string; title: string; remindAt: string; notifyType: 'text' | 'call' }>;
+  calendar: ICalendarEventItem[];
+  tasks: ITaskListItem[];
+  reminders: IReminderListItem[];
   activity: Array<{ id: string; action: string; tableName: string; createdAt: string }>;
   admin?: { userCount: number; googleConnectedCount: number };
+}
+
+export interface ICalendarEventItem {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startAt?: string;
+  endAt?: string;
+  timeZone?: string;
+}
+
+export interface IUpdateCalendarEventRequest {
+  summary?: string;
+  description?: string;
+  startDateTime?: string;
+  endDateTime?: string;
+  location?: string;
+  timeZone?: string;
+}
+
+export interface ICreateCalendarEventRequest {
+  summary: string;
+  description?: string;
+  startDateTime: string;
+  endDateTime: string;
+  location?: string;
+  timeZone?: string;
+}
+
+export interface IReminderListItem {
+  id: string;
+  title: string;
+  remindAt: string;
+  notifyType: 'text' | 'call';
+  repeatType?: 'none' | 'daily' | 'weekly';
+  status?: 'pending' | 'completed' | 'snoozed' | 'cancelled';
+  snoozeCount?: number;
+  snoozedUntil?: string;
+}
+
+export interface IUpdateReminderRequest {
+  title?: string;
+  remindAt?: string;
+  notifyType?: 'text' | 'call';
+  repeatType?: 'none' | 'daily' | 'weekly';
+  status?: 'pending' | 'completed' | 'snoozed' | 'cancelled';
+  snoozeCount?: number;
+  snoozedUntil?: string;
+}
+
+export interface IUpdateExpenseRequest {
+  category?: string;
+  note?: string;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
+  placeName?: string;
+  occurredAt?: string;
+}
+
+export interface IUpdateDebtRequest {
+  direction?: 'receivable' | 'payable';
+  amount?: number;
+  currency?: string;
+  note?: string;
+  dueAt?: string;
+}
+
+export interface ITaskListItem {
+  id: string;
+  title: string;
+  notes?: string;
+  dueAt?: string;
+  status?: 'needsAction' | 'completed';
+  updatedAt?: string;
+  completedAt?: string;
+}
+
+export interface IUpdateTaskRequest {
+  title?: string;
+  notes?: string;
+  due?: string;
+  status?: 'needsAction' | 'completed';
+  taskListId?: string;
+}
+
+export interface ICreateTaskRequest {
+  title: string;
+  notes?: string;
+  due?: string;
+  taskListId?: string;
 }
 
 export interface IContactListResponse {
@@ -561,6 +789,7 @@ export interface ICreateTransactionRequest {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeName?: string;
   occurredAt?: string;
 }
 

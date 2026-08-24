@@ -13,7 +13,7 @@ Tài liệu này ánh xạ trực tiếp với tri thức canonical [`README.md`
 
 Module `apps/web/src/modules/debts` hiển thị các khoản công nợ đang mở của đúng người dùng đăng nhập.
 
-- API `GET /api/debts` chỉ trả các khoản cần thu hoặc cần trả chưa tất toán.
+- API: `getDebts` lấy danh sách qua `API_ROUTES.debts`; `updateDebt` cập nhật khoản nợ qua `API_ROUTES.debts` và `createDebtPayment` ghi nhận thanh toán qua `API_ROUTES.debtPayments`. Các mutation `useDebtsQuery`, `useUpdateDebtMutation`, `useCreateDebtPaymentMutation` tự động làm mới cache `debts` và `dashboard`.
 - Bảng gồm hướng công nợ, người liên quan, số tiền ban đầu/còn lại, hạn trả và ghi chú. Sử dụng `DataTable` có cấu hình ghi nhớ ẩn/hiện cột (`id="debts"`), độ rộng tối thiểu cột `minWidth`, khóa không cho ẩn các cột quan trọng (`counterparty`, `remainingAmount`).
 - Giao diện tích hợp thẻ KPI tổng tiền cho vay & đi vay, bộ lọc hướng công nợ (Tất cả / Cho vay / Đi vay), thanh tìm kiếm nhanh và định dạng tiền tệ/ngày giờ theo chuẩn i18n locale.
 - Trên desktop, canvas báo cáo và bảng trải hết chiều ngang còn lại sau thanh điều hướng; trên màn hình hẹp bảng cuộn ngang bên trong panel.

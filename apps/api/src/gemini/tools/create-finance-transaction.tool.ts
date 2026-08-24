@@ -8,6 +8,7 @@ interface CreateFinanceTransactionArgs {
   amount: number;
   category?: string;
   note: string;
+  placeName?: string;
   occurredAt?: string;
 }
 
@@ -17,7 +18,7 @@ export class CreateFinanceTransactionTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: this.name,
     description:
-      'Ghi một khoản thu hoặc chi vào sổ thu–chi cá nhân. Dùng khi người dùng nói đã chi/tiêu/mua/trả tiền, hoặc nhận lương/được trả tiền/hoàn tiền. Ví dụ: "ăn trưa 65k", "hôm nay mua cà phê 30 nghìn", "hôm qua ăn tối 120k", "nhận lương 20 triệu". Số tiền luôn truyền theo VND đầy đủ: 65k = 65000, 20 triệu = 20000000. Mặc định occurredAt là thời điểm hiện tại nếu người dùng không nêu ngày; nếu người dùng nhập muộn hoặc nêu ngày cụ thể trong quá khứ, truyền occurredAt tương ứng theo ISO 8601 có múi giờ.',
+      'Ghi một khoản thu hoặc chi vào sổ thu–chi cá nhân. Dùng khi người dùng nói đã chi/tiêu/mua/trả tiền, hoặc nhận lương/được trả tiền/hoàn tiền cho ĐÚNG MỘT khoản. Nếu có từ 2 khoản độc lập trở lên (vd: "1 cafe 35k và 1 nước cam 40k"), PHẢI gọi create_finance_transactions. Số tiền luôn truyền theo VND đầy đủ: 65k = 65000, 20 triệu = 20000000. Mặc định occurredAt là thời điểm hiện tại nếu người dùng không nêu ngày; nếu người dùng nhập muộn hoặc nêu ngày cụ thể trong quá khứ, truyền occurredAt tương ứng theo ISO 8601 có múi giờ.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -35,7 +36,12 @@ export class CreateFinanceTransactionTool implements GeminiTool {
         },
         note: {
           type: SchemaType.STRING,
-          description: 'Nội dung giao dịch ngắn gọn, ví dụ "Cơm trưa".',
+          description: 'Nội dung giao dịch ngắn gọn, ví dụ "Cơm trưa", "Ly cà phê".',
+        },
+        placeName: {
+          type: SchemaType.STRING,
+          description:
+            'Tên quán ăn, cửa hàng, địa điểm hoặc đối tác liên quan nếu có trong câu nói (ví dụ: "quán chay Vườn Lài", "Highlands Coffee").',
         },
         occurredAt: {
           type: SchemaType.STRING,

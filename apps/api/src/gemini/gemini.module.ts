@@ -19,6 +19,7 @@ import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { FinanceModule } from '../finance/finance.module';
 import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
+import { CreateFinanceTransactionsTool } from './tools/create-finance-transactions.tool';
 import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
 import { CreateDebtTool } from './tools/create-debt.tool';
 import { ListDebtsTool } from './tools/list-debts.tool';
@@ -46,6 +47,7 @@ import { UpdateReminderTool } from './tools/update-reminder.tool';
     ListRemindersTool,
     DeleteReminderTool,
     CreateFinanceTransactionTool,
+    CreateFinanceTransactionsTool,
     GetFinanceSummaryTool,
     CreateDebtTool,
     ListDebtsTool,

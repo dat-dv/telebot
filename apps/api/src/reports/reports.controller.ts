@@ -119,18 +119,27 @@ export class ReportsController {
         calendar: calendar.map((item) => ({
           id: item.id || item.etag || item.summary || 'event',
           title: item.summary || 'Không có tiêu đề',
+          description: item.description || undefined,
+          location: item.location || undefined,
           startAt: item.start?.dateTime || item.start?.date || undefined,
+          endAt: item.end?.dateTime || item.end?.date || undefined,
         })),
         tasks: tasks.map((item) => ({
           id: item.id || item.title || 'task',
           title: item.title || 'Không có tiêu đề',
+          notes: item.notes || undefined,
           dueAt: item.due || undefined,
+          status: (item.status as 'needsAction' | 'completed') || 'needsAction',
+          updatedAt: item.updated || undefined,
+          completedAt: item.completed || undefined,
         })),
         reminders: reminders.slice(0, 10).map((item) => ({
           id: item.id,
           title: item.title,
           remindAt: item.remindAt.toISOString(),
           notifyType: item.notifyType,
+          repeatType: item.repeatType || 'none',
+          status: item.status || 'pending',
         })),
         activity: activity.map((item) => ({
           id: item.id,

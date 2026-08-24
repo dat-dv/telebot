@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { localeTag, type IDebtListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
-import { debtsQueryKeys, useDebtsQuery } from '../api/debts-query';
+import {
+  debtsQueryKeys,
+  useCreateDebtPaymentMutation,
+  useDebtsQuery,
+  useUpdateDebtMutation,
+} from '../api/debts-query';
 
 type DirectionFilter = 'all' | 'receivable' | 'payable';
 
@@ -15,7 +20,22 @@ export function DebtsScreen() {
   const { locale, t } = useLocale();
   const [filter, setFilter] = useState<DirectionFilter>('all');
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    direction: 'receivable' | 'payable';
+    note: string;
+    dueAt: string;
+  }>({
+    direction: 'receivable',
+    note: '',
+    dueAt: '',
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
   const debts = useDebtsQuery();
+  const updateMutation = useUpdateDebtMutation();
+  const paymentMutation = useCreateDebtPaymentMutation();
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
 
@@ -60,20 +80,101 @@ export function DebtsScreen() {
       ? new Intl.DateTimeFormat(localeTag(locale), { dateStyle: 'short' }).format(new Date(value))
       : t('common.notSet');
 
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      startTransition(() => {
+        setToastMessage(null);
+      });
+    }, 3000);
+  };
+
+  const handleStartEdit = (item: IDebtListItem) => {
+    setEditingId(item.id);
+    setEditDraft({
+      direction: item.direction,
+      note: item.note || '',
+      dueAt: item.dueAt ? item.dueAt.slice(0, 10) : '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDraft({
+      direction: 'receivable',
+      note: '',
+      dueAt: '',
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: {
+          direction: editDraft.direction,
+          note: editDraft.note.trim() || undefined,
+          dueAt: editDraft.dueAt
+            ? new Date(`${editDraft.dueAt}T23:59:59.000Z`).toISOString()
+            : undefined,
+        },
+      });
+      setEditingId(null);
+      showToast(t('debts.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleQuickSettle = async (item: IDebtListItem) => {
+    if (item.remainingAmount <= 0) return;
+    try {
+      await paymentMutation.mutateAsync({
+        debtId: item.id,
+        amount: item.remainingAmount,
+        note: t('debts.actions.repay'),
+      });
+      showToast(t('debts.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
   const debtColumns: DataTableColumn<IDebtListItem>[] = [
     {
       id: 'direction',
       header: t('dashboard.columns.direction'),
-      minWidth: '80px',
-      cell: (item) => (
-        <span
-          className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
-        >
-          {item.direction === 'receivable'
-            ? t('table.filter.receivable')
-            : t('table.filter.payable')}
-        </span>
-      ),
+      minWidth: '100px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <select
+              className="table-inline-input"
+              value={editDraft.direction}
+              onChange={(e) =>
+                setEditDraft((prev) => ({
+                  ...prev,
+                  direction: e.target.value as 'receivable' | 'payable',
+                }))
+              }
+              aria-label={t('dashboard.columns.direction')}
+            >
+              <option value="receivable">{t('table.filter.receivable')}</option>
+              <option value="payable">{t('table.filter.payable')}</option>
+            </select>
+          );
+        }
+        return (
+          <span
+            className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
+            onDoubleClick={() => handleStartEdit(item)}
+          >
+            {item.direction === 'receivable'
+              ? t('table.filter.receivable')
+              : t('table.filter.payable')}
+          </span>
+        );
+      },
     },
     {
       id: 'counterparty',
@@ -81,7 +182,7 @@ export function DebtsScreen() {
       minWidth: '160px',
       hideable: false,
       cell: (item) => (
-        <span className="cell-primary">
+        <span className="cell-primary" onDoubleClick={() => handleStartEdit(item)}>
           {item.counterparty}
           {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
         </span>
@@ -111,8 +212,29 @@ export function DebtsScreen() {
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
-      minWidth: '110px',
-      cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
+      minWidth: '130px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="date"
+              className="table-inline-input"
+              value={editDraft.dueAt}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, dueAt: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              aria-label={t('dashboard.columns.dueDate')}
+            />
+          );
+        }
+        return (
+          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+            {date(item.dueAt)}
+          </span>
+        );
+      },
     },
     {
       id: 'settledAt',
@@ -126,7 +248,90 @@ export function DebtsScreen() {
       id: 'note',
       header: t('dashboard.columns.note'),
       minWidth: '150px',
-      cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.note}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, note: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('debts.placeholder.note')}
+              aria-label={t('dashboard.columns.note')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.note}
+          >
+            {item.note || '—'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: t('dashboard.columns.action'),
+      align: 'right',
+      minWidth: '120px',
+      hideable: false,
+      cell: (item) => {
+        const isEditing = editingId === item.id;
+        if (isEditing) {
+          return (
+            <div className="table-inline-actions">
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--save"
+                onClick={() => void handleSaveEdit(item.id)}
+                disabled={updateMutation.isPending}
+                title={t('debts.actions.save')}
+              >
+                ✓ {t('debts.actions.save')}
+              </button>
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--cancel"
+                onClick={handleCancelEdit}
+                disabled={updateMutation.isPending}
+                title={t('debts.actions.cancel')}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div className="table-inline-actions">
+            <button
+              type="button"
+              className="table-inline-action-btn"
+              onClick={() => handleStartEdit(item)}
+              title={t('debts.actions.edit')}
+            >
+              ✎ {t('debts.actions.edit')}
+            </button>
+            {item.remainingAmount > 0 && !item.settledAt && (
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--save"
+                onClick={() => void handleQuickSettle(item)}
+                disabled={paymentMutation.isPending}
+                title={t('debts.actions.repay')}
+              >
+                + {t('debts.actions.repay')}
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -137,6 +342,12 @@ export function DebtsScreen() {
         subtitle={t('debts.subtitle')}
         onRefresh={refresh}
       />
+
+      {toastMessage && (
+        <div className="toast-notification" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
 
       <section className="metric-grid" aria-label={t('debts.title')}>
         <article className="metric metric--positive">

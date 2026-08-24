@@ -12,4 +12,4 @@ The table displays category, note, amount, and occurrence time. It incorporates 
 
 ## Integration seams
 
-`getExpenses` calls `API_ROUTES.expenses`; `ReportsController` scopes results by access-token user ID and `FinanceService.listExpenses` filters `finance_transactions` by `type = expense`.
+`getExpenses` calls `API_ROUTES.expenses`; `updateExpense` patches expense transactions, and `deleteExpense` removes transactions via `API_ROUTES.transactions`. Custom hooks `useExpensesQuery`, `useUpdateExpenseMutation`, and `useDeleteExpenseMutation` manage queries and invalidate `expenses`, `transactions`, and `dashboard` query keys on success. `ReportsController` scopes results by access-token user ID and `FinanceService.listExpenses` filters `finance_transactions` by `type = expense`.
