@@ -10,9 +10,8 @@ Long-lived interactive list and information messages (today summary, task list, 
 
 Finance transaction confirmations (`create_finance_transaction`, `create_finance_transactions`) present structured fields (type, formatted VND amount, category, note, place name, and occurred/issued date) along with an explicit formatted JSON payload preview (`<pre><code class="language-json">...</code></pre>`) and confirmation buttons before mutating records.
 
-Debt confirmations and results (`create_debt`, `record_debt_payment`, `update_debt_contact`) present user-facing structured cards rather than raw JSON:
-- `create_debt` confirmation states direction clearly (*Cho vay (Người khác nợ bạn)* vs *Đi vay (Bạn nợ người khác)*), counterparty, alias, formatted VND amount, note, due date, and new contact notice before confirmation. The result card displays `Đã ghi khoản cho vay` or `Đã ghi khoản vay` with counterparty, alias, formatted amount, and note.
+Debt confirmations and results (`create_debt`, `record_debt_payment`, `update_debt_contact`) present user-facing structured cards. `create_debt` additionally includes an escaped, formatted JSON payload preview:
+- `create_debt` confirmation states direction clearly (*Cho vay (Người khác nợ bạn)* vs *Đi vay (Bạn nợ người khác)*), counterparty, alias, formatted VND amount, note, due date, and new contact notice before confirmation. Its JSON preview contains `direction`, `counterparty`, `amount`, `note`, and supplied optional values (`counterpartyAlias`, `dueAt`, `createNewContact`). The result card displays `Đã ghi khoản cho vay` or `Đã ghi khoản vay` with counterparty, alias, formatted amount, and note.
 - `record_debt_payment` confirmation displays payment amount, and result card shows remaining balance or settled status (*Đã tất toán*).
 - `update_debt_contact` confirmation and result cards display updated name and alias.
-
 

@@ -3,7 +3,8 @@ import '../src/styles.css';
 import { AppProviders } from '@/shared/providers/app-providers';
 
 const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-const appUrl = rawAppUrl && /^https?:\/\//i.test(rawAppUrl) ? rawAppUrl : 'https://telebot.app';
+const appUrl =
+  rawAppUrl && /^https?:\/\//i.test(rawAppUrl) ? rawAppUrl : 'https://telebot.datintech.site';
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   description:
     'Nền tảng quản lý chi tiêu, công nợ, lịch trình và ghi chú cá nhân thông minh tích hợp Telegram Bot.',
   applicationName: 'Telebot',
-  authors: [{ name: 'Telebot Team' }],
+  authors: [{ name: 'Telebot', url: 'https://telebot.datintech.site/about' }],
   generator: 'Next.js',
   keywords: [
     'telebot',
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
   ],
   creator: 'Telebot',
   publisher: 'Telebot',
+  category: 'productivity',
   formatDetection: {
     email: false,
     address: false,

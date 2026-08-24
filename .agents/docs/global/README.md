@@ -34,6 +34,7 @@ This directory contains human-facing operational guides for system-wide architec
 - [Xử lý cục bộ trước AI](local-first-ai-usage.md): Quy tắc tiết kiệm token và giảm dữ liệu gửi tới AI.
 - [Phiên Dashboard và các trang web](dashboard-session.md): One-time exchange token, thời hạn phiên, phân quyền danh bạ và kiểm tra UI.
 - [Google Tasks: tạo một hoặc nhiều việc](google-tasks.md): Cảnh báo task có khả năng trùng, xác nhận batch, kết quả thành công một phần và aliases `/task`/`/tasks`.
+- [Công khai web và xác minh Google OAuth](google-oauth-public-verification.md): Scope tối thiểu, trang pháp lý public và checklist nộp Google.
 - [Bố cục phản hồi Telegram](telegram-response-layout.md): Quy tắc response gọn và các nút inline thân thiện màn hình điện thoại.
 - [Nhận lệnh Telegram](telegram-command-intake.md): Quy tắc long polling, webhook thay thế và kiểm tra `/help`.
 - [Phân tích ảnh hoá đơn và thu-chi](receipt-image-analysis.md): Đọc ảnh trong bộ nhớ, đề xuất giao dịch và bắt buộc xác nhận.

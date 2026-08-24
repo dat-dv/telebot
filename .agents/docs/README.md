@@ -34,3 +34,4 @@ Thư mục này chứa toàn bộ tài liệu hướng dẫn dành cho lập tr�
 5. **Hard Completion Gate**: Một nhiệm vụ `implement` chỉ hoàn thành khi đã cập nhật song song cả **Tri thức AI Agent (`.agents/knowledge/`)** và **Hướng dẫn Lập trình viên (`.agents/docs/`)**.
 6. **CRUD backend**: Tài liệu vận hành cho finance, reminders, users và google nằm trong [`modules/README.md`](modules/README.md); mọi endpoint ghi dữ liệu phải dùng dashboard access token và kiểm tra ownership/phân quyền tương ứng.
 7. **Đa ngôn ngữ**: Chuẩn locale dùng chung, cách đổi ngôn ngữ Telegram và cookie dashboard nằm ở [`global/i18n.md`](global/i18n.md).
+8. **Google OAuth public**: Scope được xin phải đúng tính năng đã phát hành; các URL `/about`, `/privacy` và `/terms` cùng checklist Google review nằm ở [`global/google-oauth-public-verification.md`](global/google-oauth-public-verification.md).

@@ -17,24 +17,8 @@ export const GOOGLE_SCOPES = [
   // 2. Google Calendar (Toàn quyền quản lý lịch trình & sự kiện)
   'https://www.googleapis.com/auth/calendar',
 
-  // 3. Google Tasks (Toàn quyền quản lý To-Do list & công việc)
+  // 3. Google Tasks (quản lý To-Do list & công việc)
   'https://www.googleapis.com/auth/tasks',
-
-  // 4. Gmail (Đọc, gửi, soạn thảo và quản lý hộp thư)
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.send',
-
-  // 5. Google Drive (Tìm kiếm, tải lên và quản lý tệp tin)
-  'https://www.googleapis.com/auth/drive',
-
-  // 6. Google Sheets (Đọc & ghi bảng tính, theo dõi chi tiêu, dữ liệu)
-  'https://www.googleapis.com/auth/spreadsheets',
-
-  // 7. Google Docs (Tạo và chỉnh sửa tài liệu văn bản)
-  'https://www.googleapis.com/auth/documents',
-
-  // 8. Google Contacts / People (Tìm kiếm danh bạ, số điện thoại, email)
-  'https://www.googleapis.com/auth/contacts',
 ];
 
 @Injectable()

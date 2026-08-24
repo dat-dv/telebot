@@ -394,8 +394,18 @@ export class TelegramUiService {
       const dueLine = dueFormatted ? `\n⏳ Hạn trả: <i>${this.escapeHtml(dueFormatted)}</i>` : '';
       const contactLine =
         payload.createNewContact === true ? '\n👤 Danh bạ: <i>Lưu liên hệ mới vào danh bạ</i>' : '';
+      const jsonPayload = {
+        direction: payload.direction,
+        counterparty: payload.counterparty,
+        ...(payload.counterpartyAlias ? { counterpartyAlias: payload.counterpartyAlias } : {}),
+        amount: payload.amount,
+        note: payload.note,
+        ...(payload.dueAt ? { dueAt: payload.dueAt } : {}),
+        ...(payload.createNewContact === true ? { createNewContact: true } : {}),
+      };
+      const jsonBlock = `<pre><code class="language-json">${this.escapeHtml(JSON.stringify(jsonPayload, null, 2))}</code></pre>`;
 
-      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu vào sổ nợ.`;
+      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\n📄 <b>Payload JSON:</b>\n${jsonBlock}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu vào sổ nợ.`;
     }
     if (name === 'record_debt_payment') {
       const amount =

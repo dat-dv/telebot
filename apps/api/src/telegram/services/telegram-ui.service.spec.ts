@@ -355,8 +355,14 @@ void test('formats create_debt confirmation box for receivable loan with alias a
   assert.match(message, /chưa trả/);
   assert.match(message, /Hạn trả/);
   assert.match(message, /Lưu liên hệ mới vào danh bạ/);
+  assert.match(message, /Payload JSON/);
+  assert.match(message, /"direction": "receivable"/);
+  assert.match(message, /"counterparty": "Trí"/);
+  assert.match(message, /"counterpartyAlias": "Trí Đen"/);
+  assert.match(message, /"amount": 500000/);
+  assert.match(message, /"dueAt": "2026-08-30T17:00:00\.000Z"/);
+  assert.match(message, /"createNewContact": true/);
   assert.match(message, /REQ-DEBT001/);
-  assert.doesNotMatch(message, /<pre>.*JSON.*<\/pre>/s);
 });
 
 void test('formats create_debt confirmation box for payable debt without due date', () => {
@@ -376,7 +382,14 @@ void test('formats create_debt confirmation box for payable debt without due dat
   assert.match(message, /Lan/);
   assert.match(message, /200\.000đ/);
   assert.match(message, /tiền ăn trưa/);
+  assert.match(message, /Payload JSON/);
+  assert.match(message, /"direction": "payable"/);
+  assert.match(message, /"counterparty": "Lan"/);
+  assert.match(message, /"amount": 200000/);
   assert.doesNotMatch(message, /Hạn trả/);
+  assert.doesNotMatch(message, /"counterpartyAlias"/);
+  assert.doesNotMatch(message, /"dueAt"/);
+  assert.doesNotMatch(message, /"createNewContact"/);
 });
 
 void test('formats create_debt result box for receivable and payable', () => {

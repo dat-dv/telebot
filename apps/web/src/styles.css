@@ -24,6 +24,60 @@ body {
   line-height: 1.4;
 }
 
+/* Public product and legal pages */
+.public-page,
+.legal-page {
+  background: #f8fafc;
+  color: #0f172a;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.public-page { max-width: 1120px; }
+.legal-page { max-width: 860px; }
+
+.public-header,
+.legal-header,
+.public-footer {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.public-header nav,
+.public-footer { display: flex; flex-wrap: wrap; }
+.public-header a:not(.public-brand), .legal-header > a:not(.public-brand), .public-footer a, .legal-page article a { color: #1d4ed8; text-decoration: none; }
+.public-header a:not(.public-brand):hover, .legal-header > a:not(.public-brand):hover, .public-footer a:hover, .legal-page article a:hover { text-decoration: underline; }
+
+.public-brand { align-items: center; color: #0f172a; display: inline-flex; font-size: 18px; font-weight: 800; gap: 8px; text-decoration: none; }
+.public-brand span { align-items: center; background: #0f172a; border-radius: 5px; color: #fff; display: inline-flex; font-size: 11px; height: 28px; justify-content: center; width: 28px; }
+
+.public-hero { max-width: 750px; padding: 120px 0 88px; }
+.public-eyebrow { color: #475569; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.public-hero h1 { font-size: clamp(38px, 7vw, 72px); letter-spacing: -.06em; line-height: .98; margin: 16px 0 22px; }
+.public-hero > p:not(.public-eyebrow) { color: #475569; font-size: 18px; line-height: 1.65; max-width: 640px; }
+.public-button { background: #0f172a; border-radius: 6px; color: #fff; display: inline-flex; font-weight: 700; margin-top: 18px; padding: 13px 18px; text-decoration: none; }
+.public-button:hover { background: #1e293b; }
+.public-grid { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); padding-bottom: 72px; }
+.public-grid article { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; }
+.public-grid h2 { font-size: 16px; margin: 0 0 8px; }
+.public-grid p { color: #475569; line-height: 1.6; margin: 0; }
+.public-footer { border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; padding: 22px 0; }
+.legal-page article { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin: 50px 0 28px; padding: clamp(24px, 6vw, 64px); }
+.legal-page h1 { font-size: clamp(34px, 6vw, 54px); letter-spacing: -.05em; margin: 14px 0 34px; }
+.legal-page h2 { font-size: 19px; margin: 36px 0 12px; }
+.legal-page p, .legal-page li { color: #334155; font-size: 15px; line-height: 1.75; }
+.legal-page ul { padding-left: 22px; }
+
+@media (max-width: 680px) {
+  .public-page, .legal-page { padding: 18px; }
+  .public-header, .legal-header { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .public-hero { padding: 72px 0 54px; }
+  .public-grid { grid-template-columns: 1fr; }
+}
+
 /* ==========================================================================
    Base Form & Interactive Controls
    ========================================================================== */
@@ -2596,4 +2650,3 @@ html[data-theme='dark'] .calendar-event-card--editing {
   background: #090d16;
   border-color: #3b82f6;
 }
-

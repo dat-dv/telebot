@@ -21,8 +21,8 @@ Các tin nhắn danh sách/thông tin có nút thao tác dài hạn — tổng k
 
 Hộp xác nhận thu–chi (`create_finance_transaction`, `create_finance_transactions`) hiển thị thẻ thông tin giao dịch trực quan (loại, số tiền VND, danh mục, nội dung, ngày phát sinh) cùng khối JSON payload xem trước (`<pre><code class="language-json">...</code></pre>`) để người dùng đối chiếu trước khi bấm Xác nhận. Mặc định mốc phát sinh là thời điểm hiện tại, trừ khi người dùng chỉ định thời gian quá khứ (input muộn).
 
-Hộp xác nhận và kết quả công nợ (`create_debt`, `record_debt_payment`, `update_debt_contact`) hiển thị thẻ giao diện trực quan thay vì in JSON kỹ thuật thô:
-- Hộp xác nhận `create_debt`: Nêu rõ chiều công nợ (*Cho vay (Người khác nợ bạn)* hoặc *Đi vay (Bạn nợ người khác)*), tên đối tác, biệt danh, số tiền format VND, ghi chú, hạn trả và ghi chú thêm người mới vào danh bạ (nếu có).
+Hộp xác nhận và kết quả công nợ (`create_debt`, `record_debt_payment`, `update_debt_contact`) hiển thị thẻ giao diện trực quan. Riêng `create_debt` có thêm khối JSON payload đã format và escape để người dùng đối chiếu:
+- Hộp xác nhận `create_debt`: Nêu rõ chiều công nợ (*Cho vay (Người khác nợ bạn)* hoặc *Đi vay (Bạn nợ người khác)*), tên đối tác, biệt danh, số tiền format VND, ghi chú, hạn trả và ghi chú thêm người mới vào danh bạ (nếu có). Khối JSON gồm `direction`, `counterparty`, `amount`, `note` và chỉ thêm `counterpartyAlias`, `dueAt`, `createNewContact` khi có giá trị.
 - Thẻ kết quả `create_debt`: Hiển thị rõ `Đã ghi khoản cho vay` hoặc `Đã ghi khoản vay` kèm đối tác, biệt danh, số tiền và ghi chú.
 - Hộp xác nhận & kết quả `record_debt_payment`: Thể hiện số tiền trả, đối tác và trạng thái còn lại hoặc tất toán (*Đã tất toán*).
 - Hộp xác nhận & kết quả `update_debt_contact`: Thể hiện tên và biệt danh mới được cập nhật.
@@ -32,10 +32,9 @@ Hộp xác nhận và kết quả công nợ (`create_debt`, `record_debt_paymen
 1. Danh sách task có hai nút hoàn tất ngắn trên một hàng và mỗi nút vẫn trỏ đúng `complete_task:<id>`.
 2. Kết quả hoàn thành task chỉ hiển thị trạng thái và tên việc, không in JSON kỹ thuật.
 3. Hộp xác nhận thu–chi hiển thị thẻ tóm tắt, ngày phát sinh và khối JSON preview đầy đủ các trường `type`, `amount`, `category`, `note`, `occurredAt`.
-4. Hộp xác nhận công nợ `create_debt` hiển thị rõ chiều công nợ, đối tác, số tiền, ghi chú, không in raw JSON string. Kết quả hiển thị đúng định dạng khoản vay/cho vay.
+4. Hộp xác nhận công nợ `create_debt` hiển thị rõ chiều công nợ, đối tác, số tiền, ghi chú và JSON payload preview; các trường tùy chọn chỉ xuất hiện khi có dữ liệu. Kết quả hiển thị đúng định dạng khoản vay/cho vay.
 5. Mở Calendar hoặc Reminder trên điện thoại: các nút ngắn được ghép hàng nhưng vẫn đọc đủ nhãn.
 6. Mở `/debts`, `/tasks`, `/status`, `/users` hoặc Dashboard/Báo cáo, bấm `❌ Đóng`: tin nhắn bị xóa hoặc không còn bàn phím inline nếu thao tác xóa bị Telegram từ chối.
 7. Mở `/today` và `/week`: mỗi nút làm mới phải nêu đúng phạm vi và chỉ tải lại đúng báo cáo đó. Menu phải hiển thị `💳 Công nợ đang mở`.
 8. Gửi phản hồi có `&#x20;` và URL chứa `\\&`: chat phải hiển thị khoảng trắng và dấu `&` bình thường.
-
 

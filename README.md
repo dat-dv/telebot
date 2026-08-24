@@ -33,8 +33,9 @@ Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, đượ
   - `complete_task`: Đánh dấu hoàn thành việc cần làm.
   - `login_google`: **(MỚI)** AI tự tạo link đăng nhập Google cá nhân hóa khi người dùng hỏi.
   - `create_invite_link`: **(MỚI - Admin Only)** AI tự tạo link mời bạn bè khi Admin ra lệnh.
-- **Trọn Bộ Google Workspace Scopes Đã Cấp Quyền Sẵn**:
-  - Hỗ trợ toàn bộ: Calendar, Tasks, Gmail, Drive, Sheets, Docs, Contacts/People API.
+- **Google Workspace scopes tối thiểu**:
+  - Chỉ yêu cầu Calendar và Tasks cùng thông tin định danh cơ bản, đúng với tính năng đang phát hành.
+  - Các trang public phục vụ OAuth verification: `/about`, `/privacy`, `/terms`.
 - **Private Guard Yêu Cầu Đăng Nhập Google Bắt Buộc**:
   - Chặn người lạ, chỉ cho phép người dùng trong danh sách trắng / được mời.
   - Bắt buộc đăng nhập Google mới được sử dụng các tính năng chat thông thường.

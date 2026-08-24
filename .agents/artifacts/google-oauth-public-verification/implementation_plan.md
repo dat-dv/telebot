@@ -48,3 +48,12 @@ Chuẩn bị Telebot thành một ứng dụng OAuth công khai, có đầy đ�
 ## Cần bạn duyệt
 
 Vui lòng xác nhận kế hoạch này và cho biết domain production muốn dùng (ví dụ `telebot.app`) cùng email hỗ trợ hiển thị công khai. Sau đó mình sẽ bắt đầu triển khai.
+
+## Kết quả triển khai (24/08/2026)
+
+- Đã dùng domain production đã ghi nhận của dự án: `https://telebot.datintech.site` và email hỗ trợ `datdoan.dev@gmail.com`.
+- Đã tạo các trang public `/about`, `/privacy`, `/terms`, cùng `robots.txt` và `sitemap.xml`.
+- Đã giới hạn scope OAuth còn profile/email, Calendar và Google Tasks; các scope chưa có tính năng phát hành đã bị loại bỏ.
+- Đã đồng bộ README, hướng dẫn vận hành và canonical knowledge.
+- Đạt: web build, web typecheck, web lint, API typecheck, API test (49 tests), và `git diff --check`.
+- Chưa tự deploy: worktree đã có thay đổi người dùng chưa liên quan từ trước trong các file liên quan đến deploy/tài liệu; không thể commit/push an toàn mà không đưa các thay đổi đó lên production. Khi worktree được tách sạch hoặc các thay đổi đó được người sở hữu xử lý, commit riêng phần này để Coolify tự deploy.

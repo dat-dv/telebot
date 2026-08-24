@@ -12,6 +12,7 @@ This directory contains system-wide business policies, cross-cutting architectur
 - [Local-First AI Usage](local-first-ai-usage.md): Token-conserving local extraction and minimal AI interpretation policy.
 - [Dashboard Session and Pages](dashboard-session.md): One-time Telegram exchange, access/refresh policy, contacts isolation, and web views.
 - [Google Tasks Commands](google-tasks.md): Single and batch task creation, confirmation, and partial-failure behavior.
+- [Public Google OAuth Verification](google-oauth-public-verification.md): Minimal scope contract, public policy pages, and production review requirements.
 - [Telegram Response Layout](telegram-response-layout.md): Compact response hierarchy and mobile-safe inline action rows.
 - [Telegram Command Intake](telegram-command-intake.md): Long-polling ownership and command-response fallback checks.
 - [Receipt Image Analysis](receipt-image-analysis.md): In-memory image analysis and confirmation-gated finance proposals.

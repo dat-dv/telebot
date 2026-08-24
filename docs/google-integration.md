@@ -1,6 +1,6 @@
 # 📅 Tích Hợp Google Workspace & Quản Lý Token Trong PostgreSQL (OAuth2)
 
-Tài liệu này mô tả chi tiết cách thức xác thực Google OAuth 2.0 theo từng người dùng độc lập, danh sách toàn bộ các Scopes Google Workspace đã kích hoạt sẵn, cấu hình Client Credentials qua biến môi trường và lưu trữ Token trong **PostgreSQL** (`user_tokens`).
+Tài liệu này mô tả cách xác thực Google OAuth 2.0 theo từng người dùng độc lập, các scope đang được dùng thực tế, cấu hình Client Credentials qua biến môi trường và lưu trữ Token trong **PostgreSQL** (`user_tokens`).
 
 ---
 
@@ -29,9 +29,9 @@ graph TD
 
 ---
 
-## 2. Toàn Bộ Quyền Google Workspace Đã Kích Hoạt Sẵn (Full Scopes)
+## 2. Quyền Google Workspace đang dùng
 
-Hệ thống đã khai báo sẵn toàn bộ các quyền của hệ sinh thái Google Workspace miễn phí trong `src/google/google-auth.service.ts`:
+Hệ thống chỉ yêu cầu các quyền khớp với tính năng đã phát hành trong `src/google/google-auth.service.ts`:
 
 ```typescript
 export const GOOGLE_SCOPES = [
@@ -40,32 +40,20 @@ export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
 
-  // 2. Google Calendar (Toàn quyền quản lý lịch trình & sự kiện)
+  // 2. Google Calendar
   'https://www.googleapis.com/auth/calendar',
 
-  // 3. Google Tasks (Toàn quyền quản lý To-Do list & công việc)
+  // 3. Google Tasks
   'https://www.googleapis.com/auth/tasks',
-
-  // 4. Gmail (Đọc, gửi, soạn thảo và quản lý hộp thư)
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.send',
-
-  // 5. Google Drive (Tìm kiếm, tải lên và quản lý tệp tin)
-  'https://www.googleapis.com/auth/drive',
-
-  // 6. Google Sheets (Đọc & ghi bảng tính, theo dõi chi tiêu, dữ liệu)
-  'https://www.googleapis.com/auth/spreadsheets',
-
-  // 7. Google Docs (Tạo và chỉnh sửa tài liệu văn bản)
-  'https://www.googleapis.com/auth/documents',
-
-  // 8. Google Contacts / People (Tìm kiếm danh bạ, số điện thoại, email)
-  'https://www.googleapis.com/auth/contacts',
 ];
 ```
 
-> [!TIP]
-> Nhờ việc khai báo đầy đủ các scope này ngay từ đầu, người dùng chỉ cần đăng nhập **1 lần duy nhất**. Khi bạn phát triển thêm các tính năng gửi Gmail, đọc Google Sheets hay tra cứu danh bạ sau này, người dùng **không cần phải đăng nhập lại**!
+> [!IMPORTANT]
+> Không xin scope cho tính năng chưa có. Khi thêm Gmail, Drive, Sheets, Docs hoặc Contacts trong tương lai, phải triển khai tính năng tương ứng, cập nhật Privacy Policy và nộp scope mới cho Google trước khi public.
+
+## 2.1 Chuẩn bị Google OAuth verification
+
+Sau khi deploy HTTPS domain, dùng các URL public `/about`, `/privacy` và `/terms` trên domain đó để khai báo OAuth consent screen. Authorized redirect URI phải khớp chính xác với `${APP_URL}/api/oauth2callback`. Trong Google Cloud Console, chỉ bật Calendar API và Tasks API cho phạm vi hiện tại, xác minh domain, sau đó nộp Verification Center kèm video demo luồng kết nối và sử dụng Calendar/Tasks.
 
 ---
 
