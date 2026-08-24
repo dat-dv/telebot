@@ -8,7 +8,7 @@
 
 ## UI and state
 
-The table shows direction, counterparty, original and remaining amounts, due date, and note. It includes KPI summary metrics for total receivable and payable balances, direction filter pills (All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. Its report canvas uses the full available desktop width after navigation, while small screens retain horizontal table scrolling. It supports loading, empty, success, and retryable-error states.
+The table shows direction, counterparty, original and remaining amounts, due date, and note. It includes KPI summary metrics for total receivable and payable balances, direction filter pills (All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. The table utilizes `DataTable` with column persistence (`id="debts"`), defined column minimum widths (`minWidth`), and non-hideable core columns (`counterparty`, `remainingAmount`). Its report canvas uses the full available desktop width after navigation, while small screens retain horizontal table scrolling. It supports loading, empty, success, and retryable-error states.
 
 ## Integration seams
 

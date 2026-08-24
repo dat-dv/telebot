@@ -288,6 +288,10 @@ ${ocrText}`;
     if (!this.confirmationRequiredTools.has(name) || !this.toolsMap.has(name)) {
       throw new Error(`Thao tác ${name} không được phép đưa vào hàng chờ xác nhận.`);
     }
+    const finalPayload = { ...payload };
+    if (name === 'create_finance_transaction' && !finalPayload.occurredAt) {
+      finalPayload.occurredAt = this.getCurrentTimeInfo().nowIso;
+    }
     const id = randomUUID();
     const referenceId = `REQ-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
     this.pendingActions.set(id, {
@@ -295,10 +299,10 @@ ${ocrText}`;
       userId,
       botUsername,
       name,
-      payload,
+      payload: finalPayload,
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
-    return { id, referenceId, name, payload };
+    return { id, referenceId, name, payload: finalPayload };
   }
 
   private getGenerativeModel(modelName: string): GenerativeModel {

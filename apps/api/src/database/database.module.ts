@@ -9,6 +9,7 @@ import { ReminderEntity } from './entities/reminder.entity';
 import { FinanceTransactionEntity } from './entities/finance-transaction.entity';
 import { DebtEntity } from './entities/debt.entity';
 import { DebtContactEntity } from './entities/debt-contact.entity';
+import { DebtPaymentEntity } from './entities/debt-payment.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { DashboardExchangeTokenEntity } from './entities/dashboard-exchange-token.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
@@ -34,6 +35,7 @@ import { fromProjectRoot } from '../config/project-root';
             FinanceTransactionEntity,
             DebtEntity,
             DebtContactEntity,
+            DebtPaymentEntity,
             AuditLogEntity,
             DashboardExchangeTokenEntity,
           ],
@@ -51,6 +53,7 @@ import { fromProjectRoot } from '../config/project-root';
       FinanceTransactionEntity,
       DebtEntity,
       DebtContactEntity,
+      DebtPaymentEntity,
       AuditLogEntity,
       DashboardExchangeTokenEntity,
     ]),

@@ -64,6 +64,7 @@ export function DebtsScreen() {
     {
       id: 'direction',
       header: t('dashboard.columns.direction'),
+      minWidth: '80px',
       cell: (item) => (
         <span
           className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
@@ -77,6 +78,8 @@ export function DebtsScreen() {
     {
       id: 'counterparty',
       header: t('dashboard.columns.counterparty'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           {item.counterparty}
@@ -88,22 +91,41 @@ export function DebtsScreen() {
       id: 'originalAmount',
       header: t('dashboard.columns.original'),
       align: 'right',
+      minWidth: '120px',
       cell: (item) => <span>{money(item.originalAmount)}</span>,
     },
     {
       id: 'remainingAmount',
       header: t('dashboard.columns.remaining'),
       align: 'right',
+      minWidth: '130px',
+      hideable: false,
       cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
+    },
+    {
+      id: 'currency',
+      header: t('debts.columns.currency'),
+      minWidth: '80px',
+      cell: (item) => <span className="badge">{item.currency || 'VND'}</span>,
     },
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
+      minWidth: '110px',
       cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
+    },
+    {
+      id: 'settledAt',
+      header: t('debts.columns.settledAt'),
+      minWidth: '120px',
+      cell: (item) => (
+        <span className="cell-muted">{item.settledAt ? date(item.settledAt) : '—'}</span>
+      ),
     },
     {
       id: 'note',
       header: t('dashboard.columns.note'),
+      minWidth: '150px',
       cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
     },
   ];
@@ -181,6 +203,7 @@ export function DebtsScreen() {
             }
           >
             <DataTable
+              id="debts"
               ariaLabel={t('debts.title')}
               rows={filteredDebts}
               loading={debts.isLoading}

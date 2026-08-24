@@ -129,6 +129,57 @@ export class TelegramUiService {
     ]);
   }
 
+  /**
+   * Builds interactive buttons for reminders list with 1-click cancel
+   */
+  public buildRemindersMarkup(
+    reminders: Array<{
+      id?: string | null;
+      title?: string | null;
+      remindAt?: Date | string | null;
+    }>,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ) {
+    const valid = reminders.filter((r) => r.id && r.title);
+    if (valid.length === 0) {
+      return Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            translate(locale, 'telegram.reminders.refresh'),
+            'action:refresh_reminders',
+          ),
+        ],
+        [Markup.button.callback(translate(locale, 'telegram.reminders.close'), 'message:close')],
+      ]);
+    }
+
+    const buttons = valid
+      .slice(0, 6)
+      .map((r, index) =>
+        Markup.button.callback(
+          translate(locale, 'telegram.reminders.cancelButton', { index: index + 1 }),
+          `cancel_reminder:${r.id}`,
+        ),
+      );
+    const inlineButtons = buttons.reduce<Array<(typeof buttons)[number][]>>(
+      (rows, button, index) => {
+        if (index % 2 === 0) rows.push([button]);
+        else rows[rows.length - 1].push(button);
+        return rows;
+      },
+      [],
+    );
+    inlineButtons.push([
+      Markup.button.callback(
+        translate(locale, 'telegram.reminders.refresh'),
+        'action:refresh_reminders',
+      ),
+      Markup.button.callback(translate(locale, 'telegram.reminders.close'), 'message:close'),
+    ]);
+
+    return Markup.inlineKeyboard(inlineButtons);
+  }
+
   public buildConfirmationMarkup(actionId: string) {
     return Markup.inlineKeyboard([
       [
@@ -150,6 +201,46 @@ export class TelegramUiService {
     return `🎙️ <b>BẠN YÊU CẦU</b>\n\n<blockquote>${this.escapeHtml(transcript)}</blockquote>\n\nKiểm tra nội dung trước khi gửi cho trợ lý.`;
   }
 
+  private formatTaskDue(due?: unknown): string {
+    if (typeof due !== 'string' || !due.trim()) return '';
+    try {
+      const parsedDate = new Date(due);
+      if (Number.isNaN(parsedDate.getTime())) return due.trim();
+      return new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(parsedDate);
+    } catch {
+      return due.trim();
+    }
+  }
+
+  private formatFinanceOccurredAt(occurredAt?: unknown): string {
+    if (typeof occurredAt !== 'string' || !occurredAt.trim()) return '';
+    try {
+      const parsedDate = new Date(occurredAt);
+      if (Number.isNaN(parsedDate.getTime())) return occurredAt.trim();
+      return new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(parsedDate);
+    } catch {
+      return occurredAt.trim();
+    }
+  }
+
   public formatConfirmationBox(
     name: string,
     payload: Record<string, unknown>,
@@ -161,7 +252,21 @@ export class TelegramUiService {
         typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
       const category = typeof payload.category === 'string' ? payload.category : 'Khác';
       const note = typeof payload.note === 'string' ? payload.note : 'Chưa có mô tả';
-      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
+      const occurredAtFormatted = this.formatFinanceOccurredAt(payload.occurredAt);
+      const occurredAtLine = occurredAtFormatted
+        ? `\n📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`
+        : '';
+
+      const jsonPayload = {
+        type: payload.type,
+        amount: payload.amount,
+        category: payload.category || 'Khác',
+        note: payload.note,
+        ...(payload.occurredAt ? { occurredAt: payload.occurredAt } : {}),
+      };
+      const jsonBlock = `<pre><code class="language-json">${this.escapeHtml(JSON.stringify(jsonPayload, null, 2))}</code></pre>`;
+
+      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${occurredAtLine}\n\n📄 <b>Payload JSON:</b>\n${jsonBlock}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
     }
     if (name === 'create_task' || name === 'create_tasks') {
       const tasks =
@@ -175,8 +280,14 @@ export class TelegramUiService {
             : [];
       const taskLines = tasks.map((task, index) => {
         const title = typeof task.title === 'string' ? task.title : 'Chưa rõ';
-        const notes = typeof task.notes === 'string' && task.notes.trim() ? ` — ${task.notes}` : '';
-        return `${index + 1}. <b>${this.escapeHtml(title)}</b>${this.escapeHtml(notes)}`;
+        const notes =
+          typeof task.notes === 'string' && task.notes.trim()
+            ? `\n   📝 <i>${this.escapeHtml(task.notes.trim())}</i>`
+            : '';
+        const dueFormatted = this.formatTaskDue(task.due);
+        const due = dueFormatted ? `\n   ⏳ <i>Hạn chót: ${this.escapeHtml(dueFormatted)}</i>` : '';
+        const prefix = tasks.length > 1 ? `${index + 1}. ` : '';
+        return `${prefix}<b>${this.escapeHtml(title)}</b>${notes}${due}`;
       });
       const warnings = Array.isArray(payload.duplicateWarnings)
         ? (payload.duplicateWarnings as Array<Record<string, unknown>>)
@@ -201,7 +312,8 @@ export class TelegramUiService {
         })
         .filter(Boolean)
         .join('\n\n');
-      return `⚠️ <b>XÁC NHẬN THÊM VIỆC</b>\n\n${taskLines.join('\n')}${warningText ? `\n\n${warningText}\n\nBạn vẫn có thể xác nhận nếu đây là các việc riêng.` : ''}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thêm.`;
+      const separator = tasks.length > 1 ? '\n\n' : '\n';
+      return `⚠️ <b>XÁC NHẬN THÊM VIỆC</b>\n\n${taskLines.join(separator)}${warningText ? `\n\n${warningText}\n\nBạn vẫn có thể xác nhận nếu đây là các việc riêng.` : ''}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thêm.`;
     }
     return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\n<pre>${this.escapeHtml(JSON.stringify(payload, null, 2))}</pre>\nKiểm tra rồi bấm Xác nhận.`;
   }
@@ -219,10 +331,28 @@ export class TelegramUiService {
       return `⚠️ <b>Chưa thực hiện được</b>\n${this.escapeHtml(error)}`;
     }
 
+    if (name === 'create_finance_transaction') {
+      const tx = result.transaction as Record<string, unknown> | undefined;
+      const typeText = tx?.type === 'income' ? 'Khoản thu' : 'Khoản chi';
+      const amountText =
+        typeof tx?.amountText === 'string'
+          ? tx.amountText
+          : typeof tx?.amount === 'number'
+            ? this.formatMoney(tx.amount)
+            : '';
+      const noteText = typeof tx?.note === 'string' ? tx.note : '';
+      const categoryText =
+        typeof tx?.category === 'string' && tx.category !== 'Khác' ? ` (${tx.category})` : '';
+      const occurredAtText = this.formatFinanceOccurredAt(tx?.occurredAt);
+      const dateSuffix = occurredAtText ? ` · 📅 ${occurredAtText}` : '';
+      return `✅ <b>Đã ghi sổ thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(dateSuffix)}`;
+    }
     if (name === 'create_task') {
       const task = result.task as Record<string, unknown> | undefined;
       const title = typeof task?.title === 'string' ? task.title : 'Công việc mới';
-      return `✅ <b>Đã thêm việc</b> · ${this.escapeHtml(title)}`;
+      const dueFormatted = this.formatTaskDue(task?.due);
+      const dueText = dueFormatted ? ` (Hạn: ${dueFormatted})` : '';
+      return `✅ <b>Đã thêm việc</b> · ${this.escapeHtml(title)}${this.escapeHtml(dueText)}`;
     }
     if (name === 'create_tasks') {
       const created: unknown[] = Array.isArray(result.created) ? result.created : [];

@@ -18,6 +18,18 @@ export class UserEntity {
   @Column({ type: 'varchar', default: 'vi' })
   preferredLocale: SupportedLocale;
 
+  @Column({ type: 'varchar', default: 'Asia/Ho_Chi_Minh' })
+  timezone: string;
+
+  @Column({ name: 'phone_number', type: 'varchar', nullable: true })
+  phoneNumber?: string;
+
+  @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
+  avatarUrl?: string;
+
+  @Column({ type: 'varchar', default: 'active' })
+  status: 'active' | 'suspended';
+
   @CreateDateColumn()
   createdAt: Date;
 

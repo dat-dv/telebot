@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
+import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
 
 export interface CreateFinanceTransactionDto {
   userId: number;
   type: 'income' | 'expense';
   amount: number;
+  currency?: string;
   category?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
   note: string;
   occurredAt?: string;
 }
@@ -29,6 +34,7 @@ export interface CreateDebtDto {
   contactId?: string;
   createNewContact?: boolean;
   amount: number;
+  currency?: string;
   note?: string;
   dueAt?: string;
 }
@@ -36,7 +42,11 @@ export interface CreateDebtDto {
 export interface UpdateTransactionDto {
   type?: 'income' | 'expense';
   amount?: number;
+  currency?: string;
   category?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
   note?: string;
   occurredAt?: string;
 }
@@ -44,8 +54,23 @@ export interface UpdateTransactionDto {
 export interface UpdateDebtDto {
   direction?: 'receivable' | 'payable';
   amount?: number;
+  currency?: string;
   note?: string;
   dueAt?: string;
+}
+
+export interface CombineContactsDto {
+  targetContactId: string;
+  sourceContactIds: string[];
+  displayName?: string;
+  alias?: string;
+  descriptor?: string;
+}
+
+export interface CombineContactsResult {
+  targetContact: DebtContactEntity;
+  affectedDebtsCount: number;
+  mergedCount: number;
 }
 
 @Injectable()
@@ -57,6 +82,8 @@ export class FinanceService {
     private readonly debtRepo: Repository<DebtEntity>,
     @InjectRepository(DebtContactEntity)
     private readonly contactRepo: Repository<DebtContactEntity>,
+    @InjectRepository(DebtPaymentEntity)
+    private readonly debtPaymentRepo: Repository<DebtPaymentEntity>,
   ) {}
 
   public async createTransaction(
@@ -81,7 +108,11 @@ export class FinanceService {
       userId: dto.userId.toString(),
       type: dto.type,
       amount,
+      currency: dto.currency?.trim() || 'VND',
       category: dto.category?.trim() || 'Khác',
+      paymentMethod: dto.paymentMethod?.trim() || undefined,
+      receiptUrl: dto.receiptUrl?.trim() || undefined,
+      contactId: dto.contactId || undefined,
       note,
       occurredAt,
     });
@@ -147,7 +178,13 @@ export class FinanceService {
       if (!Number.isFinite(amount) || amount <= 0) throw new Error('Số tiền phải lớn hơn 0.');
       transaction.amount = amount;
     }
+    if (input.currency !== undefined) transaction.currency = input.currency.trim() || 'VND';
     if (input.category !== undefined) transaction.category = input.category.trim() || 'Khác';
+    if (input.paymentMethod !== undefined)
+      transaction.paymentMethod = input.paymentMethod.trim() || undefined;
+    if (input.receiptUrl !== undefined)
+      transaction.receiptUrl = input.receiptUrl.trim() || undefined;
+    if (input.contactId !== undefined) transaction.contactId = input.contactId || undefined;
     if (input.note !== undefined) {
       if (!input.note.trim()) throw new Error('Cần có nội dung cho khoản thu hoặc chi.');
       transaction.note = input.note.trim();
@@ -208,6 +245,7 @@ export class FinanceService {
         counterpartyAlias: contact.alias,
         originalAmount: amount,
         remainingAmount: amount,
+        currency: dto.currency?.trim() || 'VND',
         note: dto.note?.trim() || '',
         dueAt,
         status: 'active',
@@ -256,6 +294,12 @@ export class FinanceService {
     userId: number,
     name: string,
     alias?: string,
+    descriptor?: string,
+    phoneNumber?: string,
+    bankAccountNumber?: string,
+    bankCode?: string,
+    bankName?: string,
+    avatarUrl?: string,
   ): Promise<DebtContactEntity> {
     const displayName = name?.trim();
     if (!displayName) throw new Error('Cần có tên người liên quan.');
@@ -264,6 +308,12 @@ export class FinanceService {
         userId: userId.toString(),
         displayName,
         alias: alias?.trim() || undefined,
+        descriptor: descriptor?.trim() || undefined,
+        phoneNumber: phoneNumber?.trim() || undefined,
+        bankAccountNumber: bankAccountNumber?.trim() || undefined,
+        bankCode: bankCode?.trim() || undefined,
+        bankName: bankName?.trim() || undefined,
+        avatarUrl: avatarUrl?.trim() || undefined,
         normalizedName: this.normalizeIdentity(displayName),
         normalizedAlias: alias ? this.normalizeIdentity(alias) : undefined,
       }),
@@ -284,6 +334,7 @@ export class FinanceService {
     return this.debtRepo
       .createQueryBuilder('debt')
       .leftJoinAndSelect('debt.contact', 'contact')
+      .leftJoinAndSelect('debt.payments', 'payments')
       .where('debt.user_id = :userId', { userId: userId.toString() })
       .andWhere('debt.status = :status', { status: 'active' })
       .orderBy('debt.created_at', 'DESC')
@@ -294,6 +345,7 @@ export class FinanceService {
     const query = this.debtRepo
       .createQueryBuilder('debt')
       .leftJoinAndSelect('debt.contact', 'contact')
+      .leftJoinAndSelect('debt.payments', 'payments')
       .where('debt.user_id = :userId', { userId: userId.toString() });
     if (status) query.andWhere('debt.status = :status', { status });
     return query.orderBy('debt.created_at', 'DESC').take(200).getMany();
@@ -302,7 +354,7 @@ export class FinanceService {
   public getDebt(userId: number, id: string): Promise<DebtEntity | null> {
     return this.debtRepo.findOne({
       where: { id, userId: userId.toString() },
-      relations: { contact: true },
+      relations: { contact: true, payments: true },
     });
   }
 
@@ -326,7 +378,11 @@ export class FinanceService {
       debt.originalAmount = nextOriginalAmount;
       debt.remainingAmount = nextOriginalAmount - paidAmount;
       debt.status = debt.remainingAmount === 0 ? 'settled' : 'active';
+      if (debt.status === 'settled' && !debt.settledAt) {
+        debt.settledAt = new Date();
+      }
     }
+    if (input.currency !== undefined) debt.currency = input.currency.trim() || 'VND';
     if (input.note !== undefined) debt.note = input.note.trim();
     if (input.dueAt !== undefined) {
       const dueAt = new Date(input.dueAt);
@@ -349,6 +405,12 @@ export class FinanceService {
     contactId: string,
     name: string,
     alias?: string,
+    descriptor?: string,
+    phoneNumber?: string,
+    bankAccountNumber?: string,
+    bankCode?: string,
+    bankName?: string,
+    avatarUrl?: string,
   ): Promise<DebtContactEntity> {
     const contact = await this.contactRepo.findOne({
       where: { id: contactId, userId: userId.toString() },
@@ -358,16 +420,91 @@ export class FinanceService {
     if (!displayName) throw new Error('Tên không được để trống.');
     contact.displayName = displayName;
     contact.alias = alias?.trim() || undefined;
+    contact.descriptor = descriptor?.trim() || undefined;
+    if (phoneNumber !== undefined) contact.phoneNumber = phoneNumber?.trim() || undefined;
+    if (bankAccountNumber !== undefined)
+      contact.bankAccountNumber = bankAccountNumber?.trim() || undefined;
+    if (bankCode !== undefined) contact.bankCode = bankCode?.trim() || undefined;
+    if (bankName !== undefined) contact.bankName = bankName?.trim() || undefined;
+    if (avatarUrl !== undefined) contact.avatarUrl = avatarUrl?.trim() || undefined;
     contact.normalizedName = this.normalizeIdentity(displayName);
     contact.normalizedAlias = alias ? this.normalizeIdentity(alias) : undefined;
     return this.contactRepo.save(contact);
+  }
+
+  public async combineContacts(
+    userId: number,
+    input: CombineContactsDto,
+  ): Promise<CombineContactsResult> {
+    const uid = userId.toString();
+    const targetContact = await this.contactRepo.findOne({
+      where: { id: input.targetContactId, userId: uid },
+    });
+    if (!targetContact) {
+      throw new Error('Không tìm thấy liên hệ đích để gộp.');
+    }
+
+    const uniqueSourceIds = Array.from(
+      new Set(input.sourceContactIds.filter((id) => id !== input.targetContactId)),
+    );
+    if (uniqueSourceIds.length === 0) {
+      return { targetContact, affectedDebtsCount: 0, mergedCount: 0 };
+    }
+
+    const sourceContacts = await this.contactRepo.find({
+      where: { id: In(uniqueSourceIds), userId: uid },
+    });
+
+    if (input.displayName?.trim()) {
+      targetContact.displayName = input.displayName.trim();
+      targetContact.normalizedName = this.normalizeIdentity(targetContact.displayName);
+    }
+    if (input.alias !== undefined) {
+      targetContact.alias = input.alias.trim() || undefined;
+      targetContact.normalizedAlias = targetContact.alias
+        ? this.normalizeIdentity(targetContact.alias)
+        : undefined;
+    }
+    if (input.descriptor !== undefined) {
+      targetContact.descriptor = input.descriptor.trim() || undefined;
+    }
+
+    await this.contactRepo.save(targetContact);
+
+    let affectedDebtsCount = 0;
+    for (const source of sourceContacts) {
+      const debts = await this.debtRepo.find({
+        where: { contactId: source.id, userId: uid },
+      });
+      if (debts.length > 0) {
+        for (const debt of debts) {
+          debt.contactId = targetContact.id;
+          debt.counterparty = targetContact.displayName;
+          debt.counterpartyAlias = targetContact.alias;
+        }
+        await this.debtRepo.save(debts);
+        affectedDebtsCount += debts.length;
+      }
+    }
+
+    if (sourceContacts.length > 0) {
+      await this.contactRepo.remove(sourceContacts);
+    }
+
+    return {
+      targetContact,
+      affectedDebtsCount,
+      mergedCount: sourceContacts.length,
+    };
   }
 
   public async recordDebtPayment(
     userId: number,
     debtId: string,
     amount: number,
-  ): Promise<DebtEntity> {
+    paymentDate?: string,
+    note?: string,
+  ): Promise<{ debt: DebtEntity; payment: DebtPaymentEntity }> {
     const debt = await this.debtRepo.findOne({
       where: { id: debtId, userId: userId.toString(), status: 'active' },
     });
@@ -375,9 +512,34 @@ export class FinanceService {
     const payment = Math.round(Number(amount));
     if (!Number.isFinite(payment) || payment <= 0) throw new Error('Số tiền trả phải lớn hơn 0.');
     if (payment > debt.remainingAmount) throw new Error('Số tiền trả lớn hơn số nợ còn lại.');
+
+    const pDate = paymentDate ? new Date(paymentDate) : new Date();
+    if (Number.isNaN(pDate.getTime())) throw new Error('Ngày thanh toán không hợp lệ.');
+
+    const paymentRecord = await this.debtPaymentRepo.save(
+      this.debtPaymentRepo.create({
+        debtId: debt.id,
+        userId: userId.toString(),
+        amount: payment,
+        paymentDate: pDate,
+        note: note?.trim() || undefined,
+      }),
+    );
+
     debt.remainingAmount -= payment;
-    if (debt.remainingAmount === 0) debt.status = 'settled';
-    return this.debtRepo.save(debt);
+    if (debt.remainingAmount === 0) {
+      debt.status = 'settled';
+      debt.settledAt = new Date();
+    }
+    const updatedDebt = await this.debtRepo.save(debt);
+    return { debt: updatedDebt, payment: paymentRecord };
+  }
+
+  public async getDebtPayments(userId: number, debtId: string): Promise<DebtPaymentEntity[]> {
+    return this.debtPaymentRepo.find({
+      where: { debtId, userId: userId.toString() },
+      order: { paymentDate: 'DESC', createdAt: 'DESC' },
+    });
   }
 
   public async deleteDebt(userId: number, debtId: string): Promise<boolean> {

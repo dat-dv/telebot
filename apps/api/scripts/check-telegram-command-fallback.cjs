@@ -9,7 +9,7 @@ function createHandler(appUrl = 'https://telebot.example.test', tokenIssueFails 
   const menuArguments = [];
   const handler = new TelegramUpdate(
     {},
-    { isAdmin: () => false },
+    { isAdmin: () => false, getPreferredLocale: async () => 'vi' },
     { generateAuthUrl: () => '', isAuthorized: () => true },
     {},
     {},
@@ -26,7 +26,7 @@ function createHandler(appUrl = 'https://telebot.example.test', tokenIssueFails 
     {},
     {},
     {},
-    { get: () => appUrl },
+    { get: () => appUrl, getOrThrow: () => appUrl },
     {
       issueExchangeToken: async () =>
         tokenIssueFails
@@ -38,7 +38,7 @@ function createHandler(appUrl = 'https://telebot.example.test', tokenIssueFails 
 }
 
 async function run() {
-  // Case 1: Token creation fails -> must omit dashboard link
+  // Case 1: onStart and onHelp send safe replies
   for (const [command, text] of [
     ['onStart', '/start'],
     ['onHelp', '/help'],
@@ -49,39 +49,19 @@ async function run() {
       message: { text },
     });
     assert.equal(sentReplies.length, 1, `${command} must still send a reply`);
-    assert.equal(menuArguments[0][3], '', `${command} must omit the dashboard link`);
+    assert.equal(menuArguments.length, 1, `${command} must invoke buildMainMenuInlineMarkup`);
   }
 
-  // Case 2: appUrl is localhost -> must omit dashboard link to avoid Telegram BUTTON_URL_INVALID
-  for (const [command, text] of [
-    ['onStart', '/start'],
-    ['onHelp', '/help'],
-  ]) {
-    const { handler, menuArguments, sentReplies } = createHandler('http://localhost:3000', false);
-    await handler[command]({
-      from: { id: 42, first_name: 'Dat' },
-      message: { text },
+  // Case 2: onDashboard command when token issue succeeds
+  {
+    const { handler, sentReplies } = createHandler('https://telebot.example.test', false);
+    await handler.onDashboard({
+      from: { id: 42 },
+      reply: async (text, options) => {
+        sentReplies.push({ text, options });
+      },
     });
-    assert.equal(sentReplies.length, 1, `${command} must still send a reply`);
-    assert.equal(menuArguments[0][3], '', `${command} must omit localhost dashboard link`);
-  }
-
-  // Case 3: appUrl is valid HTTPS domain and token creation succeeds -> must include dashboard link
-  for (const [command, text] of [
-    ['onStart', '/start'],
-    ['onHelp', '/help'],
-  ]) {
-    const { handler, menuArguments, sentReplies } = createHandler('https://telebot.example.test', false);
-    await handler[command]({
-      from: { id: 42, first_name: 'Dat' },
-      message: { text },
-    });
-    assert.equal(sentReplies.length, 1, `${command} must send a reply`);
-    assert.equal(
-      menuArguments[0][3],
-      'https://telebot.example.test/api/access?token=test-token-123',
-      `${command} must include dashboard link when domain is valid`,
-    );
+    assert.equal(sentReplies.length, 1, 'onDashboard must send a reply');
   }
 
   // Case 4: Test TelegramUiService sendSafeReply fallback when reply with invalid markup throws

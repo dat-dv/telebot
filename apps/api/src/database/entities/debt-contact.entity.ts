@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('debt_contacts')
 export class DebtContactEntity {
@@ -26,6 +33,24 @@ export class DebtContactEntity {
   @Column({ type: 'varchar', nullable: true })
   descriptor?: string;
 
+  @Column({ name: 'phone_number', type: 'varchar', nullable: true })
+  phoneNumber?: string;
+
+  @Column({ name: 'bank_account_number', type: 'varchar', nullable: true })
+  bankAccountNumber?: string;
+
+  @Column({ name: 'bank_code', type: 'varchar', nullable: true })
+  bankCode?: string;
+
+  @Column({ name: 'bank_name', type: 'varchar', nullable: true })
+  bankName?: string;
+
+  @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
+  avatarUrl?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

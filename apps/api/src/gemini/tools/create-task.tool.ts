@@ -29,7 +29,7 @@ export class CreateTaskTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: this.name,
     description:
-      'Tạo công việc cần làm mới (To-Do) trên Google Tasks. Dành cho việc cần làm, mua sắm, chuẩn bị tài liệu, bài tập, checklist hoặc công việc có hạn chót (deadline) theo ngày.',
+      'Tạo công việc cần làm mới (To-Do) trên Google Tasks. Hỗ trợ cấu trúc đầy đủ gồm tiêu đề (title), ghi chú/mô tả chi tiết (notes) và hạn chót (due).',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -40,12 +40,13 @@ export class CreateTaskTool implements GeminiTool {
         },
         notes: {
           type: SchemaType.STRING,
-          description: 'Ghi chú chi tiết hoặc các bước con của công việc (tùy chọn).',
+          description:
+            'Ghi chú chi tiết, mô tả cách thực hiện hoặc các bước con của công việc (tùy chọn).',
         },
         due: {
           type: SchemaType.STRING,
           description:
-            'Hạn chót hoàn thành (deadline) theo chuẩn RFC 3339 / ISO 8601 (VD: "2026-08-23T23:59:59.000Z"). Tùy chọn.',
+            'Hạn chót hoàn thành (deadline) theo chuẩn RFC 3339 / ISO 8601 (VD: "2026-08-24T23:59:59.000Z"). Tùy chọn.',
         },
       },
       required: ['title'],

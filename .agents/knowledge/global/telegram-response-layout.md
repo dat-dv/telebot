@@ -7,3 +7,6 @@ Short related inline actions may share one row. Long labels remain on their own 
 AI-generated Markdown is normalized before delivery: HTML entities are decoded and escaped URL ampersands are restored so raw output such as `&#x20;` never reaches the chat.
 
 Long-lived interactive list and information messages (today summary, task list, account status, admin user list, debt detail, and dashboard/report links) include a close action. It deletes the message when Telegram permits it; otherwise, it removes the inline keyboard so obsolete actions cannot be used. Confirmation dialogs retain cancel semantics, while reminder and calendar receipts retain their hide-controls action.
+
+Finance transaction confirmations (`create_finance_transaction`) present structured fields (type, formatted VND amount, category, note, and occurred/issued date) along with an explicit formatted JSON payload preview (`<pre><code class="language-json">...</code></pre>`) and confirmation buttons before mutating records.
+

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('reminders')
 export class ReminderEntity {
@@ -20,6 +27,19 @@ export class ReminderEntity {
   @Column({ name: 'is_triggered', type: 'boolean', default: false })
   isTriggered: boolean;
 
+  @Index()
+  @Column({ type: 'varchar', default: 'pending' })
+  status: 'pending' | 'completed' | 'snoozed' | 'cancelled';
+
+  @Column({ name: 'snooze_count', type: 'integer', default: 0 })
+  snoozeCount: number;
+
+  @Column({ name: 'snoozed_until', type: 'datetime', nullable: true })
+  snoozedUntil?: Date;
+
+  @Column({ name: 'completed_at', type: 'datetime', nullable: true })
+  completedAt?: Date;
+
   @Column({ name: 'notify_type', type: 'varchar', default: 'text' })
   notifyType: 'text' | 'call';
 
@@ -28,4 +48,7 @@ export class ReminderEntity {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

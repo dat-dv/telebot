@@ -7,6 +7,9 @@ import { localeTag, type TransactionType } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
+import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
+import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 type FilterType = 'all' | TransactionType;
@@ -20,6 +23,8 @@ export function TransactionsScreen() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { locale, t } = useLocale();
+
+  const periodFilter = usePeriodFilter('month');
 
   const currentTypeParam = searchParams.get('type');
   const activeFilter: FilterType =
@@ -43,16 +48,40 @@ export function TransactionsScreen() {
   };
 
   const rawList = useMemo(() => dashboard.data?.transactions ?? [], [dashboard.data]);
-  const finance = dashboard.data?.finance;
 
+  // Filter by period first
+  const periodTransactions = useMemo(() => {
+    return rawList.filter((item) => periodFilter.isItemInPeriod(item.occurredAt));
+  }, [rawList, periodFilter]);
+
+  // Aggregate metrics for selected period
+  const { periodIncome, periodExpense, periodBuckets } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const item of periodTransactions) {
+      if (item.type === 'income') {
+        income += item.amount;
+      } else {
+        expense += item.amount;
+      }
+    }
+    const buckets = periodFilter.generateBuckets(periodTransactions);
+    return {
+      periodIncome: income,
+      periodExpense: expense,
+      periodBuckets: buckets,
+    };
+  }, [periodTransactions, periodFilter]);
+
+  // Filter by type & search text
   const filteredTransactions = useMemo(() => {
-    return rawList.filter((item) => {
+    return periodTransactions.filter((item) => {
       if (activeFilter !== 'all' && item.type !== activeFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return item.category.toLowerCase().includes(q) || item.note.toLowerCase().includes(q);
     });
-  }, [rawList, activeFilter, search]);
+  }, [periodTransactions, activeFilter, search]);
 
   const money = (value: number) =>
     new Intl.NumberFormat(localeTag(locale), {
@@ -67,10 +96,15 @@ export function TransactionsScreen() {
       timeStyle: 'short',
     }).format(new Date(value));
 
+  const maxAmount = useMemo(() => {
+    return Math.max(...periodTransactions.map((t) => t.amount), 1);
+  }, [periodTransactions]);
+
   const transactionColumns: DataTableColumn<TransactionItem>[] = [
     {
       id: 'type',
       header: t('dashboard.columns.direction'),
+      minWidth: '80px',
       cell: (item) => (
         <span
           className={`badge ${item.type === 'income' ? 'badge--receivable' : 'badge--payable'}`}
@@ -82,27 +116,44 @@ export function TransactionsScreen() {
     {
       id: 'category',
       header: t('dashboard.columns.category'),
+      minWidth: '150px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.category}</span>,
     },
     {
       id: 'note',
       header: t('dashboard.columns.note'),
+      minWidth: '160px',
       cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
-      cell: (item) => (
-        <strong className={item.type === 'income' ? 'text-positive' : 'text-warning'}>
-          {item.type === 'income' ? '+' : '-'} {money(item.amount)}
-        </strong>
-      ),
+      minWidth: '130px',
+      hideable: false,
+      cell: (item) => {
+        const pct = Math.min(Math.round((item.amount / maxAmount) * 100), 100);
+        return (
+          <div className="amount-cell">
+            <strong className={item.type === 'income' ? 'text-positive' : 'text-warning'}>
+              {item.type === 'income' ? '+' : '-'} {money(item.amount)}
+            </strong>
+            <div className="amount-cell__bar-track">
+              <div
+                className={`amount-cell__bar-fill ${item.type === 'income' ? 'bg-positive' : 'bg-warning'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
     },
     {
       id: 'occurredAt',
       header: t('dashboard.columns.date'),
       align: 'right',
+      minWidth: '130px',
       cell: (item) => <span className="cell-muted">{date(item.occurredAt)}</span>,
     },
   ];
@@ -115,24 +166,9 @@ export function TransactionsScreen() {
         onRefresh={refresh}
       />
 
-      {finance && (
-        <section className="metric-grid" aria-label={t('transactions.title')}>
-          <article className="metric metric--positive">
-            <span>{t('dashboard.incomeTotal')}</span>
-            <strong>{money(finance.income)}</strong>
-          </article>
-          <article className="metric metric--warning">
-            <span>{t('dashboard.expenseTotal')}</span>
-            <strong>{money(finance.expense)}</strong>
-          </article>
-          <article
-            className={`metric ${finance.balance >= 0 ? 'metric--positive' : 'metric--negative'}`}
-          >
-            <span>{t('dashboard.balance')}</span>
-            <strong>{money(finance.balance)}</strong>
-          </article>
-        </section>
-      )}
+      <PeriodFilterToolbar filter={periodFilter} />
+
+      <TrendSummaryStrip income={periodIncome} expense={periodExpense} buckets={periodBuckets} />
 
       {dashboard.isError ? (
         <section className="inline-alert" role="alert">
@@ -181,6 +217,7 @@ export function TransactionsScreen() {
             }
           >
             <DataTable
+              id="transactions"
               ariaLabel={t('transactions.title')}
               rows={filteredTransactions}
               loading={dashboard.isLoading}

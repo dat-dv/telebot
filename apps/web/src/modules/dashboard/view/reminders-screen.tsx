@@ -39,12 +39,15 @@ export function RemindersScreen() {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'schedule',
       header: t('dashboard.columns.schedule'),
       align: 'right',
+      minWidth: '150px',
       cell: (item) => (
         <span className="cell-muted">
           {item.notifyType === 'call' ? '📞' : '💬'} {date(item.remindAt)}
@@ -85,6 +88,7 @@ export function RemindersScreen() {
             }
           >
             <DataTable
+              id="reminders"
               ariaLabel={t('dashboard.reminders')}
               rows={filteredReminders}
               loading={dashboard.isLoading}

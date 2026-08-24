@@ -4,7 +4,9 @@ export const API_ROUTES = {
   dashboardRefresh: '/api/refresh',
   dashboardLogout: '/api/logout',
   contacts: '/api/contacts',
+  contactsCombine: '/api/contacts/combine',
   debts: '/api/debts',
+  debtPayments: '/api/debts/payments',
   expenses: '/api/expenses',
   transactions: '/api/transactions',
   reminders: '/api/reminders',
@@ -95,6 +97,11 @@ const messages = {
     'reminder.snooze': '⏳ Nhắc lại 15 phút',
     'telegram.language.updated': '✅ Đã đổi ngôn ngữ sang Tiếng Việt.',
     'telegram.language.choose': 'Chọn ngôn ngữ hiển thị:',
+    'telegram.reminders.empty': '⏰ Hiện bạn không có lời nhắc nào sắp tới.',
+    'telegram.reminders.fetchError': '⚠️ Không thể lấy danh sách lời nhắc: {error}',
+    'telegram.reminders.cancelButton': '🗑️ Hủy #{index}',
+    'telegram.reminders.refresh': '🔄 Làm mới',
+    'telegram.reminders.close': '❌ Đóng',
     'table.searchPlaceholder': 'Tìm kiếm nhanh...',
     'table.filter.all': 'Tất cả',
     'table.filter.receivable': 'Cho vay',
@@ -103,6 +110,14 @@ const messages = {
     'table.filter.expense': 'Chi',
     'table.rowsCount': '{count} dòng',
     'table.total': 'Tổng: {total}',
+    'table.columnSettings': 'Cài đặt cột',
+    'table.columnVisibility': 'Ẩn/hiện cột',
+    'table.showAllColumns': 'Hiện tất cả',
+    'table.resetColumns': 'Đặt lại mặc định',
+    'table.columnsCount': '{visible}/{total} cột',
+    'table.scrollHint': 'Cuộn ngang để xem thêm',
+    'table.columnRequired': 'Bắt buộc',
+    'table.columnsHiddenBadge': '{count} ẩn',
     'dashboard.quickStats': 'Tổng quan tài chính',
     'dashboard.welcome': 'Xin chào',
     'dashboard.overviewSubtitle': 'Tài chính, công việc và lịch trình của bạn',
@@ -157,6 +172,40 @@ const messages = {
     'expenses.subtitle': 'Ăn uống, đi lại, mua sắm và các khoản chi khác',
     'contacts.title': 'Người liên quan',
     'contacts.subtitle': 'Những người có giao dịch vay, cho vay hoặc thu chi với bạn',
+    'contacts.actions.edit': 'Sửa',
+    'contacts.actions.save': 'Lưu',
+    'contacts.actions.cancel': 'Hủy',
+    'contacts.actions.combine': 'Gộp liên hệ ({count})',
+    'contacts.combineModal.title': 'Gộp liên hệ / Địa chỉ quán',
+    'contacts.combineModal.desc': 'Chọn liên hệ chính và điều chỉnh thông tin gộp.',
+    'contacts.combineModal.targetLabel': 'Liên hệ chính (giữ lại)',
+    'contacts.combineModal.mergedName': 'Tên sau khi gộp',
+    'contacts.combineModal.mergedAlias': 'Tên gọi / Biệt danh sau khi gộp',
+    'contacts.combineModal.mergedDescriptor': 'Địa chỉ quán / Ghi chú sau khi gộp',
+    'contacts.combineModal.warning':
+      'Toàn bộ khoản nợ liên quan sẽ được chuyển sang liên hệ chính. Hành động này không thể hoàn tác.',
+    'contacts.combineModal.confirm': 'Xác nhận gộp',
+    'contacts.inlineEdit.saved': 'Đã lưu thay đổi',
+    'contacts.combine.success': 'Đã gộp thành công {count} liên hệ',
+    'contacts.placeholder.descriptor': 'Nhập địa chỉ quán, ghi chú...',
+    'contacts.placeholder.name': 'Tên liên hệ / Quán',
+    'contacts.placeholder.alias': 'Tên gọi / Biệt danh',
+    'contacts.placeholder.phone': 'Nhập số điện thoại...',
+    'contacts.placeholder.bankAccount': 'Nhập số tài khoản...',
+    'contacts.placeholder.bankName': 'Tên ngân hàng / Mã (VD: VCB, MB)...',
+    'contacts.columns.phone': 'Số điện thoại',
+    'contacts.columns.bankAccount': 'Tài khoản ngân hàng',
+    'contacts.columns.bankName': 'Ngân hàng',
+    'debts.columns.settledAt': 'Ngày tất toán',
+    'debts.columns.currency': 'Tiền tệ',
+    'debts.history.title': 'Lịch sử trả nợ',
+    'debts.history.paidAmount': 'Đã trả',
+    'debts.history.paymentDate': 'Ngày trả',
+    'expenses.columns.paymentMethod': 'Nguồn tiền',
+    'expenses.columns.currency': 'Tiền tệ',
+    'contacts.selectedCount': 'Đã chọn {count}',
+    'contacts.selectAll': 'Chọn tất cả',
+    'contacts.deselectAll': 'Bỏ chọn',
     'transactions.title': 'Thu chi',
     'transactions.subtitle': 'Lịch sử dòng tiền và các giao dịch thu chi',
     'analytics.title': 'Phân tích',
@@ -167,6 +216,24 @@ const messages = {
     'tasks.subtitle': 'Danh sách công việc từ Google Tasks',
     'reminders.title': 'Nhắc nhở',
     'reminders.subtitle': 'Danh sách lời nhắc tự động qua Telegram & Gọi điện',
+    'period.week': 'Tuần',
+    'period.month': 'Tháng',
+    'period.quarter': 'Quý',
+    'period.year': 'Năm',
+    'period.prev': 'Kỳ trước',
+    'period.next': 'Kỳ sau',
+    'period.label.week': 'Tuần {week} ({range})',
+    'period.label.month': 'Tháng {month}/{year}',
+    'period.label.quarter': 'Quý {quarter}/{year}',
+    'period.label.year': 'Năm {year}',
+    'chart.toggleShow': 'Hiện biểu đồ',
+    'chart.toggleHide': 'Ẩn biểu đồ',
+    'chart.incomeVsExpense': 'Xu hướng Thu vs Chi',
+    'chart.cashflow': 'Dòng tiền ròng',
+    'chart.noData': 'Chưa có dữ liệu xu hướng',
+    'chart.income': 'Thu nhập',
+    'chart.expense': 'Chi tiêu',
+    'chart.net': 'Dòng tiền',
   },
   en: {
     'common.refresh': 'Refresh',
@@ -210,6 +277,11 @@ const messages = {
     'reminder.snooze': '⏳ Remind me in 15 minutes',
     'telegram.language.updated': '✅ Language changed to English.',
     'telegram.language.choose': 'Choose your display language:',
+    'telegram.reminders.empty': '⏰ You have no upcoming reminders.',
+    'telegram.reminders.fetchError': '⚠️ Unable to fetch reminders: {error}',
+    'telegram.reminders.cancelButton': '🗑️ Cancel #{index}',
+    'telegram.reminders.refresh': '🔄 Refresh',
+    'telegram.reminders.close': '❌ Close',
     'table.searchPlaceholder': 'Quick search...',
     'table.filter.all': 'All',
     'table.filter.receivable': 'Lent',
@@ -218,6 +290,14 @@ const messages = {
     'table.filter.expense': 'Expense',
     'table.rowsCount': '{count} rows',
     'table.total': 'Total: {total}',
+    'table.columnSettings': 'Column settings',
+    'table.columnVisibility': 'Toggle columns',
+    'table.showAllColumns': 'Show all',
+    'table.resetColumns': 'Reset to default',
+    'table.columnsCount': '{visible}/{total} cols',
+    'table.scrollHint': 'Scroll horizontally to view more',
+    'table.columnRequired': 'Required',
+    'table.columnsHiddenBadge': '{count} hidden',
     'dashboard.quickStats': 'Financial overview',
     'dashboard.welcome': 'Welcome',
     'dashboard.overviewSubtitle': 'Your finances, tasks, and schedule',
@@ -272,6 +352,40 @@ const messages = {
     'expenses.subtitle': 'Daily spending, shopping, dining and other expenses',
     'contacts.title': 'People',
     'contacts.subtitle': 'People with loan or spending transactions with you',
+    'contacts.actions.edit': 'Edit',
+    'contacts.actions.save': 'Save',
+    'contacts.actions.cancel': 'Cancel',
+    'contacts.actions.combine': 'Combine ({count})',
+    'contacts.combineModal.title': 'Combine Contacts / Places',
+    'contacts.combineModal.desc': 'Select primary contact and adjust merged details.',
+    'contacts.combineModal.targetLabel': 'Primary contact (keep)',
+    'contacts.combineModal.mergedName': 'Merged display name',
+    'contacts.combineModal.mergedAlias': 'Merged alias',
+    'contacts.combineModal.mergedDescriptor': 'Merged address / note',
+    'contacts.combineModal.warning':
+      'All related debts will be migrated to the primary contact. This action cannot be undone.',
+    'contacts.combineModal.confirm': 'Confirm Combine',
+    'contacts.inlineEdit.saved': 'Changes saved',
+    'contacts.combine.success': 'Successfully combined {count} contacts',
+    'contacts.placeholder.descriptor': 'Enter address, note...',
+    'contacts.placeholder.name': 'Contact / Place name',
+    'contacts.placeholder.alias': 'Alias / Short name',
+    'contacts.placeholder.phone': 'Enter phone number...',
+    'contacts.placeholder.bankAccount': 'Enter bank account number...',
+    'contacts.placeholder.bankName': 'Bank name / Code (e.g. VCB, MB)...',
+    'contacts.columns.phone': 'Phone number',
+    'contacts.columns.bankAccount': 'Bank account',
+    'contacts.columns.bankName': 'Bank name',
+    'debts.columns.settledAt': 'Settled date',
+    'debts.columns.currency': 'Currency',
+    'debts.history.title': 'Repayment history',
+    'debts.history.paidAmount': 'Paid amount',
+    'debts.history.paymentDate': 'Payment date',
+    'expenses.columns.paymentMethod': 'Payment method',
+    'expenses.columns.currency': 'Currency',
+    'contacts.selectedCount': '{count} selected',
+    'contacts.selectAll': 'Select all',
+    'contacts.deselectAll': 'Deselect all',
     'transactions.title': 'Transactions',
     'transactions.subtitle': 'Cash flow and transaction history',
     'analytics.title': 'Analytics',
@@ -282,16 +396,36 @@ const messages = {
     'tasks.subtitle': 'Task list from Google Tasks',
     'reminders.title': 'Reminders',
     'reminders.subtitle': 'Automated reminders via Telegram & Call',
+    'period.week': 'Week',
+    'period.month': 'Month',
+    'period.quarter': 'Quarter',
+    'period.year': 'Year',
+    'period.prev': 'Previous period',
+    'period.next': 'Next period',
+    'period.label.week': 'Week {week} ({range})',
+    'period.label.month': '{month}/{year}',
+    'period.label.quarter': 'Q{quarter}/{year}',
+    'period.label.year': '{year}',
+    'chart.toggleShow': 'Show chart',
+    'chart.toggleHide': 'Hide chart',
+    'chart.incomeVsExpense': 'Income vs Expense Trend',
+    'chart.cashflow': 'Net cashflow',
+    'chart.noData': 'No trend data available',
+    'chart.income': 'Income',
+    'chart.expense': 'Expense',
+    'chart.net': 'Net cashflow',
   },
 } as const;
 
 export type TranslationKey = keyof (typeof messages)['vi'];
+const typedMessages: Record<SupportedLocale, Record<TranslationKey, string>> = messages;
+
 export function translate(
   locale: SupportedLocale,
   key: TranslationKey,
   values: TranslationValues = {},
 ): string {
-  let text: string = messages[locale][key] ?? messages[DEFAULT_LOCALE][key];
+  let text: string = typedMessages[locale]?.[key] ?? typedMessages[DEFAULT_LOCALE][key];
   for (const [name, value] of Object.entries(values))
     text = text.replaceAll(`{${name}}`, String(value));
   return text;
@@ -319,7 +453,30 @@ export interface IContactListItem {
   displayName: string;
   alias?: string;
   descriptor?: string;
+  phoneNumber?: string;
+  bankAccountNumber?: string;
+  bankCode?: string;
+  bankName?: string;
+  avatarUrl?: string;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface IDebtPaymentItem {
+  id: string;
+  debtId: string;
+  userId: string;
+  amount: number;
+  paymentDate: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface ICreateDebtPaymentRequest {
+  debtId: string;
+  amount: number;
+  paymentDate?: string;
+  note?: string;
 }
 
 export interface IDebtListItem {
@@ -329,9 +486,13 @@ export interface IDebtListItem {
   counterpartyAlias?: string;
   originalAmount: number;
   remainingAmount: number;
+  currency?: string;
   note?: string;
   dueAt?: string;
+  settledAt?: string;
+  payments?: IDebtPaymentItem[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface IExpenseListItem {
@@ -339,7 +500,12 @@ export interface IExpenseListItem {
   category: string;
   note: string;
   amount: number;
+  currency?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
   occurredAt: string;
+  updatedAt?: string;
 }
 
 export interface IDashboardData {
@@ -357,6 +523,8 @@ export interface IDashboardData {
     category: string;
     note: string;
     amount: number;
+    currency?: string;
+    paymentMethod?: string;
     occurredAt: string;
   }>;
   debts: Array<{
@@ -364,7 +532,9 @@ export interface IDashboardData {
     direction: 'receivable' | 'payable';
     counterparty: string;
     remainingAmount: number;
+    currency?: string;
     dueAt?: string;
+    settledAt?: string;
   }>;
   calendar: Array<{ id: string; title: string; startAt?: string }>;
   tasks: Array<{ id: string; title: string; dueAt?: string }>;
@@ -387,6 +557,10 @@ export interface ICreateTransactionRequest {
   amount: number;
   note: string;
   category?: string;
+  currency?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
   occurredAt?: string;
 }
 
@@ -395,4 +569,32 @@ export interface ICreateReminderRequest {
   remindAt: string;
   notifyType?: ReminderNotifyType;
   repeatType?: ReminderRepeatType;
+  status?: 'pending' | 'completed' | 'snoozed' | 'cancelled';
+  snoozeCount?: number;
+  snoozedUntil?: string;
+}
+
+export interface IUpdateContactRequest {
+  displayName: string;
+  alias?: string;
+  descriptor?: string;
+  phoneNumber?: string;
+  bankAccountNumber?: string;
+  bankCode?: string;
+  bankName?: string;
+  avatarUrl?: string;
+}
+
+export interface ICombineContactsRequest {
+  targetContactId: string;
+  sourceContactIds: string[];
+  displayName?: string;
+  alias?: string;
+  descriptor?: string;
+}
+
+export interface ICombineContactsResponse {
+  targetContact: IContactListItem;
+  affectedDebtsCount: number;
+  mergedCount: number;
 }

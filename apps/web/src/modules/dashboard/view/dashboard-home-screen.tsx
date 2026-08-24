@@ -115,12 +115,15 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
       align: 'right',
+      minWidth: '130px',
       cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
     },
   ];
@@ -129,12 +132,15 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'schedule',
       header: t('dashboard.columns.schedule'),
       align: 'right',
+      minWidth: '140px',
       cell: (item) => (
         <span className="cell-muted">
           {item.notifyType === 'call' ? '📞' : '💬'} {date(item.remindAt)}
@@ -147,12 +153,15 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'startAt',
       header: t('dashboard.columns.date'),
       align: 'right',
+      minWidth: '140px',
       cell: (item) => <span className="cell-muted">{date(item.startAt)}</span>,
     },
   ];
@@ -161,6 +170,8 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'action',
       header: t('dashboard.columns.action'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           {item.action} · {item.tableName}
@@ -171,6 +182,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       id: 'createdAt',
       header: t('dashboard.columns.date'),
       align: 'right',
+      minWidth: '140px',
       cell: (item) => <span className="cell-muted">{date(item.createdAt)}</span>,
     },
   ];
@@ -179,6 +191,8 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'category',
       header: t('dashboard.columns.transaction'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           <span
@@ -194,12 +208,15 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'note',
       header: t('dashboard.columns.note'),
+      minWidth: '140px',
       cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
+      minWidth: '130px',
+      hideable: false,
       cell: (item) => <strong>{money(item.amount)}</strong>,
     },
   ];
@@ -208,6 +225,8 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'counterparty',
       header: t('dashboard.columns.counterparty'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           <span
@@ -225,12 +244,15 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
+      minWidth: '110px',
       cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
     },
     {
       id: 'remainingAmount',
       header: t('dashboard.columns.remaining'),
       align: 'right',
+      minWidth: '130px',
+      hideable: false,
       cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
     },
   ];
@@ -307,6 +329,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           }
         >
           <DataTable
+            id="home-tasks"
             ariaLabel={t('dashboard.tasks')}
             rows={filteredTasks}
             emptyMessage={t('dashboard.noTasks')}
@@ -330,6 +353,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           }
         >
           <DataTable
+            id="home-reminders"
             ariaLabel={t('dashboard.reminders')}
             rows={filteredReminders}
             emptyMessage={t('dashboard.noReminders')}
@@ -344,6 +368,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           counter={t('table.rowsCount', { count: data.calendar.length })}
         >
           <DataTable
+            id="home-calendar"
             ariaLabel={t('dashboard.calendar')}
             rows={data.calendar}
             emptyMessage={t('dashboard.noCalendar')}
@@ -357,6 +382,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           counter={t('table.rowsCount', { count: data.transactions.length })}
         >
           <DataTable
+            id="home-transactions"
             ariaLabel={t('dashboard.transactions')}
             rows={data.transactions.slice(0, 5)}
             emptyMessage={t('dashboard.noTransactions')}
@@ -370,6 +396,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           counter={t('table.rowsCount', { count: data.debts.length })}
         >
           <DataTable
+            id="home-debts"
             ariaLabel={t('dashboard.openDebts')}
             rows={data.debts.slice(0, 5)}
             emptyMessage={t('dashboard.noDebts')}
@@ -393,6 +420,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           }
         >
           <DataTable
+            id="home-activity"
             ariaLabel={t('dashboard.activity')}
             rows={filteredActivity}
             emptyMessage={t('dashboard.noActivity')}

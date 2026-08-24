@@ -17,7 +17,7 @@ export class CreateFinanceTransactionTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: this.name,
     description:
-      'Ghi một khoản thu hoặc chi vào sổ thu–chi cá nhân. Dùng khi người dùng nói đã chi/tiêu/mua/trả tiền, hoặc nhận lương/được trả tiền/hoàn tiền. Ví dụ: "ăn trưa 65k", "hôm nay mua cà phê 30 nghìn", "nhận lương 20 triệu". Số tiền luôn truyền theo VND đầy đủ: 65k = 65000, 20 triệu = 20000000. Nếu người dùng không nêu ngày, bỏ occurredAt để hệ thống dùng thời điểm hiện tại.',
+      'Ghi một khoản thu hoặc chi vào sổ thu–chi cá nhân. Dùng khi người dùng nói đã chi/tiêu/mua/trả tiền, hoặc nhận lương/được trả tiền/hoàn tiền. Ví dụ: "ăn trưa 65k", "hôm nay mua cà phê 30 nghìn", "hôm qua ăn tối 120k", "nhận lương 20 triệu". Số tiền luôn truyền theo VND đầy đủ: 65k = 65000, 20 triệu = 20000000. Mặc định occurredAt là thời điểm hiện tại nếu người dùng không nêu ngày; nếu người dùng nhập muộn hoặc nêu ngày cụ thể trong quá khứ, truyền occurredAt tương ứng theo ISO 8601 có múi giờ.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -40,7 +40,7 @@ export class CreateFinanceTransactionTool implements GeminiTool {
         occurredAt: {
           type: SchemaType.STRING,
           description:
-            'Ngày phát sinh theo ISO 8601 có múi giờ, chỉ truyền khi người dùng nêu ngày cụ thể.',
+            'Mốc thời gian phát sinh/phát hành giao dịch theo định dạng ISO 8601 có múi giờ. Mặc định là thời điểm hiện tại nếu không nêu rõ, hoặc mốc quá khứ nếu người dùng nhập muộn.',
         },
       },
       required: ['type', 'amount', 'note'],

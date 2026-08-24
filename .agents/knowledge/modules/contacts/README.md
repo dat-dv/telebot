@@ -4,12 +4,20 @@
 
 ## Purpose
 
-`apps/web/src/modules/contacts` presents the current user's debt-contact directory so they can identify saved counterparties without exposing another user's data.
+`apps/web/src/modules/contacts` presents the current user's debt-contact directory and business partner/place directory so they can identify saved counterparties, edit details inline, and combine duplicate entries without exposing another user's data.
 
 ## UI and state
 
-The contacts screen provides refresh and logout actions, quick client-side search filtering across names, aliases, and descriptors, and i18n localized date-time formatting. It renders loading, empty, successful, and recoverable error states; its table uses the full available desktop width after navigation and remains horizontally scrollable on narrow screens.
+The contacts screen provides:
+- **Inline Editing**: Double-clicking or clicking the Edit action activates inline Excel-like inputs for `displayName`, `alias`, and `descriptor` (place address / identifier). Supports `Enter` (Save), `Escape` (Cancel), and action buttons.
+- **Horizontal Scrolling**: Preserves fixed column min-widths (`select`, `displayName`, `alias`, `descriptor`, `createdAt`, `actions`), allowing smooth horizontal scrolling inside the panel on smaller viewports without text squishing.
+- **Combine Contacts**: Multi-select checkboxes trigger a "Combine" action toolbar when 2+ contacts are checked. Opens a modal dialog allowing the user to select the primary target contact, preview/edit merged names, aliases, and addresses, and migrate all linked debts in a single backend transaction.
+- **States & i18n**: Renders loading skeletons, empty states, error alerts with retry, and temporary toast notifications on successful save/combine. All labels, placeholders, and messages use the shared i18n catalog.
 
 ## Integration seams
 
-`getContacts` requests `API_ROUTES.contacts` through the shared authenticated HTTP client. `useContactsQuery` owns the TanStack Query key and request cancellation; views invalidate that key after a manual refresh.
+- `getContacts` requests `API_ROUTES.contacts` via authenticated HTTP client.
+- `updateContact` requests `PATCH /api/contacts/:id` to persist inline edits (`displayName`, `alias`, `descriptor`).
+- `combineContacts` requests `POST /api/contacts/combine` (`API_ROUTES.contactsCombine`) to merge source contacts into a target contact and reassign associated debts.
+- `useContactsQuery`, `useUpdateContactMutation`, and `useCombineContactsMutation` manage TanStack Query caching and invalidate `contacts`, `debts`, and `dashboard` query keys.
+

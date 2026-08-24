@@ -6,6 +6,9 @@ import { localeTag } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
+import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
+import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
@@ -13,6 +16,7 @@ type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
 export function AnalyticsScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
+  const periodFilter = usePeriodFilter('month');
   const [txSearch, setTxSearch] = useState('');
   const [debtSearch, setDebtSearch] = useState('');
   const dashboard = useDashboardQuery();
@@ -37,16 +41,41 @@ export function AnalyticsScreen() {
 
   const rawData = dashboard.data;
 
+  const rawTransactions = useMemo(() => rawData?.transactions ?? [], [rawData?.transactions]);
+
+  // Filter transactions by period
+  const periodTransactions = useMemo(() => {
+    return rawTransactions.filter((item) => periodFilter.isItemInPeriod(item.occurredAt));
+  }, [rawTransactions, periodFilter]);
+
+  // Aggregate metrics for selected period
+  const { periodIncome, periodExpense, periodBuckets } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const item of periodTransactions) {
+      if (item.type === 'income') {
+        income += item.amount;
+      } else {
+        expense += item.amount;
+      }
+    }
+    const buckets = periodFilter.generateBuckets(periodTransactions);
+    return {
+      periodIncome: income,
+      periodExpense: expense,
+      periodBuckets: buckets,
+    };
+  }, [periodTransactions, periodFilter]);
+
   const filteredTx = useMemo(() => {
-    if (!rawData?.transactions) return [];
-    if (!txSearch.trim()) return rawData.transactions;
+    if (!txSearch.trim()) return periodTransactions;
     const q = txSearch.toLowerCase();
-    return rawData.transactions.filter(
+    return periodTransactions.filter(
       (item) =>
         item.category.toLowerCase().includes(q) ||
         (item.note && item.note.toLowerCase().includes(q)),
     );
-  }, [rawData?.transactions, txSearch]);
+  }, [periodTransactions, txSearch]);
 
   const filteredDebts = useMemo(() => {
     if (!rawData?.debts) return [];
@@ -59,6 +88,8 @@ export function AnalyticsScreen() {
     {
       id: 'category',
       header: t('dashboard.columns.transaction'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           <span
@@ -74,12 +105,15 @@ export function AnalyticsScreen() {
     {
       id: 'note',
       header: t('dashboard.columns.note'),
+      minWidth: '160px',
       cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
+      minWidth: '130px',
+      hideable: false,
       cell: (item) => <strong>{money(item.amount)}</strong>,
     },
   ];
@@ -88,6 +122,8 @@ export function AnalyticsScreen() {
     {
       id: 'counterparty',
       header: t('dashboard.columns.counterparty'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => (
         <span className="cell-primary">
           <span
@@ -105,12 +141,15 @@ export function AnalyticsScreen() {
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
+      minWidth: '110px',
       cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
     },
     {
       id: 'amount',
       header: t('dashboard.columns.remaining'),
       align: 'right',
+      minWidth: '130px',
+      hideable: false,
       cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
     },
   ];
@@ -145,6 +184,8 @@ export function AnalyticsScreen() {
     );
   }
 
+  const netDebt = rawData.finance.receivable - rawData.finance.payable;
+
   return (
     <>
       <WorkspaceHeader
@@ -153,28 +194,19 @@ export function AnalyticsScreen() {
         onRefresh={refresh}
       />
 
-      <section className="metric-grid" aria-label={t('analytics.title')}>
-        <article className="metric metric--positive">
-          <span>{t('dashboard.incomeTotal')}</span>
-          <strong>{money(rawData.finance.income)}</strong>
-        </article>
-        <article className="metric metric--warning">
-          <span>{t('dashboard.expenseTotal')}</span>
-          <strong>{money(rawData.finance.expense)}</strong>
-        </article>
-        <article
-          className={`metric ${rawData.finance.balance >= 0 ? 'metric--positive' : 'metric--negative'}`}
-        >
-          <span>{t('dashboard.balance')}</span>
-          <strong>{money(rawData.finance.balance)}</strong>
-        </article>
-        <article
-          className={`metric ${rawData.finance.receivable >= rawData.finance.payable ? 'metric--positive' : 'metric--negative'}`}
-        >
-          <span>{t('dashboard.netDebt')}</span>
-          <strong>{money(rawData.finance.receivable - rawData.finance.payable)}</strong>
-        </article>
-      </section>
+      <PeriodFilterToolbar filter={periodFilter} />
+
+      <TrendSummaryStrip
+        income={periodIncome}
+        expense={periodExpense}
+        buckets={periodBuckets}
+        extraMetrics={
+          <article className={`metric ${netDebt >= 0 ? 'metric--positive' : 'metric--negative'}`}>
+            <span>{t('dashboard.netDebt')}</span>
+            <strong>{money(netDebt)}</strong>
+          </article>
+        }
+      />
 
       {rawData.admin && (
         <section className="admin-strip">
@@ -202,6 +234,7 @@ export function AnalyticsScreen() {
           }
         >
           <DataTable
+            id="analytics-transactions"
             ariaLabel={t('dashboard.transactions')}
             rows={filteredTx}
             emptyMessage={t('dashboard.noTransactions')}
@@ -225,6 +258,7 @@ export function AnalyticsScreen() {
           }
         >
           <DataTable
+            id="analytics-debts"
             ariaLabel={t('dashboard.openDebts')}
             rows={filteredDebts}
             emptyMessage={t('dashboard.noDebts')}

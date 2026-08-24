@@ -9,6 +9,7 @@ export interface CreateReminderDto {
   remindAt: Date;
   notifyType?: 'text' | 'call';
   repeatType?: 'none' | 'daily' | 'weekly';
+  status?: 'pending' | 'completed' | 'snoozed' | 'cancelled';
 }
 
 export interface UpdateReminderDto {
@@ -16,6 +17,7 @@ export interface UpdateReminderDto {
   remindAt?: Date;
   notifyType?: 'text' | 'call';
   repeatType?: 'none' | 'daily' | 'weekly';
+  status?: 'pending' | 'completed' | 'snoozed' | 'cancelled';
 }
 
 @Injectable()
@@ -34,6 +36,8 @@ export class RemindersService {
       remindAt: dto.remindAt,
       notifyType: dto.notifyType || 'text',
       repeatType: dto.repeatType || 'none',
+      status: dto.status || 'pending',
+      snoozeCount: 0,
       isTriggered: false,
     });
 
@@ -81,9 +85,17 @@ export class RemindersService {
     if (input.remindAt !== undefined) {
       reminder.remindAt = input.remindAt;
       reminder.isTriggered = false;
+      reminder.status = 'pending';
     }
     if (input.notifyType !== undefined) reminder.notifyType = input.notifyType;
     if (input.repeatType !== undefined) reminder.repeatType = input.repeatType;
+    if (input.status !== undefined) {
+      reminder.status = input.status;
+      if (input.status === 'completed') {
+        reminder.isTriggered = true;
+        reminder.completedAt = new Date();
+      }
+    }
     return this.reminderRepo.save(reminder);
   }
 
@@ -95,6 +107,7 @@ export class RemindersService {
       const nextDay = new Date(reminder.remindAt.getTime() + 24 * 60 * 60 * 1000);
       reminder.remindAt = nextDay;
       reminder.isTriggered = false;
+      reminder.status = 'pending';
       await this.reminderRepo.save(reminder);
       this.logger.log(
         `Rescheduled daily reminder "${reminder.title}" for ${nextDay.toISOString()}`,
@@ -103,12 +116,15 @@ export class RemindersService {
       const nextWeek = new Date(reminder.remindAt.getTime() + 7 * 24 * 60 * 60 * 1000);
       reminder.remindAt = nextWeek;
       reminder.isTriggered = false;
+      reminder.status = 'pending';
       await this.reminderRepo.save(reminder);
       this.logger.log(
         `Rescheduled weekly reminder "${reminder.title}" for ${nextWeek.toISOString()}`,
       );
     } else {
       reminder.isTriggered = true;
+      reminder.status = 'completed';
+      reminder.completedAt = new Date();
       await this.reminderRepo.save(reminder);
     }
   }
@@ -119,6 +135,9 @@ export class RemindersService {
 
     const newTime = new Date(Date.now() + minutes * 60 * 1000);
     reminder.remindAt = newTime;
+    reminder.snoozedUntil = newTime;
+    reminder.snoozeCount = (reminder.snoozeCount || 0) + 1;
+    reminder.status = 'snoozed';
     reminder.isTriggered = false;
     const saved = await this.reminderRepo.save(reminder);
 
@@ -126,6 +145,19 @@ export class RemindersService {
       `Snoozed reminder "${reminder.title}" for ${minutes} minutes (until ${newTime.toISOString()})`,
     );
     return saved;
+  }
+
+  public async markCompleted(reminderId: string, userId?: number): Promise<ReminderEntity | null> {
+    const whereCondition: Record<string, unknown> = { id: reminderId };
+    if (userId) {
+      whereCondition.userId = userId.toString();
+    }
+    const reminder = await this.reminderRepo.findOne({ where: whereCondition });
+    if (!reminder) return null;
+    reminder.isTriggered = true;
+    reminder.status = 'completed';
+    reminder.completedAt = new Date();
+    return this.reminderRepo.save(reminder);
   }
 
   public async updateNotifyType(

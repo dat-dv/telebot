@@ -32,7 +32,7 @@ export class RecordDebtPaymentTool implements GeminiTool {
     if (!context?.userId)
       return { success: false, error: 'Không xác định được danh tính người dùng Telegram.' };
     try {
-      const debt = await this.financeService.recordDebtPayment(
+      const { debt, payment } = await this.financeService.recordDebtPayment(
         context.userId,
         args.debtId as string,
         args.amount as number,
@@ -41,6 +41,7 @@ export class RecordDebtPaymentTool implements GeminiTool {
         success: true,
         settled: debt.status === 'settled',
         counterparty: debt.counterparty,
+        paymentId: payment.id,
         remainingText: this.financeService.formatMoney(debt.remainingAmount),
       };
     } catch (error) {

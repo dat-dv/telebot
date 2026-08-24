@@ -5,9 +5,12 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { DebtContactEntity } from './debt-contact.entity';
+import { DebtPaymentEntity } from './debt-payment.entity';
 
 @Entity('debts')
 export class DebtEntity {
@@ -41,6 +44,9 @@ export class DebtEntity {
   @Column({ name: 'remaining_amount', type: 'integer' })
   remainingAmount: number;
 
+  @Column({ type: 'varchar', default: 'VND' })
+  currency: string;
+
   @Column({ type: 'varchar', default: '' })
   note: string;
 
@@ -51,6 +57,15 @@ export class DebtEntity {
   @Column({ name: 'due_at', type: 'datetime', nullable: true })
   dueAt?: Date;
 
+  @Column({ name: 'settled_at', type: 'datetime', nullable: true })
+  settledAt?: Date;
+
+  @OneToMany(() => DebtPaymentEntity, (payment) => payment.debt)
+  payments?: DebtPaymentEntity[];
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

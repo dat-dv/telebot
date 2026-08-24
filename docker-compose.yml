@@ -12,7 +12,7 @@ services:
     environment:
       WHISPER_URL: http://127.0.0.1:8080
     volumes:
-      - ./data:/app/data
+      - telebot-data:/app/data
   web:
     build:
       context: .
@@ -25,3 +25,6 @@ services:
       - "${WEB_PORT:-3001}:80"
     depends_on:
       - api
+
+volumes:
+  telebot-data:

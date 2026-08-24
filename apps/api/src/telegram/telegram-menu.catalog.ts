@@ -55,6 +55,13 @@ const PRIMARY_MENU_ITEMS: readonly TelegramMenuItem[] = [
     callbackData: 'action:view_debts',
   },
   {
+    id: 'reminders',
+    command: 'reminders',
+    commandDescription: 'Danh sách lời nhắc & hẹn giờ',
+    label: '⏰ Lời nhắc',
+    callbackData: 'action:view_reminders',
+  },
+  {
     id: 'status',
     command: 'status',
     commandDescription: 'Trạng thái tài khoản và Google',

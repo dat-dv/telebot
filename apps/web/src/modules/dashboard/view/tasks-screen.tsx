@@ -40,12 +40,15 @@ export function TasksScreen() {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
       align: 'right',
+      minWidth: '150px',
       cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
     },
   ];
@@ -83,6 +86,7 @@ export function TasksScreen() {
             }
           >
             <DataTable
+              id="tasks"
               ariaLabel={t('dashboard.tasks')}
               rows={filteredTasks}
               loading={dashboard.isLoading}

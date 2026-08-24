@@ -15,7 +15,7 @@ import { FinanceService } from '../finance/finance.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '@nestjs/config';
 import { ReportsTokenService } from '../reports/reports-token.service';
-import { normalizeLocale, translate } from '@telebot/contracts';
+import { localeTag, normalizeLocale, translate } from '@telebot/contracts';
 
 @Update()
 @UseGuards(AuthGuard)
@@ -187,15 +187,21 @@ Nhấn vào nút bên dưới để cấp quyền Google Calendar & Tasks cho tr
 
     const welcomeMessage = `👋 Xin chào *${fromName}*!
 ━━━━━━━━━━━━━━━━━━━━
-Tôi là trợ lý AI cá nhân kết nối trực tiếp với *Google Calendar*, *Google Tasks* & *Nhắc Nhở Tự Động*.
+Tôi là trợ lý AI cá nhân toàn năng của bạn, hỗ trợ:
+📅 *Google Calendar* & 📝 *Google Tasks*
+💰 *Quản lý Thu–Chi* & 🧾 *Quét ảnh Hóa đơn (OCR)*
+💳 *Sổ nợ & Cho vay* & ⏰ *Nhắc nhở / Gọi điện thoại*
+📊 *Web Dashboard trực quan*
 
 ${googleStatus}
 ━━━━━━━━━━━━━━━━━━━━
-📱 *Bạn có thể bấm các nút chức năng bên dưới hoặc nhắn tin tự nhiên:*
+📱 *Bạn có thể chạm vào các nút bên dưới hoặc nhắn tin/gửi voice tự nhiên:*
 • ⏰ _"15 phút nữa nhắc anh tắt bếp"_
 • 📅 _"Chiều mai 14h họp dự án với sếp"_
-• 📝 _"Nhắc anh mua quà sinh nhật cho vợ"_
-• 📊 _"Hôm nay anh có lịch gì không?"_`;
+• 📝 _"Thêm việc chuẩn bị slide báo cáo"_
+• 💰 _"Ăn trưa bún bò 45k" (hoặc gửi ảnh hóa đơn)_
+• 💳 _"Anh Nam vay 500k hẹn cuối tháng trả"_
+• 📊 _"Hôm nay anh có lịch gì và đã tiêu bao nhiêu?"_`;
 
     const inlineMarkup = this.uiService.buildMainMenuInlineMarkup(
       isAdmin,
@@ -249,54 +255,50 @@ ${googleStatus}
       authUrl,
     );
 
-    if (isAdmin) {
-      const adminHelpMessage = `👑 *HƯỚNG DẪN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)*
+    const helpHeader = isAdmin
+      ? `👑 *HƯỚNG DẪN TRỢ LÝ AI (DÀNH CHO ADMIN)*`
+      : `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ AI*`;
+
+    const adminSection = isAdmin
+      ? `\n7️⃣ *CÔNG CỤ QUẢN TRỊ HỆ THỐNG*
+• 🎟️ *Tạo Link Mời*: \`/invite\` (hoặc nhắn _"Tạo link mời"_)
+• 👥 *Danh Sách User*: \`/users\` (hoặc nhắn _"Xem danh sách user"_)
+• 🚫 *Khóa Quyền*: \`/ban <user_id>\`
+`
+      : '';
+
+    const helpMessage = `${helpHeader}
 ━━━━━━━━━━━━━━━━━━━━
 
 1️⃣ *LỜI NHẮC & GỌI ĐIỆN TỰ ĐỘNG (REMINDERS)*
-• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot gửi tin nhắn
-• 📞 _"8h tối nay gọi nhá máy nhắc anh"_ ➔ Bot gọi đổ chuông
+• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Gửi tin nhắn Telegram
+• 📞 _"8h tối nay gọi nhá máy nhắc anh uống thuốc"_ ➔ Đổ chuông báo động
+• 📋 Lệnh nhanh: \`/reminders\` (Xem & hủy lời nhắc)
 
 2️⃣ *LỊCH HẸN GOOGLE CALENDAR*
-• 📅 _"Mai 14h họp kickoff dự án với khách hàng"_
-• 🔔 Tự động cài 4 mốc chuông báo popup dồn dập
+• 📅 _"Mai 14h họp kickoff dự án với khách hàng"_ ➔ Tự tạo lịch & cài chuông
+• 📋 Lệnh nhanh: \`/today\` (Lịch hôm nay), \`/week\` (Lịch 7 ngày)
 
-3️⃣ *DANH SÁCH VIỆC CẦN LÀM (TO-DO TASKS)*
+3️⃣ *DANH SÁCH VIỆC CẦN LÀM (GOOGLE TASKS)*
 • 📝 _"Thêm việc chuẩn bị tài liệu thuyết trình"_
-• 📋 Bấm nút xem danh sách & tick hoàn thành 1-chạm
+• 📋 Lệnh nhanh: \`/tasks\` (Xem danh sách & tick hoàn thành 1-chạm)
 
-4️⃣ *CÔNG CỤ QUẢN TRỊ HỆ THỐNG*
-• 🎟️ *Tạo Link Mời*: Bấm nút bên dưới (hoặc nhắn _"Tạo link mời"_)
-• 👥 *Xem Danh Sách*: Bấm nút bên dưới (hoặc nhắn _"Xem danh sách user"_)
-• 🚫 *Khóa Tài Khoản*: Gõ \`/ban <id>\` (hoặc nhắn _"Ban user <id>"_)
+4️⃣ *QUẢN LÝ THU–CHI & QUÉT ẢNH HÓA ĐƠN (FINANCE)*
+• 💰 _"Vừa ăn sáng hết 35k tiền phở"_ hoặc _"Nhận lương 20tr"_
+• 🧾 *Chụp/Gửi ảnh hóa đơn/biên lai*: AI tự động đọc và ghi sổ
+• 📋 Lệnh nhanh: \`/finance\` (Xem tổng thu–chi hôm nay)
 
+5️⃣ *SỔ CÔNG NỢ & DANH BẠ (DEBTS & CONTACTS)*
+• 💳 _"Cho anh Hùng vay 2 triệu hẹn tuần sau trả"_
+• 💵 _"Anh Hùng vừa trả 1 triệu"_ ➔ Tự động cập nhật số dư còn lại
+• 📋 Lệnh nhanh: \`/debts\` (Xem toàn bộ các khoản vay & cho vay)
+
+6️⃣ *BẢNG ĐIỀU KHIỂN TRỰC QUAN (WEB DASHBOARD)*
+• 📊 Lệnh nhanh: \`/dashboard\` ➔ Mở trang web xem biểu đồ thu chi, việc cần làm, lịch trình.${adminSection}
 ━━━━━━━━━━━━━━━━━━━━
-💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi chỉ cần nhắn lại cho AI!`;
+💡 *Mẹo:* Bạn có thể nhắn tin, gửi Voice ghi âm hoặc gửi ảnh hóa đơn tự nhiên bất cứ lúc nào!`;
 
-      await this.uiService.sendSafeReply(ctx, adminHelpMessage, inlineMarkup);
-      return;
-    }
-
-    // Regular Member Help Message
-    const userHelpMessage = `📖 *HƯỚNG DẪN SỬ DỤNG TRỢ LÝ CÁ NHÂN*
-━━━━━━━━━━━━━━━━━━━━
-
-1️⃣ *LỜI NHẮC & GỌI ĐIỆN TỰ ĐỘNG (REMINDERS)*
-• ⏰ _"15 phút nữa nhắc anh tắt bếp"_ ➔ Bot gửi tin nhắn
-• 📞 _"8h tối nay gọi nhá máy nhắc tớ"_ ➔ Bot gọi đổ chuông
-
-2️⃣ *LỊCH HẸN GOOGLE CALENDAR*
-• 📅 _"Mai 14h họp dự án tại phòng họp A"_
-• 🔔 Tự động cài 4 mốc chuông báo popup dồn dập
-
-3️⃣ *DANH SÁCH VIỆC CẦN LÀM (TO-DO TASKS)*
-• 📝 _"Thêm việc chuẩn bị slide báo cáo"_
-• 📋 Mở to-do list & bấm nút tick hoàn thành 1-chạm
-
-━━━━━━━━━━━━━━━━━━━━
-💡 *Mẹo:* Bạn chỉ cần nhắn tin tự nhiên, nếu muốn sửa đổi chỉ cần nhắn lại cho bot!`;
-
-    await this.uiService.sendSafeReply(ctx, userHelpMessage, inlineMarkup);
+    await this.uiService.sendSafeReply(ctx, helpMessage, inlineMarkup);
   }
 
   @Command('clear')
@@ -633,6 +635,64 @@ ${googleStatus}
     });
   }
 
+  @Command('reminders')
+  @Command('reminder')
+  public async onRemindersList(@Ctx() ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = await this.usersService.getPreferredLocale(userId);
+
+    try {
+      const upcoming = await this.uiService.withTyping(ctx, () =>
+        this.remindersService.getUserUpcomingReminders(userId),
+      );
+
+      if (upcoming.length === 0) {
+        await ctx.reply(translate(locale, 'telegram.reminders.empty'), {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                translate(locale, 'telegram.reminders.refresh'),
+                'action:refresh_reminders',
+              ),
+            ],
+            [
+              Markup.button.callback(
+                translate(locale, 'telegram.reminders.close'),
+                'message:close',
+              ),
+            ],
+          ]),
+        });
+        return;
+      }
+
+      let text = `⏰ *${translate(locale, 'reminders.title').toUpperCase()} (${upcoming.length})*\n━━━━━━━━━━━━━━━━━━━━\n`;
+      upcoming.forEach((r, idx) => {
+        const time = new Intl.DateTimeFormat(localeTag(locale), {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(new Date(r.remindAt));
+        const icon = r.notifyType === 'call' ? '📞' : '💬';
+        const repeat = r.repeatType !== 'none' ? ` _(Lặp: ${r.repeatType})_` : '';
+        text += `• *#${idx + 1}*: ${r.title}\n   ⏰ ${time} · ${icon}${repeat}\n\n`;
+      });
+
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        ...this.uiService.buildRemindersMarkup(upcoming, locale),
+      });
+    } catch (err) {
+      const error = err as Error;
+      await ctx.reply(translate(locale, 'telegram.reminders.fetchError', { error: error.message }));
+    }
+  }
+
   // Handle interactive inline button: complete task
   @Action(/^complete_task:(.+)$/)
   public async onCompleteTaskAction(@Ctx() ctx: Context): Promise<void> {
@@ -850,6 +910,18 @@ ${googleStatus}
   public async onViewDebtsAction(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('💳 Đang mở sổ công nợ...');
     await this.onDebts(ctx);
+  }
+
+  @Action('action:view_reminders')
+  public async onViewRemindersAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('⏰ Đang tải danh sách lời nhắc...');
+    await this.onRemindersList(ctx);
+  }
+
+  @Action('action:refresh_reminders')
+  public async onRefreshRemindersAction(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('🔄 Đang làm mới danh sách lời nhắc...');
+    await this.onRemindersList(ctx);
   }
 
   @Action('action:view_reports')

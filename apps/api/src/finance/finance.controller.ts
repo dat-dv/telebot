@@ -77,6 +77,12 @@ export class FinanceController {
         this.userId(req),
         this.string(body.displayName, 'displayName'),
         this.optionalString(body.alias),
+        this.optionalString(body.descriptor),
+        this.optionalString(body.phoneNumber),
+        this.optionalString(body.bankAccountNumber),
+        this.optionalString(body.bankCode),
+        this.optionalString(body.bankName),
+        this.optionalString(body.avatarUrl),
       ),
     };
   }
@@ -89,7 +95,55 @@ export class FinanceController {
         id,
         this.string(body.displayName, 'displayName'),
         this.optionalString(body.alias),
+        this.optionalString(body.descriptor),
+        this.optionalString(body.phoneNumber),
+        this.optionalString(body.bankAccountNumber),
+        this.optionalString(body.bankCode),
+        this.optionalString(body.bankName),
+        this.optionalString(body.avatarUrl),
       ),
+    };
+  }
+
+  @Post('contacts/combine')
+  @ApiOperation({ summary: 'Gộp nhiều liên hệ thành một liên hệ chính' })
+  async combineContacts(@Req() req: Request, @Body() body: RecordBody) {
+    const targetContactId = this.string(body.targetContactId, 'targetContactId');
+    const sourceContactIds = Array.isArray(body.sourceContactIds)
+      ? body.sourceContactIds.filter(
+          (item): item is string => typeof item === 'string' && Boolean(item.trim()),
+        )
+      : [];
+    if (sourceContactIds.length === 0) {
+      throw new BadRequestException('sourceContactIds must be a non-empty array of strings.');
+    }
+
+    const result = await this.finance.combineContacts(this.userId(req), {
+      targetContactId,
+      sourceContactIds,
+      displayName: this.optionalString(body.displayName),
+      alias: this.optionalString(body.alias),
+      descriptor: this.optionalString(body.descriptor),
+    });
+
+    return {
+      data: {
+        targetContact: {
+          id: result.targetContact.id,
+          displayName: result.targetContact.displayName,
+          alias: result.targetContact.alias,
+          descriptor: result.targetContact.descriptor,
+          phoneNumber: result.targetContact.phoneNumber,
+          bankAccountNumber: result.targetContact.bankAccountNumber,
+          bankCode: result.targetContact.bankCode,
+          bankName: result.targetContact.bankName,
+          avatarUrl: result.targetContact.avatarUrl,
+          createdAt: result.targetContact.createdAt.toISOString(),
+          updatedAt: result.targetContact.updatedAt?.toISOString(),
+        },
+        affectedDebtsCount: result.affectedDebtsCount,
+        mergedCount: result.mergedCount,
+      },
     };
   }
 
@@ -116,6 +170,7 @@ export class FinanceController {
         contactId: this.optionalString(body.contactId),
         createNewContact: body.createNewContact === true,
         amount: this.number(body.amount, 'amount'),
+        currency: this.optionalString(body.currency),
         note: this.optionalString(body.note),
         dueAt: this.optionalString(body.dueAt),
       }),
@@ -132,6 +187,7 @@ export class FinanceController {
               ? undefined
               : this.enum(body.direction, ['receivable', 'payable'] as const, 'direction'),
           amount: body.amount === undefined ? undefined : this.number(body.amount, 'amount'),
+          currency: this.optionalString(body.currency),
           note: this.optionalString(body.note),
           dueAt: this.optionalString(body.dueAt),
         }),
@@ -139,13 +195,24 @@ export class FinanceController {
     };
   }
 
+  @Get('debts/:id/payments')
+  @ApiOperation({ summary: 'Lấy lịch sử thanh toán của khoản nợ' })
+  async getDebtPayments(@Req() req: Request, @Param('id') id: string) {
+    return {
+      data: await this.finance.getDebtPayments(this.userId(req), id),
+    };
+  }
+
   @Post('debts/:id/payments')
+  @ApiOperation({ summary: 'Ghi nhận một lần thanh toán nợ' })
   async recordPayment(@Req() req: Request, @Param('id') id: string, @Body() body: RecordBody) {
     return {
       data: await this.finance.recordDebtPayment(
         this.userId(req),
         id,
         this.number(body.amount, 'amount'),
+        this.optionalString(body.paymentDate),
+        this.optionalString(body.note),
       ),
     };
   }
@@ -190,7 +257,11 @@ export class FinanceController {
           ? undefined
           : this.enum(body.type, ['income', 'expense'] as const, 'type'),
       amount: body.amount === undefined && partial ? undefined : this.number(body.amount, 'amount'),
+      currency: this.optionalString(body.currency),
       category: this.optionalString(body.category),
+      paymentMethod: this.optionalString(body.paymentMethod),
+      receiptUrl: this.optionalString(body.receiptUrl),
+      contactId: this.optionalString(body.contactId),
       note: body.note === undefined && partial ? undefined : this.string(body.note, 'note'),
       occurredAt: this.optionalString(body.occurredAt),
     };

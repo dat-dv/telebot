@@ -4,7 +4,9 @@
 
 The web app is an operational, data-dense personal dashboard. Prefer one flat workspace, subtle borders, compact controls, and semantic table markup over decorative cards or heavy shadows.
 
-Shared UI primitives in `apps/web/src/shared/ui/` own reusable panel/table behavior. Tables fill their containing data panel on desktop, keep semantic headers, right-align numeric data, provide loading, empty, and populated states, and may scroll horizontally within their own wrapper on narrow screens. Views own domain columns, fetching, errors, and actions.
+Shared UI primitives in `apps/web/src/shared/ui/` own reusable panel/table behavior. Tables fill their containing data panel on desktop, keep semantic headers, right-align numeric data, provide loading, empty, and populated states, and support smooth horizontal scrolling within their own wrapper on narrow mobile screens (`min-width: max-content` with column-level `minWidth` definitions to prevent data squashing).
+
+DataTable includes a built-in Column Visibility Settings popover (`TableColumnSettings`) allowing users to toggle column display, reset defaults, and persist their custom column preferences in `localStorage` (`telebot:table-columns:<id>`). Core identity columns (`hideable: false`) cannot be unchecked to prevent accidental loss of context. Views own domain columns, fetching, errors, and actions.
 
 Interactive controls need visible keyboard focus, sufficient contrast, and clear error/retry affordances. Secondary actions should not dominate primary operational work.
 

@@ -32,7 +32,7 @@ export class CreateTasksTool implements GeminiTool {
   public readonly declaration: FunctionDeclaration = {
     name: this.name,
     description:
-      'Tạo nhiều công việc cần làm trên Google Tasks trong một lần. Dùng khi người dùng nêu một danh sách/checklist từ hai việc độc lập trở lên.',
+      'Tạo nhiều công việc cần làm trên Google Tasks trong một lần. Dùng khi người dùng nêu một danh sách/checklist từ hai việc độc lập trở lên, hỗ trợ đầy đủ tiêu đề (title), ghi chú (notes) và hạn chót (due) cho từng mục.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -43,10 +43,13 @@ export class CreateTasksTool implements GeminiTool {
             type: SchemaType.OBJECT,
             properties: {
               title: { type: SchemaType.STRING, description: 'Tiêu đề công việc.' },
-              notes: { type: SchemaType.STRING, description: 'Ghi chú chi tiết, nếu có.' },
+              notes: {
+                type: SchemaType.STRING,
+                description: 'Ghi chú chi tiết hoặc các bước thực hiện, nếu có.',
+              },
               due: {
                 type: SchemaType.STRING,
-                description: 'Hạn chót RFC 3339 / ISO 8601, nếu có.',
+                description: 'Hạn chót hoàn thành theo chuẩn RFC 3339 / ISO 8601, nếu có.',
               },
             },
             required: ['title'],

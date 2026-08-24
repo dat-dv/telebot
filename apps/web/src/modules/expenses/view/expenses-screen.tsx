@@ -6,11 +6,15 @@ import { localeTag, type IExpenseListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
+import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
+import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { expensesQueryKeys, useExpensesQuery } from '../api/expenses-query';
 
 export function ExpensesScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
+  const periodFilter = usePeriodFilter('month');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [search, setSearch] = useState('');
   const expenses = useExpensesQuery();
@@ -19,16 +23,22 @@ export function ExpensesScreen() {
 
   const rawList = useMemo(() => expenses.data ?? [], [expenses.data]);
 
+  // Filter by period first
+  const periodExpenses = useMemo(() => {
+    return rawList.filter((item) => periodFilter.isItemInPeriod(item.occurredAt));
+  }, [rawList, periodFilter]);
+
   const categories = useMemo(() => {
     const set = new Set<string>();
-    rawList.forEach((item) => {
+    periodExpenses.forEach((item) => {
       if (item.category) set.add(item.category);
     });
     return Array.from(set).sort();
-  }, [rawList]);
+  }, [periodExpenses]);
 
+  // Filter by category & search
   const filteredExpenses = useMemo(() => {
-    return rawList.filter((item) => {
+    return periodExpenses.filter((item) => {
       if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -37,12 +47,27 @@ export function ExpensesScreen() {
         (item.note && item.note.toLowerCase().includes(q))
       );
     });
-  }, [rawList, selectedCategory, search]);
+  }, [periodExpenses, selectedCategory, search]);
 
-  const totalFilteredAmount = useMemo(
-    () => filteredExpenses.reduce((sum, item) => sum + item.amount, 0),
-    [filteredExpenses],
+  const totalPeriodAmount = useMemo(
+    () => periodExpenses.reduce((sum, item) => sum + item.amount, 0),
+    [periodExpenses],
   );
+
+  const maxExpenseAmount = useMemo(
+    () => Math.max(...periodExpenses.map((e) => e.amount), 1),
+    [periodExpenses],
+  );
+
+  const periodBuckets = useMemo(() => {
+    return periodFilter.generateBuckets(
+      periodExpenses.map((e) => ({
+        occurredAt: e.occurredAt,
+        amount: e.amount,
+        type: 'expense' as const,
+      })),
+    );
+  }, [periodExpenses, periodFilter]);
 
   const money = (value: number) =>
     new Intl.NumberFormat(localeTag(locale), {
@@ -61,22 +86,51 @@ export function ExpensesScreen() {
     {
       id: 'category',
       header: t('dashboard.columns.category'),
+      minWidth: '160px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.category}</span>,
     },
     {
       id: 'note',
       header: t('dashboard.columns.note'),
+      minWidth: '180px',
       cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
-      cell: (item) => <strong>{money(item.amount)}</strong>,
+      minWidth: '130px',
+      hideable: false,
+      cell: (item) => {
+        const pct = Math.min(Math.round((item.amount / maxExpenseAmount) * 100), 100);
+        return (
+          <div className="amount-cell">
+            <strong className="text-warning">{money(item.amount)}</strong>
+            <div className="amount-cell__bar-track">
+              <div className="amount-cell__bar-fill bg-warning" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'paymentMethod',
+      header: t('expenses.columns.paymentMethod'),
+      minWidth: '120px',
+      cell: (item) => <span className="badge">{item.paymentMethod || t('common.notSet')}</span>,
+    },
+    {
+      id: 'currency',
+      header: t('expenses.columns.currency'),
+      minWidth: '80px',
+      cell: (item) => <span className="badge">{item.currency || 'VND'}</span>,
     },
     {
       id: 'occurredAt',
       header: t('dashboard.columns.date'),
+      align: 'right',
+      minWidth: '130px',
       cell: (item) => <span className="cell-muted">{date(item.occurredAt)}</span>,
     },
   ];
@@ -89,16 +143,19 @@ export function ExpensesScreen() {
         onRefresh={refresh}
       />
 
-      <section className="metric-grid" aria-label={t('expenses.title')}>
-        <article className="metric metric--warning">
-          <span>{t('dashboard.expenseTotal')}</span>
-          <strong>{money(totalFilteredAmount)}</strong>
-        </article>
-        <article className="metric">
-          <span>{t('dashboard.columns.category')}</span>
-          <strong>{categories.length}</strong>
-        </article>
-      </section>
+      <PeriodFilterToolbar filter={periodFilter} />
+
+      <TrendSummaryStrip
+        income={0}
+        expense={totalPeriodAmount}
+        buckets={periodBuckets}
+        extraMetrics={
+          <article className="metric">
+            <span>{t('dashboard.columns.category')}</span>
+            <strong>{categories.length}</strong>
+          </article>
+        }
+      />
 
       {expenses.isError ? (
         <section className="inline-alert" role="alert">
@@ -139,6 +196,7 @@ export function ExpensesScreen() {
             }
           >
             <DataTable
+              id="expenses"
               ariaLabel={t('expenses.title')}
               rows={filteredExpenses}
               loading={expenses.isLoading}

@@ -40,12 +40,15 @@ export function CalendarScreen() {
     {
       id: 'title',
       header: t('dashboard.columns.title'),
+      minWidth: '180px',
+      hideable: false,
       cell: (item) => <span className="cell-primary">{item.title}</span>,
     },
     {
       id: 'startAt',
       header: t('dashboard.columns.date'),
       align: 'right',
+      minWidth: '150px',
       cell: (item) => <span className="cell-muted">{date(item.startAt)}</span>,
     },
   ];
@@ -83,6 +86,7 @@ export function CalendarScreen() {
             }
           >
             <DataTable
+              id="calendar"
               ariaLabel={t('dashboard.calendar')}
               rows={filteredCalendar}
               loading={dashboard.isLoading}
