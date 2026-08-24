@@ -15,6 +15,7 @@ import {
   useExpensesQuery,
   useUpdateExpenseMutation,
 } from '../api/expenses-query';
+import { useCategoriesQuery } from '@/modules/settings/api/categories-query';
 
 export function ExpensesScreen() {
   const queryClient = useQueryClient();
@@ -40,21 +41,27 @@ export function ExpensesScreen() {
   const [, startTransition] = useTransition();
 
   const expenses = useExpensesQuery();
+  const categoriesQuery = useCategoriesQuery('expense');
   const updateMutation = useUpdateExpenseMutation();
   const deleteMutation = useDeleteExpenseMutation();
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: expensesQueryKeys.list() });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: expensesQueryKeys.list() });
+    void queryClient.invalidateQueries({ queryKey: ['categories'] });
+  };
 
   const rawList = useMemo(() => expenses.data ?? [], [expenses.data]);
+  const configuredCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   const categorySuggestions = useMemo(() => {
     const set = new Set<string>();
+    configuredCategories.forEach((c) => set.add(c.name));
     rawList.forEach((item) => {
       if (item.category) set.add(item.category);
     });
     DEFAULT_EXPENSE_CATEGORIES.forEach((cat) => set.add(cat));
     return Array.from(set).sort();
-  }, [rawList]);
+  }, [configuredCategories, rawList]);
 
   // Filter by period first
   const periodExpenses = useMemo(() => {

@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { type ITaskListItem } from '@telebot/contracts';
-import { type tasks_v1 } from 'googleapis';
+import { type ICalendarEventItem, type ITaskListItem } from '@telebot/contracts';
+import { type calendar_v3, type tasks_v1 } from 'googleapis';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { GoogleCalendarService } from './google-calendar.service';
@@ -32,25 +32,28 @@ export class GoogleResourcesController {
   @Get('calendar/events')
   @ApiOperation({ summary: 'Lấy danh sách sự kiện Google Calendar' })
   async listEvents(@Req() req: Request, @Query() query: Record<string, string | undefined>) {
+    const items = await this.calendar.listEvents(
+      {
+        timeMin: query.timeMin,
+        timeMax: query.timeMax,
+        query: query.query,
+        maxResults: query.maxResults ? this.limit(query.maxResults) : 100,
+      },
+      this.userId(req),
+    );
     return {
-      data: await this.calendar.listEvents(
-        {
-          timeMin: query.timeMin,
-          timeMax: query.timeMax,
-          query: query.query,
-          maxResults: query.maxResults ? this.limit(query.maxResults) : undefined,
-        },
-        this.userId(req),
-      ),
+      data: items.map((item) => this.mapEventToListItem(item)),
     };
   }
   @Get('calendar/events/:id')
   async getEvent(@Req() req: Request, @Param('id') id: string) {
-    return { data: await this.calendar.getEvent(id, this.userId(req)) };
+    const item = await this.calendar.getEvent(id, this.userId(req));
+    return { data: this.mapEventToListItem(item) };
   }
   @Post('calendar/events')
   async createEvent(@Req() req: Request, @Body() body: Record<string, unknown>) {
-    return { data: await this.calendar.createEvent(this.eventInput(body), this.userId(req)) };
+    const item = await this.calendar.createEvent(this.eventInput(body), this.userId(req));
+    return { data: this.mapEventToListItem(item) };
   }
   @Patch('calendar/events/:id')
   async updateEvent(
@@ -58,8 +61,9 @@ export class GoogleResourcesController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
+    const item = await this.calendar.updateEvent(id, this.eventInput(body, true), this.userId(req));
     return {
-      data: await this.calendar.updateEvent(id, this.eventInput(body, true), this.userId(req)),
+      data: this.mapEventToListItem(item),
     };
   }
   @Delete('calendar/events/:id')
@@ -125,6 +129,17 @@ export class GoogleResourcesController {
   ) {
     await this.tasks.deleteTask(id, taskListId, this.userId(req));
     return { data: { deleted: true } };
+  }
+
+  private mapEventToListItem(item: calendar_v3.Schema$Event): ICalendarEventItem {
+    return {
+      id: item.id || item.etag || item.summary || 'event',
+      title: item.summary || 'Không có tiêu đề',
+      description: item.description || undefined,
+      location: item.location || undefined,
+      startAt: item.start?.dateTime || item.start?.date || undefined,
+      endAt: item.end?.dateTime || item.end?.date || undefined,
+    };
   }
 
   private mapTaskToListItem(item: tasks_v1.Schema$Task): ITaskListItem {

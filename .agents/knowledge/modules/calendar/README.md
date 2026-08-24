@@ -4,12 +4,17 @@
 
 ## Purpose
 
-`apps/web/src/modules/calendar` handles calendar event queries, updates, and deletions for the authenticated user.
+`apps/web/src/modules/calendar` provides a rich calendar interface supporting interactive 7-column Month Grid View and tabular List View for managing Google Calendar events of authenticated users in realtime.
 
 ## UI and state
 
-The module provides calendar event listing and management with support for updating and deleting events. It surfaces event summaries, start/end times, locations, and descriptions. Data fetching uses TanStack Query via `useCalendarEventsQuery`.
+- **Dual View Modes**: Switchable between Month Grid View (`calendar.view.grid`) and tabular Data Table View (`calendar.view.table`).
+- **Month Grid (`CalendarGrid`)**: 7-day grid (Mon–Sun) with leading/trailing padding days, today highlight, selected date focus, event chips with start time/summary, "+N more" badge, and an interactive selected day event details/inline-editing panel.
+- **Month Navigation**: Prev Month, Next Month, and Today navigation buttons with localized month/year formatting.
+- **State Management**: TanStack Query via `useCalendarEventsQuery`, local month/selected date state, and search filtering.
 
 ## Integration seams
 
-`getCalendarEvents`, `updateCalendarEvent`, and `deleteCalendarEvent` call `API_ROUTES.calendarEvents` (`/api/calendar-events`). `useUpdateCalendarEventMutation` and `useDeleteCalendarEventMutation` handle mutations and invalidate both `calendarEvents` and `dashboard` query keys on success.
+- Backend: `GoogleResourcesController` (`GET/POST/PATCH/DELETE /calendar/events`) interfaces with `GoogleCalendarService` and maps Google Calendar items into normalized `ICalendarEventItem` DTOs.
+- Web Client: `getCalendarEvents`, `updateCalendarEvent`, and `deleteCalendarEvent` communicate with `API_ROUTES.calendarEvents`. `useUpdateCalendarEventMutation` and `useDeleteCalendarEventMutation` perform mutations and invalidate both `calendarEvents` and `dashboard` query caches.
+

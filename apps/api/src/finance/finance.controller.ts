@@ -65,6 +65,88 @@ export class FinanceController {
     return { data: { deleted: true } };
   }
 
+  @Get('categories')
+  @ApiOperation({ summary: 'Lấy danh sách danh mục thu/chi' })
+  async listCategories(@Req() req: Request, @Query('type') type?: 'income' | 'expense') {
+    const categories = await this.finance.listCategories(this.userId(req), type);
+    return {
+      data: categories.map((cat) => ({
+        id: cat.id,
+        type: cat.type,
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon,
+        isDefault: cat.isDefault,
+        createdAt: cat.createdAt.toISOString(),
+        updatedAt: cat.updatedAt?.toISOString(),
+      })),
+    };
+  }
+
+  @Post('categories')
+  @ApiOperation({ summary: 'Tạo danh mục thu/chi mới' })
+  async createCategory(@Req() req: Request, @Body() body: RecordBody) {
+    const type = this.string(body.type, 'type');
+    if (type !== 'income' && type !== 'expense') {
+      throw new BadRequestException('Loại danh mục phải là income hoặc expense.');
+    }
+    const name = this.string(body.name, 'name');
+    const color = this.optionalString(body.color);
+    const icon = this.optionalString(body.icon);
+    const cat = await this.finance.createCategory(this.userId(req), {
+      type,
+      name,
+      color,
+      icon,
+    });
+    return {
+      data: {
+        id: cat.id,
+        type: cat.type,
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon,
+        isDefault: cat.isDefault,
+        createdAt: cat.createdAt.toISOString(),
+        updatedAt: cat.updatedAt?.toISOString(),
+      },
+    };
+  }
+
+  @Patch('categories/:id')
+  @ApiOperation({ summary: 'Cập nhật danh mục thu/chi' })
+  async updateCategory(@Req() req: Request, @Param('id') id: string, @Body() body: RecordBody) {
+    const name = this.optionalString(body.name);
+    const color = this.optionalString(body.color);
+    const icon = this.optionalString(body.icon);
+    const cat = await this.finance.updateCategory(this.userId(req), id, {
+      name,
+      color,
+      icon,
+    });
+    if (!cat) throw new NotFoundException('Không tìm thấy danh mục.');
+    return {
+      data: {
+        id: cat.id,
+        type: cat.type,
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon,
+        isDefault: cat.isDefault,
+        createdAt: cat.createdAt.toISOString(),
+        updatedAt: cat.updatedAt?.toISOString(),
+      },
+    };
+  }
+
+  @Delete('categories/:id')
+  @ApiOperation({ summary: 'Xóa danh mục thu/chi' })
+  async deleteCategory(@Req() req: Request, @Param('id') id: string) {
+    const deleted = await this.finance.deleteCategory(this.userId(req), id);
+    if (!deleted) throw new NotFoundException('Không tìm thấy danh mục.');
+    return { data: { deleted: true } };
+  }
+
   @Get('contacts/:id')
   async getContact(@Req() req: Request, @Param('id') id: string) {
     return { data: await this.required(this.finance.getContact(this.userId(req), id)) };

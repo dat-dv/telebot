@@ -2183,3 +2183,417 @@ html[data-theme='dark'] .modal-footer {
   background: #060910;
   border-top-color: #1e293b;
 }
+
+/* ==========================================================================
+   Calendar Grid & Month View Styles
+   ========================================================================== */
+
+.calendar-toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.calendar-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-nav-month-title {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 120px;
+  text-align: center;
+  text-transform: capitalize;
+  color: #0f172a;
+}
+
+.calendar-view-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.calendar-grid-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calendar-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px 4px 0 0;
+  text-align: center;
+}
+
+.calendar-grid-header-cell {
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.calendar-grid-body {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-left: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+}
+
+.calendar-grid-cell {
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+  min-height: 96px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background-color 0.12s, border-color 0.12s;
+  outline: none;
+}
+
+.calendar-grid-cell:hover {
+  background: #f8fafc;
+}
+
+.calendar-grid-cell--outside {
+  background: #f8fafc;
+  opacity: 0.55;
+}
+
+.calendar-grid-cell--today {
+  background: #f0f9ff;
+}
+
+.calendar-grid-cell--selected {
+  background: #f0fdf4 !important;
+  box-shadow: inset 0 0 0 2px #22c55e;
+}
+
+.calendar-grid-cell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.calendar-grid-day-number {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.calendar-grid-day-number--today {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.calendar-grid-event-count {
+  font-size: 10px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 9999px;
+  padding: 1px 5px;
+  font-weight: 600;
+}
+
+.calendar-grid-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.calendar-grid-event-chip {
+  font-size: 11px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  border-radius: 3px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.calendar-grid-event-chip:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.calendar-grid-event-time {
+  font-weight: 600;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.calendar-grid-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-grid-more-chip {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  padding-left: 2px;
+}
+
+.calendar-selected-day-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+
+.calendar-selected-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.calendar-selected-day-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  text-transform: capitalize;
+}
+
+.calendar-selected-day-badge {
+  font-size: 11px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.calendar-selected-day-empty {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.calendar-selected-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calendar-event-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fafafa;
+}
+
+.calendar-event-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-event-card-time-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.calendar-event-card-title {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.calendar-event-card-meta {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.calendar-event-card-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  white-space: pre-wrap;
+}
+
+.calendar-event-card-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.calendar-event-card--editing {
+  background: #ffffff;
+  border-color: #3b82f6;
+}
+
+.calendar-edit-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   Calendar Dark Theme Overrides
+   ========================================================================== */
+
+html[data-theme='dark'] .calendar-nav-month-title {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .calendar-grid-header {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+html[data-theme='dark'] .calendar-grid-header-cell {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .calendar-grid-body {
+  border-left-color: #334155;
+  border-bottom-color: #334155;
+}
+
+html[data-theme='dark'] .calendar-grid-cell {
+  background: #090d16;
+  border-right-color: #334155;
+  border-top-color: #334155;
+}
+
+html[data-theme='dark'] .calendar-grid-cell:hover {
+  background: #0f172a;
+}
+
+html[data-theme='dark'] .calendar-grid-cell--outside {
+  background: #060910;
+  opacity: 0.45;
+}
+
+html[data-theme='dark'] .calendar-grid-cell--today {
+  background: #0c1929;
+}
+
+html[data-theme='dark'] .calendar-grid-cell--selected {
+  background: #052e16 !important;
+  box-shadow: inset 0 0 0 2px #16a34a;
+}
+
+html[data-theme='dark'] .calendar-grid-day-number {
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] .calendar-grid-event-count {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .calendar-grid-event-chip {
+  background: #1e293b;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .calendar-grid-event-chip:hover {
+  background: #1e3a8a;
+  border-color: #60a5fa;
+}
+
+html[data-theme='dark'] .calendar-grid-more-chip {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .calendar-selected-day-panel {
+  background: #090d16;
+  border-color: #334155;
+}
+
+html[data-theme='dark'] .calendar-selected-day-header {
+  border-bottom-color: #1e293b;
+}
+
+html[data-theme='dark'] .calendar-selected-day-title {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .calendar-selected-day-badge {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .calendar-event-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+html[data-theme='dark'] .calendar-event-card-time-pill {
+  background: #1e293b;
+  color: #60a5fa;
+}
+
+html[data-theme='dark'] .calendar-event-card-title {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .calendar-event-card-meta {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .calendar-event-card-desc {
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .calendar-event-card--editing {
+  background: #090d16;
+  border-color: #3b82f6;
+}
+

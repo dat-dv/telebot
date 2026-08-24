@@ -3,6 +3,7 @@ export const API_ROUTES = {
   dashboard: '/api/dashboard',
   dashboardRefresh: '/api/refresh',
   dashboardLogout: '/api/logout',
+  categories: '/api/categories',
   contacts: '/api/contacts',
   contactsCombine: '/api/contacts/combine',
   debts: '/api/debts',
@@ -37,6 +38,7 @@ export const APP_ROUTES = {
   reminders: '/reminders',
 
   contacts: '/contacts',
+  settings: '/settings',
 } as const;
 
 export const SUPPORTED_LOCALES = ['vi', 'en'] as const;
@@ -78,11 +80,13 @@ const messages = {
     'nav.tasks': 'Việc cần làm',
     'nav.reminders': 'Nhắc nhở',
     'nav.reports': 'Tài chính',
+    'nav.settings': 'Cài đặt',
     'nav.personalSpace': 'Cá nhân',
     'nav.section.overview': 'TỔNG QUAN',
     'nav.section.finance': 'TÀI CHÍNH',
     'nav.section.planning': 'KẾ HOẠCH',
     'nav.section.data': 'DỮ LIỆU',
+    'nav.section.system': 'HỆ THỐNG',
     'nav.section.other': 'KHÁC',
     'nav.dark': 'Giao diện tối',
     'nav.light': 'Giao diện sáng',
@@ -263,6 +267,22 @@ const messages = {
     'calendar.placeholder.title': 'Nhập tiêu đề sự kiện...',
     'calendar.placeholder.location': 'Nhập địa điểm...',
     'calendar.placeholder.description': 'Nhập mô tả chi tiết...',
+    'calendar.view.grid': 'Lưới tháng',
+    'calendar.view.table': 'Danh sách',
+    'calendar.nav.today': 'Hôm nay',
+    'calendar.nav.prev': 'Tháng trước',
+    'calendar.nav.next': 'Tháng sau',
+    'calendar.day.mon': 'T2',
+    'calendar.day.tue': 'T3',
+    'calendar.day.wed': 'T4',
+    'calendar.day.thu': 'T5',
+    'calendar.day.fri': 'T6',
+    'calendar.day.sat': 'T7',
+    'calendar.day.sun': 'CN',
+    'calendar.moreEvents': '+{count} sự kiện',
+    'calendar.selectedDayEvents': 'Sự kiện ngày {date}',
+    'calendar.noEventsOnDay': 'Không có sự kiện nào trong ngày này',
+    'calendar.quickCreate': 'Tạo nhanh sự kiện',
     'tasks.title': 'Việc cần làm',
     'tasks.subtitle': 'Danh sách công việc từ Google Tasks',
     'tasks.columns.status': 'Trạng thái',
@@ -329,6 +349,28 @@ const messages = {
     'chart.income': 'Thu nhập',
     'chart.expense': 'Chi tiêu',
     'chart.net': 'Dòng tiền',
+    'settings.title': 'Cài đặt chung',
+    'settings.subtitle': 'Quản lý danh mục thu chi và cấu hình hệ thống',
+    'settings.tabs.categories': 'Danh mục Thu & Chi',
+    'settings.tabs.preferences': 'Tùy chọn hệ thống',
+    'settings.categories.expenseTitle': 'Danh mục Chi tiêu',
+    'settings.categories.incomeTitle': 'Danh mục Thu nhập',
+    'settings.categories.addExpense': '+ Thêm danh mục chi',
+    'settings.categories.addIncome': '+ Thêm danh mục thu',
+    'settings.categories.namePlaceholder': 'Nhập tên danh mục...',
+    'settings.categories.name': 'Tên danh mục',
+    'settings.categories.type': 'Loại',
+    'settings.categories.count': '{count} danh mục',
+    'settings.categories.empty': 'Chưa có danh mục nào',
+    'settings.categories.deleteConfirm': 'Bạn có chắc chắn muốn xóa danh mục này không?',
+    'settings.categories.created': 'Đã tạo danh mục thành công',
+    'settings.categories.updated': 'Đã cập nhật danh mục',
+    'settings.categories.deleted': 'Đã xóa danh mục',
+    'settings.categories.exists': 'Danh mục này đã tồn tại',
+    'settings.preferences.languageDescription': 'Hỗ trợ Tiếng Việt và English',
+    'settings.preferences.themeTitle': 'Giao diện & Chủ đề',
+    'settings.preferences.themeDescription': 'Chế độ Sáng / Tối (Light & Dark mode)',
+    'settings.preferences.supported': 'Đã hỗ trợ',
   },
   en: {
     'common.refresh': 'Refresh',
@@ -353,11 +395,13 @@ const messages = {
     'nav.tasks': 'Tasks',
     'nav.reminders': 'Reminders',
     'nav.reports': 'Finance',
+    'nav.settings': 'Settings',
     'nav.personalSpace': 'Personal',
     'nav.section.overview': 'OVERVIEW',
     'nav.section.finance': 'FINANCE',
     'nav.section.planning': 'PLANNING',
     'nav.section.data': 'DATA',
+    'nav.section.system': 'SYSTEM',
     'nav.section.other': 'OTHER',
     'nav.dark': 'Dark mode',
     'nav.light': 'Light mode',
@@ -538,6 +582,22 @@ const messages = {
     'calendar.placeholder.title': 'Event title...',
     'calendar.placeholder.location': 'Location...',
     'calendar.placeholder.description': 'Event description...',
+    'calendar.view.grid': 'Month Grid',
+    'calendar.view.table': 'List View',
+    'calendar.nav.today': 'Today',
+    'calendar.nav.prev': 'Previous Month',
+    'calendar.nav.next': 'Next Month',
+    'calendar.day.mon': 'Mon',
+    'calendar.day.tue': 'Tue',
+    'calendar.day.wed': 'Wed',
+    'calendar.day.thu': 'Thu',
+    'calendar.day.fri': 'Fri',
+    'calendar.day.sat': 'Sat',
+    'calendar.day.sun': 'Sun',
+    'calendar.moreEvents': '+{count} more',
+    'calendar.selectedDayEvents': 'Events on {date}',
+    'calendar.noEventsOnDay': 'No events on this day',
+    'calendar.quickCreate': 'Quick Add Event',
     'tasks.title': 'Tasks',
     'tasks.subtitle': 'Task list from Google Tasks',
     'tasks.columns.status': 'Status',
@@ -604,6 +664,28 @@ const messages = {
     'chart.income': 'Income',
     'chart.expense': 'Expense',
     'chart.net': 'Net cashflow',
+    'settings.title': 'General Settings',
+    'settings.subtitle': 'Manage finance categories and system configuration',
+    'settings.tabs.categories': 'Categories',
+    'settings.tabs.preferences': 'Preferences',
+    'settings.categories.expenseTitle': 'Expense Categories',
+    'settings.categories.incomeTitle': 'Income Categories',
+    'settings.categories.addExpense': '+ Add Expense Category',
+    'settings.categories.addIncome': '+ Add Income Category',
+    'settings.categories.namePlaceholder': 'Enter category name...',
+    'settings.categories.name': 'Category Name',
+    'settings.categories.type': 'Type',
+    'settings.categories.count': '{count} categories',
+    'settings.categories.empty': 'No categories yet',
+    'settings.categories.deleteConfirm': 'Are you sure you want to delete this category?',
+    'settings.categories.created': 'Category created successfully',
+    'settings.categories.updated': 'Category updated successfully',
+    'settings.categories.deleted': 'Category deleted successfully',
+    'settings.categories.exists': 'Category already exists',
+    'settings.preferences.languageDescription': 'Support Vietnamese and English',
+    'settings.preferences.themeTitle': 'Interface & Theme',
+    'settings.preferences.themeDescription': 'Light and Dark mode',
+    'settings.preferences.supported': 'Supported',
   },
 } as const;
 
@@ -938,4 +1020,32 @@ export interface ICombineContactsResponse {
   targetContact: IContactListItem;
   affectedDebtsCount: number;
   mergedCount: number;
+}
+
+export interface ICategoryItem {
+  id: string;
+  type: 'income' | 'expense';
+  name: string;
+  color?: string;
+  icon?: string;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ICreateCategoryRequest {
+  type: 'income' | 'expense';
+  name: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface IUpdateCategoryRequest {
+  name?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface ICategoryListResponse {
+  categories: ICategoryItem[];
 }

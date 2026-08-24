@@ -12,11 +12,15 @@ import {
   useDeleteCalendarEventMutation,
   useUpdateCalendarEventMutation,
 } from '@/modules/calendar/api/calendar-query';
+import { CalendarGrid } from '@/modules/calendar/view/calendar-grid';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 export function CalendarScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
@@ -72,6 +76,27 @@ export function CalendarScreen() {
           timeStyle: 'short',
         }).format(new Date(value))
       : t('common.notSet');
+
+  const formattedMonthYear = useMemo(() => {
+    return new Intl.DateTimeFormat(localeTag(locale), {
+      month: 'long',
+      year: 'numeric',
+    }).format(currentMonth);
+  }, [currentMonth, locale]);
+
+  const handlePrevMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleToday = () => {
+    const today = new Date();
+    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDate(today);
+  };
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -386,25 +411,100 @@ export function CalendarScreen() {
             description={isGoogleConnected ? undefined : t('dashboard.connectGoogleTip')}
             counter={t('table.rowsCount', { count: filteredCalendar.length })}
             toolbar={
-              <input
-                type="search"
-                className="table-search-input"
-                placeholder={t('table.searchPlaceholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label={t('table.searchPlaceholder')}
-              />
+              <div className="calendar-toolbar-controls">
+                {/* Month Navigation */}
+                <div className="calendar-nav-group">
+                  <button
+                    type="button"
+                    className="button button--quiet"
+                    onClick={handlePrevMonth}
+                    title={t('calendar.nav.prev')}
+                    aria-label={t('calendar.nav.prev')}
+                  >
+                    ◀
+                  </button>
+                  <span className="calendar-nav-month-title">{formattedMonthYear}</span>
+                  <button
+                    type="button"
+                    className="button button--quiet"
+                    onClick={handleNextMonth}
+                    title={t('calendar.nav.next')}
+                    aria-label={t('calendar.nav.next')}
+                  >
+                    ▶
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={handleToday}
+                    title={t('calendar.nav.today')}
+                  >
+                    {t('calendar.nav.today')}
+                  </button>
+                </div>
+
+                {/* View Mode Toggle & Search */}
+                <div className="calendar-view-toggle-group">
+                  <div className="filter-pill-group" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={viewMode === 'grid'}
+                      className={`filter-pill ${viewMode === 'grid' ? 'filter-pill--active' : ''}`}
+                      onClick={() => setViewMode('grid')}
+                    >
+                      ⊞ {t('calendar.view.grid')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={viewMode === 'table'}
+                      className={`filter-pill ${viewMode === 'table' ? 'filter-pill--active' : ''}`}
+                      onClick={() => setViewMode('table')}
+                    >
+                      ☰ {t('calendar.view.table')}
+                    </button>
+                  </div>
+
+                  <input
+                    type="search"
+                    className="table-search-input"
+                    placeholder={t('table.searchPlaceholder')}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label={t('table.searchPlaceholder')}
+                  />
+                </div>
+              </div>
             }
           >
-            <DataTable
-              id="calendar"
-              ariaLabel={t('dashboard.calendar')}
-              rows={filteredCalendar}
-              loading={isLoading}
-              emptyMessage={t('dashboard.noCalendar')}
-              columns={calendarColumns}
-              getRowKey={(item) => item.id}
-            />
+            {viewMode === 'grid' ? (
+              <CalendarGrid
+                events={filteredCalendar}
+                currentDate={currentMonth}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                onEdit={handleStartEdit}
+                onDelete={handleDelete}
+                editingId={editingId}
+                editDraft={editDraft}
+                onEditDraftChange={setEditDraft}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                isSaving={updateMutation.isPending}
+                isDeleting={deleteMutation.isPending}
+              />
+            ) : (
+              <DataTable
+                id="calendar"
+                ariaLabel={t('dashboard.calendar')}
+                rows={filteredCalendar}
+                loading={isLoading}
+                emptyMessage={t('dashboard.noCalendar')}
+                columns={calendarColumns}
+                getRowKey={(item) => item.id}
+              />
+            )}
           </DataPanel>
         </section>
       )}

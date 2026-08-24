@@ -12,6 +12,7 @@ import { DebtContactEntity } from './entities/debt-contact.entity';
 import { DebtPaymentEntity } from './entities/debt-payment.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { DashboardExchangeTokenEntity } from './entities/dashboard-exchange-token.entity';
+import { UserCategoryEntity } from './entities/user-category.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
 import { fromProjectRoot } from '../config/project-root';
 
@@ -38,6 +39,7 @@ import { fromProjectRoot } from '../config/project-root';
             DebtPaymentEntity,
             AuditLogEntity,
             DashboardExchangeTokenEntity,
+            UserCategoryEntity,
           ],
           subscribers: [AuditLogSubscriber],
           synchronize: true,
@@ -56,6 +58,7 @@ import { fromProjectRoot } from '../config/project-root';
       DebtPaymentEntity,
       AuditLogEntity,
       DashboardExchangeTokenEntity,
+      UserCategoryEntity,
     ]),
   ],
   exports: [TypeOrmModule],

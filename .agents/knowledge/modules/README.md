@@ -19,6 +19,7 @@ Each module document covers:
 - [Dashboard](dashboard/README.md): Personal reports, statistics, and operational data views.
 - [Expenses](expenses/README.md): Expense-only transaction history reporting.
 - [Reminders](reminders/README.md): Scheduled user reminders management and status updates.
+- [Settings](settings/README.md): System preferences and custom finance categories management.
 - [Tasks](tasks/README.md): Google Tasks retrieval, updates, and state synchronization.
 
 

@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import {
+  DEFAULT_INCOME_CATEGORIES,
+  DEFAULT_EXPENSE_CATEGORIES,
+  type ICreateCategoryRequest,
+  type IUpdateCategoryRequest,
+} from '@telebot/contracts';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
+import { UserCategoryEntity } from '../database/entities/user-category.entity';
 
 export interface CreateFinanceTransactionDto {
   userId: number;
@@ -90,6 +97,8 @@ export class FinanceService {
     private readonly contactRepo: Repository<DebtContactEntity>,
     @InjectRepository(DebtPaymentEntity)
     private readonly debtPaymentRepo: Repository<DebtPaymentEntity>,
+    @InjectRepository(UserCategoryEntity)
+    private readonly userCategoryRepo: Repository<UserCategoryEntity>,
   ) {}
 
   public async resolveOrCreatePlaceContact(
@@ -606,6 +615,129 @@ export class FinanceService {
     });
     if (!debt) return false;
     await this.debtRepo.remove(debt);
+    return true;
+  }
+
+  public async listCategories(
+    userId: number,
+    type?: 'income' | 'expense',
+  ): Promise<UserCategoryEntity[]> {
+    const uid = userId.toString();
+    const count = await this.userCategoryRepo.count({ where: { userId: uid } });
+    if (count === 0) {
+      await this.seedDefaultCategories(userId);
+    }
+
+    const where: { userId: string; type?: 'income' | 'expense' } = { userId: uid };
+    if (type) {
+      where.type = type;
+    }
+    return this.userCategoryRepo.find({
+      where,
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  public async seedDefaultCategories(userId: number): Promise<void> {
+    const uid = userId.toString();
+    const entities: UserCategoryEntity[] = [];
+
+    for (const name of DEFAULT_EXPENSE_CATEGORIES) {
+      entities.push(
+        this.userCategoryRepo.create({
+          userId: uid,
+          type: 'expense',
+          name,
+          isDefault: true,
+        }),
+      );
+    }
+
+    for (const name of DEFAULT_INCOME_CATEGORIES) {
+      entities.push(
+        this.userCategoryRepo.create({
+          userId: uid,
+          type: 'income',
+          name,
+          isDefault: true,
+        }),
+      );
+    }
+
+    await this.userCategoryRepo.save(entities);
+  }
+
+  public async createCategory(
+    userId: number,
+    input: ICreateCategoryRequest,
+  ): Promise<UserCategoryEntity> {
+    const uid = userId.toString();
+    const name = input.name?.trim();
+    if (!name) {
+      throw new Error('Tên danh mục không được để trống.');
+    }
+
+    const existing = await this.userCategoryRepo.findOne({
+      where: { userId: uid, type: input.type, name },
+    });
+    if (existing) {
+      throw new Error('Danh mục này đã tồn tại.');
+    }
+
+    const category = this.userCategoryRepo.create({
+      userId: uid,
+      type: input.type,
+      name,
+      color: input.color?.trim() || undefined,
+      icon: input.icon?.trim() || undefined,
+      isDefault: false,
+    });
+    return this.userCategoryRepo.save(category);
+  }
+
+  public async updateCategory(
+    userId: number,
+    id: string,
+    input: IUpdateCategoryRequest,
+  ): Promise<UserCategoryEntity | null> {
+    const uid = userId.toString();
+    const category = await this.userCategoryRepo.findOne({
+      where: { id, userId: uid },
+    });
+    if (!category) return null;
+
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) {
+        throw new Error('Tên danh mục không được để trống.');
+      }
+      const existing = await this.userCategoryRepo.findOne({
+        where: { userId: uid, type: category.type, name },
+      });
+      if (existing && existing.id !== id) {
+        throw new Error('Tên danh mục này đã tồn tại.');
+      }
+      category.name = name;
+    }
+
+    if (input.color !== undefined) {
+      category.color = input.color?.trim() || undefined;
+    }
+
+    if (input.icon !== undefined) {
+      category.icon = input.icon?.trim() || undefined;
+    }
+
+    return this.userCategoryRepo.save(category);
+  }
+
+  public async deleteCategory(userId: number, id: string): Promise<boolean> {
+    const uid = userId.toString();
+    const category = await this.userCategoryRepo.findOne({
+      where: { id, userId: uid },
+    });
+    if (!category) return false;
+    await this.userCategoryRepo.remove(category);
     return true;
   }
 

@@ -16,6 +16,7 @@ import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
+import { useCategoriesQuery } from '@/modules/settings/api/categories-query';
 import {
   useDeleteTransactionMutation,
   useUpdateTransactionMutation,
@@ -58,11 +59,14 @@ export function TransactionsScreen() {
   const [, startTransition] = useTransition();
 
   const dashboard = useDashboardQuery();
+  const categoriesQuery = useCategoriesQuery();
   const updateMutation = useUpdateTransactionMutation();
   const deleteMutation = useDeleteTransactionMutation();
 
-  const refresh = () =>
+  const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
+    void queryClient.invalidateQueries({ queryKey: ['categories'] });
+  };
 
   const setFilter = (type: FilterType) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -76,17 +80,23 @@ export function TransactionsScreen() {
   };
 
   const rawList = useMemo(() => dashboard.data?.transactions ?? [], [dashboard.data]);
+  const configuredCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   const categorySuggestions = useMemo(() => {
     const set = new Set<string>();
+    configuredCategories
+      .filter((c) => !editDraft.type || c.type === editDraft.type)
+      .forEach((c) => set.add(c.name));
     rawList.forEach((item) => {
-      if (item.category) set.add(item.category);
+      if (item.category && (!editDraft.type || item.type === editDraft.type)) {
+        set.add(item.category);
+      }
     });
     const defaults =
       editDraft.type === 'income' ? DEFAULT_INCOME_CATEGORIES : DEFAULT_EXPENSE_CATEGORIES;
     defaults.forEach((cat) => set.add(cat));
     return Array.from(set).sort();
-  }, [rawList, editDraft.type]);
+  }, [configuredCategories, rawList, editDraft.type]);
 
   // Filter by period first
   const periodTransactions = useMemo(() => {
