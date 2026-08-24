@@ -4,3 +4,4 @@ The API instance receives Telegram commands through Telegraf long polling manage
 
 Direct command handlers must remain independently testable. The fallback harness verifies `/start` and `/help` still reply when dashboard-link issuance fails, when the origin is a localhost/loopback URL (omitting invalid inline URL buttons), and when Telegram API rejects invalid markup.
 
+The API test command must discover every `src/**/*.spec.ts` file and run through a TypeScript runner that honors NestJS decorators. Sensitive callbacks queue a user-bound confirmation; the action executes only after the same user confirms it.

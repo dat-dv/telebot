@@ -4,6 +4,7 @@ import { FinanceTransactionEntity } from '../database/entities/finance-transacti
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
+import { UserCategoryEntity } from '../database/entities/user-category.entity';
 import { FinanceService } from './finance.service';
 import { FinanceController } from './finance.controller';
 import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
@@ -15,6 +16,7 @@ import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
       DebtEntity,
       DebtContactEntity,
       DebtPaymentEntity,
+      UserCategoryEntity,
     ]),
     DashboardAuthModule,
   ],

@@ -18,3 +18,4 @@ Bot API nhận các lệnh như `/help` bằng long polling được điều ph�
 
 Lệnh kiểm tra hồi quy: `node apps/api/scripts/check-telegram-command-fallback.cjs`. Script xác minh `/start`, `/help` và `/dashboard` luôn trả lời kể cả khi tạo link dashboard thất bại, khi cấu hình URL là localhost, hoặc khi Telegram API từ chối inline markup.
 
+Lệnh unit test chuẩn cho API là `npm run test --workspace @telebot/api`. Lệnh này phải chạy toàn bộ file `*.spec.ts` dưới `apps/api/src/`, kể cả test lồng trong `telegram/services/`, và dùng runner hiểu decorators của NestJS. Callback có thay đổi dữ liệu không được thực thi ngay: bot tạo yêu cầu xác nhận gắn với đúng người dùng; chỉ nút xác nhận của người đó mới thực thi thao tác.

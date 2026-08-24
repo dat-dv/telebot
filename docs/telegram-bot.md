@@ -73,6 +73,7 @@ Tất cả tin nhắn gửi đến bot đều được kiểm soát bởi `AuthG
 
 1. **Kiểm tra Whitelist**: Chỉ những ai đã nằm trong danh sách hoặc kích hoạt bằng link mời mới được phép nhắn tin.
 2. **Chống Spam (Cooldown 2s)**: Ngăn chặn người dùng xả tin nhắn liên tục (dưới 2 giây).
+3. **Callback an toàn**: Các nút làm thay đổi dữ liệu như hoàn thành task hoặc cập nhật/xóa nhắc việc chỉ tạo yêu cầu xác nhận. Thao tác chỉ được thực thi sau khi chính người dùng bấm nút xác nhận.
 
 ---
 
@@ -85,7 +86,7 @@ Telegram tự động tắt trạng thái `typing` sau 5 giây. Hàm `withTyping
 ### 2. Gửi phản hồi an toàn & Chia nhỏ tin nhắn (`sendSafeReply`)
 
 - Tự động chia nhỏ tin nhắn dài vượt quá giới hạn 4000 ký tự của Telegram.
-- Chuẩn hóa Markdown do AI tạo trước khi gửi: giải mã HTML entity và bỏ escape thừa trong URL, nên chuỗi như ` ` không hiển thị nguyên văn trong chat.
+- Chuẩn hóa Markdown do AI tạo trước khi gửi: giải mã HTML entity và bỏ escape thừa trong URL, nên chuỗi như không hiển thị nguyên văn trong chat.
 - Tự động fallback về plain-text nếu cú pháp Markdown vẫn bị lỗi ký tự đặc biệt.
 
 ### 3. Voice-to-text cục bộ

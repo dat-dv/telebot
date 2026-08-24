@@ -9,20 +9,22 @@ Tài liệu này quy định các tiêu chuẩn về mã nguồn (Coding Standar
 Dự án sử dụng **TypeScript** ở chế độ strict với kiến trúc chuẩn của **NestJS**.
 
 ### 1.1 Nguyên tắc thiết kế (Design Principles)
+
 - **Single Responsibility Principle (SRP)**: Mỗi class, service hoặc tool chỉ làm một nhiệm vụ duy nhất.
 - **Dependency Injection (DI)**: Luôn đưa các service phụ thuộc vào `constructor` thông qua NestJS DI Container, tránh `new` trực tiếp instance.
 - **Strict Typing**: Tránh sử dụng `any`. Định nghĩa rõ interface đầu vào (`Args`) và đầu ra (`Result`) cho mọi phương thức và Tool.
 - **Error Handling**: Không để throw uncaught exceptions làm crash bot. Luôn log lỗi bằng `Logger` của NestJS kèm stack trace và trả về fallback message thân thiện.
 
 ### 1.2 Quy tắc đặt tên file & thư mục
-| Loại Thành Phần | Quy Tắc Đặt Tên | Ví Dụ |
-| :--- | :--- | :--- |
-| **Module** | `*.module.ts` | `google.module.ts`, `telegram.module.ts` |
-| **Service** | `*.service.ts` | `google-calendar.service.ts`, `gemini.service.ts` |
-| **Tool (AI Function Calling)** | `*.tool.ts` | `create-calendar.tool.ts`, `send-email.tool.ts` |
-| **Telegram Update / Controller** | `*.update.ts` | `telegram.update.ts` |
-| **Guard** | `*.guard.ts` | `auth.guard.ts` |
-| **Interface / Type** | `*.interface.ts` hoặc `*.types.ts` | `tool.interface.ts` |
+
+| Loại Thành Phần                  | Quy Tắc Đặt Tên                    | Ví Dụ                                             |
+| -------------------------------- | ---------------------------------- | ------------------------------------------------- |
+| **Module**                       | `*.module.ts`                      | `google.module.ts`, `telegram.module.ts`          |
+| **Service**                      | `*.service.ts`                     | `google-calendar.service.ts`, `gemini.service.ts` |
+| **Tool (AI Function Calling)**   | `*.tool.ts`                        | `create-calendar.tool.ts`, `send-email.tool.ts`   |
+| **Telegram Update / Controller** | `*.update.ts`                      | `telegram.update.ts`                              |
+| **Guard**                        | `*.guard.ts`                       | `auth.guard.ts`                                   |
+| **Interface / Type**             | `*.interface.ts` hoặc `*.types.ts` | `tool.interface.ts`                               |
 
 ---
 
@@ -31,6 +33,7 @@ Dự án sử dụng **TypeScript** ở chế độ strict với kiến trúc ch
 Dự án tích hợp sẵn hệ thống tự động định dạng và bắt lỗi cú pháp trước mỗi commit.
 
 ### 2.1 Các lệnh kiểm tra code
+
 ```bash
 # 1. Kiểm tra linting toàn monorepo (không tự sửa file)
 npm run lint
@@ -48,13 +51,18 @@ npm run typecheck
 # 5. Kiểm tra tính toàn vẹn của build
 npm run build
 
+# 6. Chạy toàn bộ unit test của API, bao gồm test trong các thư mục con
+npm run test --workspace @telebot/api
+
 # Chạy riêng từng ứng dụng
 npm run dev:api
 npm run dev:web
 ```
 
 ### 2.2 Git Hooks với Husky & Lint-Staged
+
 Hệ thống cấu hình **Husky (`.husky/pre-commit`)** và **lint-staged**:
+
 - Mỗi khi bạn chạy `git commit`, Husky sẽ tự động kích hoạt `lint-staged`.
 - Chỉ những file `.ts` đang staged mới được chạy `eslint --fix` và `prettier --write`.
 - Nếu có lỗi cú pháp không thể tự sửa, commit sẽ bị hủy để bảo vệ chất lượng repo.
@@ -65,11 +73,12 @@ Hệ thống cấu hình **Husky (`.husky/pre-commit`)** và **lint-staged**:
 
 Để lịch sử Git rõ ràng và hỗ trợ tạo Changelog tự động, mọi commit nên tuân theo định dạng:
 
-```text
+```
 <type>(<scope>): <mô tả ngắn gọn>
 ```
 
 ### Các tiền tố (`type`) thông dụng:
+
 - `feat`: Tính năng mới (ví dụ: `feat(gemini): add send email tool`)
 - `fix`: Sửa lỗi (ví dụ: `fix(calendar): fix timezone offset calculation`)
 - `docs`: Cập nhật tài liệu (ví dụ: `docs: add deployment guide`)
@@ -82,11 +91,14 @@ Hệ thống cấu hình **Husky (`.husky/pre-commit`)** và **lint-staged**:
 ## 4. Chiến Lược Kiểm Thử (Testing Strategies)
 
 ### 4.1 Kiểm thử đơn vị (Unit Tests)
+
 Khi viết unit test cho các Service hoặc Tool:
+
 - Mock các module bên thứ ba (`googleapis`, `@google/generative-ai`, `telegraf`).
 - Đảm bảo logic tính toán ngày tháng và format chuỗi hoạt động đúng theo các trường hợp biên.
 
 Ví dụ mẫu mock `GoogleCalendarService`:
+
 ```typescript
 const mockCalendarService = {
   createEvent: jest.fn().mockResolvedValue({ id: 'event-123', summary: 'Test Event' }),
@@ -105,4 +117,5 @@ Trước khi tạo Pull Request hoặc push code lên `main`:
 - [ ] Tool đã được đăng ký trong `GeminiModule` và `GeminiService`.
 - [ ] Chạy `npm run lint` không có cảnh báo hoặc lỗi.
 - [ ] Chạy `npm run build` thành công, không có lỗi type.
+- [ ] Chạy `npm run test --workspace @telebot/api` thành công; không thay bằng lệnh chỉ match test ở thư mục gốc.
 - [ ] Cập nhật tài liệu tương ứng trong thư mục `docs/` nếu có thay đổi kiến trúc hoặc biến môi trường.

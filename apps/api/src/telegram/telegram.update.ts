@@ -723,33 +723,6 @@ ${googleStatus}
     try {
       await ctx.answerCbQuery('Hãy xác nhận payload trước khi hoàn tất.');
       await this.requestToolConfirmation(ctx, userId, 'complete_task', { taskId });
-      return;
-
-      // Fetch remaining tasks and update message
-      const remainingTasks = await this.tasksService.listTasks(
-        { showCompleted: false, maxResults: 15 },
-        userId,
-      );
-
-      if (remainingTasks.length === 0) {
-        await ctx.editMessageText(
-          '🎉 *Chúc mừng bạn đã hoàn thành tất cả công việc to-do!*\n\nNhắn tin bất kỳ lúc nào để thêm việc mới nhé.',
-          { parse_mode: 'Markdown' },
-        );
-      } else {
-        let taskListText = `📝 *DANH SÁCH VIỆC CẦN LÀM (${remainingTasks.length}):*\n\n`;
-        remainingTasks.slice(0, 10).forEach((t, index) => {
-          const dueText = t.due ? ` _(Hạn: ${t.due.slice(0, 10)})_` : '';
-          taskListText += `▫️ *#${index + 1}*: ${t.title}${dueText}\n`;
-        });
-        taskListText += `\n👉 *Bấm vào các nút bên dưới để đánh dấu đã làm xong:*`;
-
-        const checklistMarkup = this.uiService.buildTaskChecklistMarkup(remainingTasks);
-        await ctx.editMessageText(taskListText, {
-          parse_mode: 'Markdown',
-          ...checklistMarkup,
-        });
-      }
     } catch (err) {
       const error = err as Error;
       await ctx.answerCbQuery(`Lỗi: ${error.message}`);
@@ -774,22 +747,6 @@ ${googleStatus}
       action: 'set_notify_type',
       notifyType: targetType,
     });
-    return;
-
-    const isCall = targetType === 'call';
-    await ctx.answerCbQuery(
-      isCall
-        ? '📞 Đã chuyển sang hình thức: Gọi Nhá Máy (CallMe)!'
-        : '💬 Đã chuyển sang hình thức: Nhắn Tin (TextMe)!',
-    );
-
-    const updatedMarkup = this.uiService.buildReminderConfirmationMarkup(reminderId, targetType);
-
-    try {
-      await ctx.editMessageReplyMarkup(updatedMarkup.reply_markup);
-    } catch {
-      // ignore
-    }
   }
 
   // Handle canceling reminder
@@ -802,16 +759,6 @@ ${googleStatus}
     if (!reminderId || !userId) return;
     await ctx.answerCbQuery('Hãy xác nhận payload hủy lời nhắc.');
     await this.requestToolConfirmation(ctx, userId, 'delete_reminder', { reminderId });
-    return;
-
-    await ctx.answerCbQuery('🗑️ Đã hủy lời nhắc thành công.');
-    try {
-      await ctx.editMessageText('❌ *ĐÃ HỦY LỜI NHẮC NÀY THÀNH CÔNG.*', {
-        parse_mode: 'Markdown',
-      });
-    } catch {
-      // ignore
-    }
   }
 
   // Handle dismissing/collapsing interactive buttons
@@ -851,16 +798,6 @@ ${googleStatus}
     if (!reminderId || !userId) return;
     await ctx.answerCbQuery('Hãy xác nhận payload hoàn tất.');
     await this.requestToolConfirmation(ctx, userId, 'delete_reminder', { reminderId });
-    return;
-
-    await ctx.answerCbQuery('✅ Tuyệt vời! Đã hoàn thành lời nhắc.');
-    try {
-      await ctx.editMessageText('✅ *ĐÃ HOÀN THÀNH LỜI NHẮC!*\n\nCảm ơn bạn đã xác nhận.', {
-        parse_mode: 'Markdown',
-      });
-    } catch {
-      // ignore
-    }
   }
 
   // Handle interactive inline button: Snooze Reminder
@@ -878,17 +815,6 @@ ${googleStatus}
       action: 'snooze',
       minutes,
     });
-    return;
-
-    await ctx.answerCbQuery(`⏳ Đã hoãn lại ${minutes} phút!`);
-    try {
-      await ctx.editMessageText(
-        `⏳ *ĐÃ HOÃN LỜI NHẮC THÊM ${minutes} PHÚT!*\n\nBot sẽ tự động "Ting Ting" nhắc lại cho bạn sau ${minutes} phút nữa nhé.`,
-        { parse_mode: 'Markdown' },
-      );
-    } catch {
-      // ignore
-    }
   }
 
   @Action('action:refresh_today')
