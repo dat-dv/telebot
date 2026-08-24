@@ -829,6 +829,41 @@ h2 {
   z-index: 2;
 }
 
+.data-table__resizable-header {
+  position: relative;
+}
+
+.data-table__resize-handle {
+  background: transparent;
+  border: 0;
+  cursor: col-resize;
+  height: 100%;
+  padding: 0;
+  position: absolute;
+  right: -4px;
+  top: 0;
+  touch-action: none;
+  width: 8px;
+  z-index: 3;
+}
+
+.data-table__resize-handle::after {
+  background: #0284c7;
+  content: '';
+  height: 14px;
+  left: 3px;
+  opacity: 0;
+  position: absolute;
+  top: 7px;
+  transition: opacity 0.12s ease;
+  width: 2px;
+}
+
+.data-table__resizable-header:hover .data-table__resize-handle::after,
+.data-table__resize-handle:focus-visible::after {
+  opacity: 1;
+}
+
 .data-table th:last-child {
   border-right: 0;
 }
@@ -878,6 +913,12 @@ h2 {
 .cell-muted {
   color: #64748b;
   font-size: 11.5px;
+}
+
+.calendar-description-cell {
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .badge {
@@ -1866,6 +1907,50 @@ html[data-theme='dark'] .amount-cell__bar-track {
   box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
 }
 
+.category-autocomplete {
+  display: block;
+  position: relative;
+}
+
+.category-autocomplete__input {
+  padding-right: 20px;
+}
+
+.category-autocomplete__indicator {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  right: 6px;
+  top: 5px;
+}
+
+.category-autocomplete__menu {
+  background: #ffffff;
+  border: 1px solid #0284c7;
+  border-radius: 3px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+  max-height: 196px;
+  overflow-y: auto;
+  position: fixed;
+  z-index: 100;
+}
+
+.category-autocomplete__option {
+  color: #1e293b;
+  cursor: pointer;
+  font-size: 11.5px;
+  line-height: 18px;
+  padding: 3px 7px;
+}
+
+.category-autocomplete__option.is-active,
+.category-autocomplete__option:hover {
+  background: #e0f2fe;
+  color: #075985;
+}
+
 .table-inline-actions {
   align-items: center;
   display: inline-flex;
@@ -2136,6 +2221,25 @@ html[data-theme='dark'] .table-inline-input {
   background: #090d16;
   border-color: #38bdf8;
   color: #f8fafc;
+}
+
+html[data-theme='dark'] .category-autocomplete__indicator {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .category-autocomplete__menu {
+  background: #111827;
+  border-color: #38bdf8;
+}
+
+html[data-theme='dark'] .category-autocomplete__option {
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] .category-autocomplete__option.is-active,
+html[data-theme='dark'] .category-autocomplete__option:hover {
+  background: #0c4a6e;
+  color: #f0f9ff;
 }
 
 html[data-theme='dark'] .table-inline-action-btn {

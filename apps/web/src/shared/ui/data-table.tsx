@@ -25,6 +25,7 @@ type DataTableProps<T> = {
   getRowKey?: (row: T, index: number) => string | number;
   loading?: boolean;
   allowColumnToggle?: boolean;
+  allowColumnResize?: boolean;
 };
 
 export function DataPanel({
@@ -47,12 +48,7 @@ export function DataPanel({
           <h2>{title}</h2>
           {description && <p>{description}</p>}
         </div>
-        {(toolbar || counter) && (
-          <div className="data-panel__toolbar">
-            {counter && <span className="data-panel__counter">{counter}</span>}
-            {toolbar}
-          </div>
-        )}
+        {(toolbar || counter) && <div className="data-panel__toolbar">{toolbar}</div>}
       </header>
       {children}
     </section>
@@ -210,14 +206,67 @@ export function DataTable<T>({
   getRowKey = (_, index) => index,
   loading = false,
   allowColumnToggle,
+  allowColumnResize = false,
 }: DataTableProps<T>) {
   const isToggleAllowed = allowColumnToggle ?? (Boolean(id) || columns.length > 2);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const hasLoadedColumnWidths = useRef(false);
+  const hasChangedColumnWidths = useRef(false);
 
   const initialColumnIds = useMemo(() => {
     return columns.filter((c) => !c.defaultHidden).map((c) => c.id);
   }, [columns]);
 
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(initialColumnIds);
+
+  useEffect(() => {
+    if (!allowColumnResize || !id || typeof window === 'undefined') {
+      hasLoadedColumnWidths.current = true;
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(`telebot:table-widths:${id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, number>;
+        if (parsed && typeof parsed === 'object') {
+          setColumnWidths(
+            Object.fromEntries(
+              Object.entries(parsed).filter(
+                ([columnId, width]) =>
+                  columns.some((column) => column.id === columnId) &&
+                  typeof width === 'number' &&
+                  Number.isFinite(width) &&
+                  width > 0,
+              ),
+            ),
+          );
+        }
+      }
+    } catch {
+      // Gracefully ignore storage access errors
+    } finally {
+      hasLoadedColumnWidths.current = true;
+    }
+  }, [allowColumnResize, columns, id]);
+
+  useEffect(() => {
+    if (
+      !allowColumnResize ||
+      !id ||
+      typeof window === 'undefined' ||
+      !hasLoadedColumnWidths.current ||
+      !hasChangedColumnWidths.current
+    ) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(`telebot:table-widths:${id}`, JSON.stringify(columnWidths));
+    } catch {
+      // Gracefully ignore storage access errors
+    }
+  }, [allowColumnResize, columnWidths, id]);
 
   // Synchronize with localStorage
   useEffect(() => {
@@ -277,6 +326,48 @@ export function DataTable<T>({
     return filtered.length > 0 ? filtered : columns;
   }, [columns, visibleColumnIds]);
 
+  const getColumnWidth = (column: DataTableColumn<T>) => columnWidths[column.id] ?? column.width;
+
+  const getMinimumColumnWidth = (column: DataTableColumn<T>) => {
+    if (typeof column.minWidth === 'number') return column.minWidth;
+    if (typeof column.minWidth === 'string') {
+      const parsed = Number.parseFloat(column.minWidth);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return 80;
+  };
+
+  const handleResizeStart = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    column: DataTableColumn<T>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const header = event.currentTarget.parentElement;
+    if (!header) return;
+
+    const startX = event.clientX;
+    const startWidth = header.getBoundingClientRect().width;
+    const minWidth = getMinimumColumnWidth(column);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      hasChangedColumnWidths.current = true;
+      setColumnWidths((current) => ({
+        ...current,
+        [column.id]: Math.max(minWidth, Math.round(startWidth + moveEvent.clientX - startX)),
+      }));
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp, { once: true });
+  };
+
   return (
     <div className="data-table-container">
       {isToggleAllowed && (
@@ -298,7 +389,7 @@ export function DataTable<T>({
               <col
                 key={column.id}
                 style={{
-                  width: column.width,
+                  width: getColumnWidth(column),
                   minWidth: column.minWidth,
                 }}
               />
@@ -310,13 +401,23 @@ export function DataTable<T>({
                 <th
                   key={column.id}
                   scope="col"
-                  className={column.align === 'right' ? 'is-right' : undefined}
+                  className={`${column.align === 'right' ? 'is-right' : ''} ${
+                    allowColumnResize ? 'data-table__resizable-header' : ''
+                  }`.trim()}
                   style={{
                     minWidth: column.minWidth,
-                    width: column.width,
+                    width: getColumnWidth(column),
                   }}
                 >
                   {column.header}
+                  {allowColumnResize && (
+                    <button
+                      type="button"
+                      className="data-table__resize-handle"
+                      aria-label={`Resize ${typeof column.header === 'string' ? column.header : column.id} column`}
+                      onPointerDown={(event) => handleResizeStart(event, column)}
+                    />
+                  )}
                 </th>
               ))}
             </tr>
@@ -341,7 +442,7 @@ export function DataTable<T>({
                       className={`${column.align === 'right' ? 'is-right' : ''} ${column.className ?? ''}`.trim()}
                       style={{
                         minWidth: column.minWidth,
-                        width: column.width,
+                        width: getColumnWidth(column),
                       }}
                     >
                       {column.cell(row)}

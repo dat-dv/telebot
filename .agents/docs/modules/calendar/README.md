@@ -14,7 +14,7 @@ Tài liệu này ánh xạ trực tiếp với tri thức canonical [`README.md`
 Module `apps/web/src/modules/calendar` cung cấp giao diện quản lý lịch trình sự kiện kết hợp giữa **Lưới tháng trực quan (Month Grid View)** và **Bảng danh sách (Table View)** từ Google Calendar theo thời gian thực.
  
 - **Giao diện & Trải nghiệm (UI/UX)**:
-  - Hỗ trợ chuyển đổi linh hoạt giữa chế độ **Lưới tháng** (`CalendarGrid`) và **Bảng danh sách** (`DataTable`).
+  - Hỗ trợ chuyển đổi linh hoạt giữa chế độ **Lưới tháng** (`CalendarGrid`) và **Bảng danh sách** (`DataTable`). Ở Bảng danh sách, cột **Mô tả** có độ rộng gọn và tự xuống hàng; người dùng có thể kéo mép phải của header để đổi độ rộng từng cột. Độ rộng đã kéo được lưu cục bộ theo bảng trên trình duyệt.
   - Lưới tháng 7 cột (Thứ 2 đến Chủ Nhật) với đánh dấu ngày hôm nay, ngày được chọn, badge số lượng sự kiện, pill sự kiện kèm giờ và xem chi tiết sự kiện theo ngày đã chọn.
   - Thanh công cụ điều hướng tháng (Tháng trước, Tháng sau, Hôm nay, Tên tháng/năm tự động theo locale).
   - Cho phép chỉnh sửa inline (tiêu đề, địa điểm, mô tả, giờ bắt đầu/kết thúc) và xóa sự kiện trực tiếp.

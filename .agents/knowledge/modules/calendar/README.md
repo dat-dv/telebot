@@ -8,7 +8,7 @@
 
 ## UI and state
 
-- **Dual View Modes**: Switchable between Month Grid View (`calendar.view.grid`) and tabular Data Table View (`calendar.view.table`).
+- **Dual View Modes**: Switchable between Month Grid View (`calendar.view.grid`) and tabular Data Table View (`calendar.view.table`). In List View, the Description column defaults to a compact multi-line width and each column can be resized from its header; widths persist locally per table.
 - **Month Grid (`CalendarGrid`)**: 7-day grid (Mon–Sun) with leading/trailing padding days, today highlight, selected date focus, event chips with start time/summary, "+N more" badge, and an interactive selected day event details/inline-editing panel.
 - **Month Navigation**: Prev Month, Next Month, and Today navigation buttons with localized month/year formatting.
 - **State Management**: TanStack Query caches events by the visible grid `timeMin`/`timeMax`; local month navigation changes that range and fetches the matching Google Calendar interval. A successful empty Calendar response remains empty and never falls back to Dashboard's upcoming-events summary.

@@ -233,7 +233,8 @@ export function CalendarScreen() {
     {
       id: 'description',
       header: t('calendar.columns.description'),
-      minWidth: '180px',
+      minWidth: '120px',
+      width: '160px',
       defaultHidden: false,
       cell: (item) => {
         if (editingId === item.id) {
@@ -254,7 +255,7 @@ export function CalendarScreen() {
         }
         return (
           <span
-            className="cell-muted"
+            className="cell-muted calendar-description-cell"
             onDoubleClick={() => handleStartEdit(item)}
             title={item.description}
           >
@@ -500,6 +501,7 @@ export function CalendarScreen() {
                 emptyMessage={t('dashboard.noCalendar')}
                 columns={calendarColumns}
                 getRowKey={(item) => item.id}
+                allowColumnResize
               />
             )}
           </DataPanel>

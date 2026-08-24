@@ -15,6 +15,7 @@ import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
+import { CategoryAutocomplete } from '@/shared/ui/category-autocomplete';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 import { useCategoriesQuery } from '@/modules/settings/api/categories-query';
 import {
@@ -261,20 +262,15 @@ export function TransactionsScreen() {
       cell: (item) => {
         if (editingId === item.id) {
           return (
-            <input
-              type="text"
-              list="transaction-categories-autocomplete"
-              className="table-inline-input"
-              value={editDraft.category}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, category: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('transactions.placeholder.category')}
+            <CategoryAutocomplete
+              ariaLabel={t('dashboard.columns.category')}
               autoFocus
-              required
-              aria-label={t('dashboard.columns.category')}
+              value={editDraft.category}
+              onChange={(category) => setEditDraft((prev) => ({ ...prev, category }))}
+              onConfirm={() => void handleSaveEdit(item.id)}
+              onCancel={handleCancelEdit}
+              options={categorySuggestions}
+              placeholder={t('transactions.placeholder.category')}
             />
           );
         }
@@ -461,12 +457,6 @@ export function TransactionsScreen() {
         subtitle={t('transactions.subtitle')}
         onRefresh={refresh}
       />
-
-      <datalist id="transaction-categories-autocomplete">
-        {categorySuggestions.map((cat) => (
-          <option key={cat} value={cat} />
-        ))}
-      </datalist>
 
       {toastMessage && (
         <div className="toast-notification" role="status" aria-live="polite">
