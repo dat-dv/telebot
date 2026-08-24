@@ -20,7 +20,6 @@
     "start:prod": "node dist/main.js",
     "auth": "tsx scripts/auth.ts",
     "gramjs-login": "tsx scripts/gramjs-login.ts",
-    "database:migrate-sqlite": "node scripts/migrate-sqlite-to-postgres.cjs",
     "prepare": "husky || true"
   },
   "dependencies": {
@@ -33,7 +32,6 @@
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^11.0.3",
     "@telebot/contracts": "file:../../packages/contracts",
-    "better-sqlite3": "^12.11.1",
     "dotenv": "^16.4.7",
     "google-auth-library": "^9.15.1",
     "googleapis": "^144.0.0",
@@ -51,7 +49,6 @@
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",
     "@nestjs/schematics": "^10.2.3",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.0",
     "@types/node": "^26.1.1",
     "@types/swagger-ui-express": "^4.1.8",

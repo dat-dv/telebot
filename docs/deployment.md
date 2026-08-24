@@ -1,6 +1,6 @@
 # 🚀 Hướng Dẫn Triển Khai & Vận Hành (Deployment Guide)
 
-Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trường phát triển local, đóng gói Docker, chạy tiến trình nền với PM2 và triển khai tự động CI/CD lên VPS qua Coolify với mô hình **Zero-File-Mount** (chỉ dùng biến môi trường & SQLite).
+Tài liệu này hướng dẫn toàn bộ quy trình thiết lập môi trường local, đóng gói Docker, chạy tiến trình nền với PM2 và triển khai tự động CI/CD lên VPS qua Coolify với PostgreSQL và Redis.
 
 ---
 
@@ -58,7 +58,7 @@ Không cần chạy lệnh terminal `npm run auth` hay sinh file token thủ cô
    ```
    /code 4/0AQ...
    ```
-4. Toàn bộ Token của **Admin** và **Bạn bè** được tự động lưu trữ và quản lý độc lập, bảo mật trong **Database SQLite (bảng `user_tokens`)**!
+4. Toàn bộ Token của **Admin** và **Bạn bè** được tự động lưu trữ và quản lý độc lập, bảo mật trong **PostgreSQL (bảng `user_tokens`)**!
 
 ---
 
@@ -102,7 +102,7 @@ docker logs -f telegram-assistant-bot
 docker-compose down
 ```
 
-> [!NOTE] Trong `docker-compose.yml`, chỉ cần duy nhất một volume mount `./data:/app/data` để lưu trữ bền vững cơ sở dữ liệu SQLite (`data/telebot.sqlite`) chứa toàn bộ Users, Invites và Google Tokens.
+> [!NOTE] Compose dùng Docker volumes `telebot-postgres` và `telebot-redis`. API không có database file hoặc mount `/app/data`.
 
 ---
 
@@ -117,10 +117,9 @@ Coolify cho phép triển khai dự án tự động thông qua GitHub App Webho
 3. **Cấu hình Environment Variables**:
    - Dán các biến từ `.env` vào mục **Environment Variables**. Đặt `APP_URL` và `WEB_ORIGIN` là runtime variables; đặt `NEXT_PUBLIC_API_URL` là build variable trước lần build Dashboard.
    - Không dùng `SERVICE_URL_TELEBOT`: Coolify dành tiền tố `SERVICE_URL_*` cho URL do nền tảng quản lý.
-4. **Cấu hình Persistent Storage (Duy nhất 1 mục)**:
-   - Vào mục **Storages** > **Add Volume / Persistent Storage**:
-     - **Destination Path / Mount Path**: `/app/data`
-     - _(Không cần cấu hình bất kỳ File Mount nào khác!)_
+4. **Cấu hình database**:
+   - Dùng PostgreSQL và Redis services trong `docker-compose.yml`.
+   - Khai báo `POSTGRES_PASSWORD` trong Environment Variables; Compose tự tạo `DATABASE_URL` nội bộ cho API.
 5. **Kích hoạt Auto Deploy**:
    - Bật Webhook trong Coolify.
    - Mỗi lần bạn thực hiện `git push origin main`, Coolify sẽ tự động build lại Docker image và cập nhật ứng dụng sau 10-20 giây!
@@ -160,15 +159,6 @@ pm2 monit
 | Người lạ nhắn tin báo `Truy cập bị từ chối`                | Chưa được Admin mời qua link `/invite`.               | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`.          |
 | Lỗi `Google OAuth credentials chưa được cấu hình`          | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`.          |
 | AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key.             | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio.                    |
-## PostgreSQL & Redis cutover
+## 9. Khởi tạo PostgreSQL trống
 
-The Compose stack now includes PostgreSQL and Redis. Before switching an existing SQLite deployment, take a backup of `data/telebot.sqlite`, start only PostgreSQL, then run:
-
-```bash
-docker compose run --rm --no-deps -e MIGRATION_CREATE_SCHEMA=true api \
-  node apps/api/scripts/migrate-sqlite-to-postgres.cjs
-```
-
-The command refuses a non-empty PostgreSQL target unless `MIGRATION_ALLOW_NONEMPTY=true` is explicitly supplied after reconciliation. After counts are verified, keep `TYPEORM_SYNCHRONIZE=false`, remove `MIGRATION_CREATE_SCHEMA`, and restart the API with `DATABASE_URL` and `REDIS_URL` configured. Do not run the migration against a live writer; pause the API first.
-
-For an intentional fresh start only, delete the Telebot data, PostgreSQL, and Redis volumes, set `TYPEORM_SYNCHRONIZE=true` in the deployment environment for one deploy against the empty PostgreSQL database, then immediately set it back to `false` and redeploy. This bootstrap path permanently discards all prior bot data.
+Với database PostgreSQL hoàn toàn mới, đặt `TYPEORM_SYNCHRONIZE=true` cho đúng một lần deploy để TypeORM tạo schema. Khi API khởi động thành công, đổi biến này thành `false` và deploy lại. Luôn giữ `DATABASE_URL` hợp lệ; API sẽ từ chối khởi động nếu thiếu cấu hình PostgreSQL.

@@ -62,8 +62,9 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
       error = 'Not Found';
     } else if (exception instanceof QueryFailedError) {
       const isConstraintError =
-        exception.message.includes('SQLITE_CONSTRAINT') ||
-        exception.message.includes('UNIQUE constraint');
+        exception.message.includes('duplicate key value') ||
+        exception.message.includes('UNIQUE constraint') ||
+        exception.message.includes('23505');
 
       if (isConstraintError) {
         status = HttpStatus.CONFLICT;

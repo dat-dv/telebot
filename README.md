@@ -1,4 +1,4 @@
-# 🤖 Telebot Monorepo (NestJS, React, SQLite & Google Workspace)
+# 🤖 Telebot Monorepo (NestJS, React, PostgreSQL & Google Workspace)
 
 ## Cấu trúc Monorepo
 
@@ -6,21 +6,21 @@
 apps/api/          NestJS Telegram bot và OAuth backend
 apps/web/          Next.js Static Export dashboard
 packages/contracts/ Kiểu và route constants dùng chung
-data/              SQLite runtime data
+PostgreSQL          Persistent runtime data
 ```
 
 Chạy cả API và React: `npm run dev` · Chạy riêng API: `npm run dev:api` · Chạy riêng React: `npm run dev:web` · Build toàn bộ: `npm run build`.
 
 Dashboard mở từ bot cần `APP_URL`, `NEXT_PUBLIC_API_URL`, `DASHBOARD_ACCESS_TOKEN_SECRET` và `DASHBOARD_REFRESH_TOKEN_SECRET`. Khi dùng một domain, đặt cả ba URL public thành `https://telebot.datintech.site` (không thêm `/api` vào `NEXT_PUBLIC_API_URL`): static Next.js phục vụ các route giao diện, còn Nginx chuyển mọi `/api/*` sang NestJS. `NEXT_PUBLIC_API_URL` được đóng gói vào static output khi build. Không dùng tên `SERVICE_URL_*` vì Coolify dành tiền tố này cho URL được quản lý. Bot tạo link exchange dùng một lần cho từng người dùng; access token có hạn 1 ngày và refresh token có hạn 7 ngày.
 
-Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, được xây dựng bằng **NestJS**, tích hợp **Google Gemini AI (`gemini-3.5-flash-lite`)** với cơ chế Function Calling tự động 8 công cụ, lưu trữ **Database SQLite (TypeORM)** và hỗ trợ **Đa Người Dùng (Multi-User Isolation)** kết nối độc lập với toàn bộ hệ sinh thái **Google Workspace**.
+Trợ lý ảo cá nhân thông minh hoạt động 24/7 trên Telegram, được xây dựng bằng **NestJS**, tích hợp **Google Gemini AI (`gemini-3.5-flash-lite`)** với cơ chế Function Calling tự động 8 công cụ, lưu trữ **PostgreSQL (TypeORM)** và hỗ trợ **Đa Người Dùng (Multi-User Isolation)** kết nối độc lập với toàn bộ hệ sinh thái **Google Workspace**.
 
 ---
 
 ## 🌟 Tính Năng Nổi Bật
 
-- **Mô Hình Đa Người Dùng & Database SQLite Chuẩn ACID**:
-  - Lưu trữ bền vững toàn bộ Users, Invites và Google Tokens trong 1 file duy nhất: `data/telebot.sqlite`.
+- **Mô Hình Đa Người Dùng & PostgreSQL Chuẩn ACID**:
+  - Lưu trữ bền vững toàn bộ Users, Invites và Google Tokens trong PostgreSQL.
   - Admin tạo link mời 1 lần `/invite` gửi cho bạn bè/người thân kích hoạt ngay lập tức mà không cần restart bot.
   - Mỗi người dùng tự kết nối tài khoản Google riêng qua lệnh `/login` & `/code` (hoặc AI tự gọi tool `login_google`).
   - Dữ liệu Calendar & Tasks của từng người được cô lập và bảo mật 100%.
@@ -54,8 +54,8 @@ src/
 ├── config/
 │   └── configuration.ts            # Load & validate biến môi trường .env
 │
-├── database/                       # TẦNG CƠ SỞ DỮ LIỆU SQLITE (TYPEORM)
-│   ├── database.module.ts          # TypeOrmModule (data/telebot.sqlite)
+├── database/                       # TẦNG CƠ SỞ DỮ LIỆU POSTGRESQL (TYPEORM)
+│   ├── database.module.ts          # TypeOrmModule (PostgreSQL)
 │   └── entities/                   # UserEntity, InviteEntity, UserTokenEntity
 │
 ├── users/                          # QUẢN LÝ NGƯỜI DÙNG
@@ -84,7 +84,7 @@ src/
 │
 └── google/                         # TÍCH HỢP GOOGLE WORKSPACE (MULTI-TENANT)
     ├── google.module.ts
-    ├── google-auth.service.ts      # Quản lý OAuth2 per-user trong SQLite (user_tokens)
+    ├── google-auth.service.ts      # Quản lý OAuth2 per-user trong PostgreSQL (user_tokens)
     ├── google-calendar.service.ts  # Tương tác Google Calendar API per-user
     └── google-tasks.service.ts     # Tương tác Google Tasks API per-user
 ```
@@ -162,9 +162,9 @@ pm2 startup
 Dự án có bộ tài liệu module độc lập tại thư mục [`docs/`](/docs/README.md):
 
 - 🗺️ **[Documentation Hub](file:///Users/datdoan/Documents/projects/telebot/docs/README.md)**: Bản đồ & lộ trình tra cứu toàn bộ tài liệu dự án.
-- 🏛️ **[Kiến trúc hệ thống](file:///Users/datdoan/Documents/projects/telebot/docs/architecture.md)**: Sơ đồ luồng dữ liệu, SQLite Database và nguyên lý thiết kế đa người dùng.
+- 🏛️ **[Kiến trúc hệ thống](file:///Users/datdoan/Documents/projects/telebot/docs/architecture.md)**: Sơ đồ luồng dữ liệu, PostgreSQL và nguyên lý thiết kế đa người dùng.
 - 🤖 **[Gemini AI & 8 Function Tools](file:///Users/datdoan/Documents/projects/telebot/docs/gemini-tools.md)**: Hướng dẫn chi tiết 8 công cụ và cách đăng ký Tool mới cho Gemini.
-- 📅 **[Tích hợp Google Workspace](file:///Users/datdoan/Documents/projects/telebot/docs/google-integration.md)**: Full Scopes, quản lý Token trong SQLite & mở rộng Gmail/Drive/Sheets.
+- 📅 **[Tích hợp Google Workspace](file:///Users/datdoan/Documents/projects/telebot/docs/google-integration.md)**: Full Scopes, quản lý Token trong PostgreSQL & mở rộng Gmail/Drive/Sheets.
 - 💬 **[Giao diện Telegram Bot](file:///Users/datdoan/Documents/projects/telebot/docs/telegram-bot.md)**: Deep Link Invite, Slash Commands, Private Guard & tối ưu UX.
 - 🚀 **[Triển khai & Vận hành](file:///Users/datdoan/Documents/projects/telebot/docs/deployment.md)**: Cấu hình Zero-File-Mount trên Coolify, Docker, PM2 & Persistent Storage.
 - 🛠️ **[Quy chuẩn phát triển](file:///Users/datdoan/Documents/projects/telebot/docs/development-workflow.md)**: Coding conventions, ESLint/Prettier, Husky hooks & kiểm thử.

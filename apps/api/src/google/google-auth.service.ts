@@ -82,7 +82,7 @@ export class GoogleAuthService implements OnModuleInit {
           }
         }
       }
-      this.logger.log(`Preloaded ${allTokens.length} user Google OAuth token(s) from SQLite.`);
+      this.logger.log(`Preloaded ${allTokens.length} user Google OAuth token(s) from PostgreSQL.`);
     } catch (err) {
       const error = err as Error;
       this.logger.warn(`Could not preload tokens from database: ${error.message}`);
@@ -170,7 +170,7 @@ export class GoogleAuthService implements OnModuleInit {
     const strId = userId.toString();
 
     try {
-      // 1. Save to SQLite database
+      // 1. Save to PostgreSQL
       let dbToken = await this.tokenRepo.findOne({ where: { userId: strId } });
       if (!dbToken) {
         dbToken = this.tokenRepo.create({
@@ -212,7 +212,7 @@ export class GoogleAuthService implements OnModuleInit {
           expiry_date: dbToken.expiryDate ? Number(dbToken.expiryDate) : undefined,
         });
       }
-      this.logger.log(`Saved OAuth tokens for user ${userId} to SQLite database.`);
+      this.logger.log(`Saved OAuth tokens for user ${userId} to PostgreSQL.`);
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Failed to save tokens for user ${userId}: ${error.message}`);
@@ -224,7 +224,9 @@ export class GoogleAuthService implements OnModuleInit {
     try {
       await this.tokenRepo.delete({ userId: strId });
       this.userClients.delete(strId);
-      this.logger.log(`Revoked and deleted Google OAuth tokens for user ${userId} from SQLite.`);
+      this.logger.log(
+        `Revoked and deleted Google OAuth tokens for user ${userId} from PostgreSQL.`,
+      );
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Failed to delete tokens for user ${userId}: ${error.message}`);

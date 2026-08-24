@@ -3,23 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import * as crypto from 'crypto';
-import * as fs from 'fs';
 import { UserEntity } from '../database/entities/user.entity';
 import { InviteEntity } from '../database/entities/invite.entity';
-import { fromProjectRoot } from '../config/project-root';
 import { normalizeLocale, type SupportedLocale } from '@telebot/contracts';
-
-interface LegacyUserJson {
-  id: number;
-  username?: string;
-  firstName?: string;
-  role: 'admin' | 'user';
-  createdAt?: string;
-}
-
-interface LegacyDatabaseJson {
-  users?: Record<string, LegacyUserJson>;
-}
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -42,7 +28,6 @@ export class UsersService implements OnModuleInit {
   ) {}
 
   public async onModuleInit(): Promise<void> {
-    await this.migrateLegacyJson();
     await this.seedInitialUsers();
     await this.refreshMemoryCache();
   }
@@ -71,44 +56,11 @@ export class UsersService implements OnModuleInit {
       }
 
       this.logger.log(
-        `SQLite Database initialized with ${users.length} registered users (Admins: ${this.adminUserIdsCache.size}).`,
+        `PostgreSQL initialized with ${users.length} registered users (Admins: ${this.adminUserIdsCache.size}).`,
       );
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error refreshing memory cache: ${error.message}`);
-    }
-  }
-
-  private async migrateLegacyJson(): Promise<void> {
-    const legacyPath = fromProjectRoot('data', 'users.json');
-    if (fs.existsSync(legacyPath)) {
-      try {
-        const raw = fs.readFileSync(legacyPath, 'utf8').trim();
-        if (raw) {
-          const jsonDb = JSON.parse(raw) as LegacyDatabaseJson;
-          if (jsonDb.users) {
-            const userList: LegacyUserJson[] = Object.values(jsonDb.users);
-            for (const u of userList) {
-              const strId = u.id.toString();
-              const existing = await this.userRepo.findOne({ where: { id: strId } });
-              if (!existing) {
-                const newUser = this.userRepo.create({
-                  id: strId,
-                  username: u.username,
-                  firstName: u.firstName,
-                  role: u.role || 'user',
-                  createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
-                });
-                await this.userRepo.save(newUser);
-              }
-            }
-            this.logger.log('Successfully migrated legacy users.json data to SQLite.');
-          }
-        }
-      } catch (err) {
-        const error = err as Error;
-        this.logger.warn(`Could not migrate legacy users.json: ${error.message}`);
-      }
     }
   }
 

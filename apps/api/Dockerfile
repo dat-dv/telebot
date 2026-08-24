@@ -39,7 +39,6 @@ COPY packages/contracts/package.json packages/contracts/package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/contracts/dist packages/contracts/dist
 COPY --from=builder /app/apps/api/dist apps/api/dist
-COPY apps/api/scripts/migrate-sqlite-to-postgres.cjs apps/api/scripts/migrate-sqlite-to-postgres.cjs
 COPY --from=whisper-builder /opt/whisper.cpp/build/bin/whisper-server /usr/local/bin/whisper-server
 COPY --from=whisper-builder /opt/whisper.cpp/models/ggml-base.bin /opt/whisper/models/ggml-base.bin
 COPY apps/api/scripts/start-with-whisper.sh /usr/local/bin/start-with-whisper.sh

@@ -6,7 +6,7 @@ Tài liệu này giải thích chi tiết tầng giao tiếp Telegram (`Telegram
 
 ## 1. Tầng Telegram Bot (`TelegramModule`)
 
-Dự án sử dụng thư viện `nestjs-telegraf` kết hợp với `UsersModule` (SQLite Database) và `GoogleModule` để cung cấp môi trường trợ lý đa người dùng độc lập:
+Dự án sử dụng thư viện `nestjs-telegraf` kết hợp với `UsersModule` (PostgreSQL) và `GoogleModule` để cung cấp môi trường trợ lý đa người dùng độc lập:
 
 - Module: `src/telegram/telegram.module.ts`
 - Handler & Controller: `src/telegram/telegram.update.ts`
@@ -24,7 +24,7 @@ sequenceDiagram
     actor Admin as Quản trị viên (Admin)
     actor User as Bạn bè (Khách mời)
     participant Bot as Telegram Bot
-    participant Store as UsersService (SQLite)
+    participant Store as UsersService (PostgreSQL)
     participant Auth as GoogleAuthService
 
     Admin->>Bot: /invite

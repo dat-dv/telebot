@@ -4,7 +4,7 @@ export interface AppConfig {
   webOrigin: string;
   cors: { allowAll: boolean };
   database: {
-    url?: string;
+    url: string;
     ssl: boolean;
     synchronize: boolean;
   };
@@ -96,7 +96,7 @@ export default (): AppConfig => {
     webOrigin: readEnv('WEB_ORIGIN').replace(/\/+$/, ''),
     cors: { allowAll: readBooleanEnv('CORS_ALLOW_ALL') },
     database: {
-      url: readOptionalEnv('DATABASE_URL'),
+      url: readEnv('DATABASE_URL'),
       ssl: readOptionalEnv('DATABASE_SSL') === 'true',
       synchronize: readOptionalEnv('TYPEORM_SYNCHRONIZE') === 'true',
     },

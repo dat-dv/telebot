@@ -6,10 +6,10 @@ Tài liệu này mô tả chi tiết kiến trúc tổng thể, luồng dữ li�
 
 ## 1. Bức Tranh Tổng Thể (High-Level Overview)
 
-Dự án được tổ chức dưới dạng **npm workspaces monorepo**. Backend là **Modular Monolith NestJS** tại `apps/api`, giao diện quản trị React + Vite tại `apps/web`, và các hợp đồng dùng chung tại `packages/contracts`. Backend vẫn hỗ trợ **Kiến trúc Đa Người Dùng (Multi-Tenant Isolation)** và **Cơ sở dữ liệu nhúng SQLite (TypeORM)**.
+Dự án được tổ chức dưới dạng **npm workspaces monorepo**. Backend là **Modular Monolith NestJS** tại `apps/api`, giao diện quản trị React + Vite tại `apps/web`, và các hợp đồng dùng chung tại `packages/contracts`. Backend hỗ trợ **Kiến trúc Đa Người Dùng (Multi-Tenant Isolation)** với **PostgreSQL (TypeORM)**.
 
 1. **Người dùng Telegram**: Gửi yêu cầu qua ngôn ngữ tự nhiên tiếng Việt hoặc qua các lệnh tắt (Slash Commands).
-2. **Tầng Phân Quyền & Quản Lý Người Dùng (`UsersModule` + SQLite)**: Quản lý người dùng, lời mời kích hoạt Deep Link (`/invite`), danh sách trắng động và chống spam qua cơ sở dữ liệu `data/telebot.sqlite`.
+2. **Tầng Phân Quyền & Quản Lý Người Dùng (`UsersModule` + PostgreSQL)**: Quản lý người dùng, lời mời kích hoạt Deep Link (`/invite`), danh sách trắng động và chống spam qua cơ sở dữ liệu PostgreSQL.
 3. **Bộ não Google Gemini AI (`gemini-3.5-flash-lite`)**: Phân tích ngữ cảnh, neo thời gian thực tế, gọi Function Calling đa bước và tự động fallback model.
 4. **Google Workspace (Calendar & Tasks)**: Dịch vụ thực thi dữ liệu qua OAuth2 được cô lập độc lập cho từng người dùng (`user_tokens` table).
 
@@ -24,8 +24,8 @@ graph TD
     Gemini <-->|Function Declarations & Calls| Tools[Gemini Tools Layer]
     Tools <-->|OAuth2 Per-User Token| Google[Google Workspace Layer]
     
-    subgraph SQLite Database Storage
-        DB[(data/telebot.sqlite)]
+    subgraph PostgreSQL Database Storage
+        DB[(PostgreSQL)]
         DB --> UsersTable[users: Thông tin & vai trò Admin/Member]
         DB --> InvitesTable[invites: Mã mời & hạn 24h]
         DB --> TokensTable[user_tokens: Token Google OAuth]
@@ -47,8 +47,8 @@ apps/api/src/
 │   ├── configuration.ts            # Load & sanitize biến môi trường .env
 │   └── env.validator.ts            # Quét và in bảng cảnh báo nếu thiếu biến
 │
-├── database/                       # TẦNG CƠ SỞ DỮ LIỆU SQLITE (TYPEORM)
-│   ├── database.module.ts          # TypeOrmModule (data/telebot.sqlite)
+├── database/                       # TẦNG CƠ SỞ DỮ LIỆU POSTGRESQL (TYPEORM)
+│   ├── database.module.ts          # TypeOrmModule (PostgreSQL)
 │   └── entities/                   # UserEntity, InviteEntity, UserTokenEntity
 │
 ├── users/                          # TẦNG QUẢN LÝ NGƯỜI DÙNG
@@ -74,7 +74,7 @@ apps/api/src/
     ├── templates/
     │   └── oauth-html.template.ts  # Tách riêng: Giao diện HTML Success / Error UI
     ├── google-auth.controller.ts   # Web OAuth Callback Endpoint (/oauth2callback)
-    ├── google-auth.service.ts      # Quản lý OAuth2 per-user trong SQLite
+    ├── google-auth.service.ts      # Quản lý OAuth2 per-user trong PostgreSQL
     ├── google-calendar.service.ts  # Tương tác Google Calendar API per-user
     ├── google-tasks.service.ts     # Tương tác Google Tasks API per-user
     └── google.module.ts
@@ -85,10 +85,10 @@ apps/api/src/
 ## 3. Các Nguyên Lý Thiết Kế Trọng Yếu
 
 ### 1. Zero-File-Mount & Portable Secrets
-Toàn bộ thông tin Client ID/Secret được truyền trực tiếp qua biến môi trường hoặc lưu trong SQLite. Không có file token rời rạc giúp triển khai nhanh chóng trên Docker/Coolify.
+Toàn bộ thông tin Client ID/Secret được truyền trực tiếp qua biến môi trường; token OAuth được mã hóa và lưu trong PostgreSQL. Không có file token rời rạc giúp triển khai nhanh chóng trên Docker/Coolify.
 
 ### 2. Multi-Tenant Token Isolation
-Mọi yêu cầu tương tác Google Workspace đều nhận kèm `userId`. `GoogleAuthService` tự động lấy đúng OAuth2Client của người đó từ SQLite, ngăn chặn 100% rủi ro lẫn lộn dữ liệu giữa người dùng.
+Mọi yêu cầu tương tác Google Workspace đều nhận kèm `userId`. `GoogleAuthService` tự động lấy đúng OAuth2Client của người đó từ PostgreSQL, ngăn chặn 100% rủi ro lẫn lộn dữ liệu giữa người dùng.
 
 ### 3. Dual-Mode Fallback
 Hệ thống vừa hỗ trợ Web Callback tự động 1-click qua HTTP Server, vừa hỗ trợ sao chép đường link dán trực tiếp vào chat Telegram để đảm bảo không bao giờ bị gián đoạn.

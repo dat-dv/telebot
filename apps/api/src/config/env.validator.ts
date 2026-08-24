@@ -41,6 +41,15 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+function isPostgresUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'postgres:' || url.protocol === 'postgresql:';
+  } catch {
+    return false;
+  }
+}
+
 export function loadEnvironment(): void {
   loadDotenv({ path: fromProjectRoot('.env.local'), override: false, quiet: true });
   loadDotenv({ path: fromProjectRoot('.env'), override: false, quiet: true });
@@ -104,6 +113,15 @@ export function validateEnvironment(): EnvValidationResult {
         'Phải là URL HTTP(S) hợp lệ.',
         'Khai báo URL đầy đủ, ví dụ https://example.com.',
       );
+  }
+
+  if (!isPostgresUrl(readEnv('DATABASE_URL'))) {
+    addError(
+      errors,
+      'DATABASE_URL',
+      'Phải là connection URL PostgreSQL hợp lệ.',
+      'Khai báo theo dạng postgresql://user:password@host:5432/database.',
+    );
   }
 
   if (!isBoolean(readEnv('CORS_ALLOW_ALL'))) {

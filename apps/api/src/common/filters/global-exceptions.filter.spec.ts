@@ -99,7 +99,7 @@ void test('GlobalExceptionsFilter handles TypeORM QueryFailedError constraint as
   const queryError = new QueryFailedError(
     'INSERT INTO user...',
     [],
-    new Error('SQLITE_CONSTRAINT: UNIQUE constraint failed: user.telegramId'),
+    new Error('duplicate key value violates unique constraint "users_pkey" (23505)'),
   );
 
   filter.catch(queryError, host);

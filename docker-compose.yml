@@ -42,8 +42,6 @@ services:
       DATABASE_SSL: "false"
       REDIS_URL: redis://redis:6379
       TYPEORM_SYNCHRONIZE: ${TYPEORM_SYNCHRONIZE:-false}
-    volumes:
-      - telebot-data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +61,5 @@ services:
       - api
 
 volumes:
-  telebot-data:
   telebot-postgres:
   telebot-redis:

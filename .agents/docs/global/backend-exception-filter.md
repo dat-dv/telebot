@@ -28,7 +28,7 @@ Tài liệu canonical tương ứng: [`backend-exception-filter.md`](../../knowl
 ## 2. Quy Tắc Xử Lý Lỗi
 
 1. **HttpException chuẩn**: Giữ nguyên status code và thông điệp lỗi (hỗ trợ cả mảng lỗi validation từ DTO).
-2. **Lỗi TypeORM / SQLite**:
+2. **Lỗi TypeORM / PostgreSQL**:
    - `EntityNotFoundError`: Map tự động về `404 Not Found` (`Resource not found`).
    - `QueryFailedError` (lỗi constraint / unique key): Map về `409 Conflict` (`Database constraint violation`) hoặc `400 Bad Request`.
 3. **Lỗi không xác định (Unhandled Error)**:

@@ -2,10 +2,10 @@
 
 ## Layout
 
-- `apps/api`: NestJS Telegram and OAuth backend. It owns all private environment variables and the SQLite runtime.
+- `apps/api`: NestJS Telegram and OAuth backend. It owns all private environment variables and the PostgreSQL runtime.
 - `apps/web`: Next.js App Router static export. It may consume only `NEXT_PUBLIC_*` environment variables and contains no server runtime.
 - `packages/contracts`: framework-neutral routes and API TypeScript contracts.
-- Root `data/`: persistent SQLite storage, shared by local API and its Docker container.
+- PostgreSQL: the persistent system of record for the API, provisioned by Compose in container deployments.
 
 ## Runtime Rules
 
