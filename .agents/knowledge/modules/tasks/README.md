@@ -16,12 +16,14 @@
   - `updatedAt`: Localized timestamp of last update.
   - `actions`: Inline Save/Cancel buttons when editing; Edit and Delete buttons in view mode.
 - **Controls & Filters**:
-  - Quick status filter tabs (`all`, `needsAction`, `completed`).
+  - Multi-grain period filter toolbar (`day`, `week`, `month`, `quarter`, `year`, `all`) with bidirectional period navigation.
+  - Quick status filter tabs (`all`, `needsAction`, `completed`) with real-time count badges.
   - Instant client search by title and notes.
   - Toast notifications confirming saved edits and deletions.
 
 ## State and Integration Seams
 
 - **API & Hooks**: `tasks-api.ts` (`getTasks`, `updateTask`, `deleteTask`) and `tasks-query.ts` (`useTasksQuery`, `useUpdateTaskMutation`, `useDeleteTaskMutation`).
+- **Backend Service & Controller**: `GoogleResourcesController` (`GET /api/tasks`, `POST /api/tasks`, `PATCH /api/tasks/:id`, `DELETE /api/tasks/:id`) and `GoogleTasksService`. Mappings ensure raw Google Tasks fields (`due`, `updated`, `completed`) are normalized to `ITaskListItem` (`dueAt`, `updatedAt`, `completedAt`), and both active and completed tasks are fetched (`showCompleted: true`, `showHidden: true`).
 - **Contracts**: Shared DTOs `ITaskListItem` and `IUpdateTaskRequest` from `@telebot/contracts`.
 - **Cache Invalidation**: Mutations automatically invalidate `['tasks']` and `['dashboard']` TanStack query caches.

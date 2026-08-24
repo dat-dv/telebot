@@ -181,6 +181,7 @@ export class ReportsController {
         direction: debt.direction,
         counterparty: debt.counterparty,
         counterpartyAlias: debt.counterpartyAlias,
+        contactId: debt.contactId,
         originalAmount: debt.originalAmount,
         remainingAmount: debt.remainingAmount,
         note: debt.note || undefined,
@@ -261,7 +262,10 @@ export class ReportsController {
   ): Promise<tasks_v1.Schema$Task[]> {
     if (!googleConnected) return [];
     try {
-      return await this.tasks.listTasks({ maxResults: 10 }, userId);
+      return await this.tasks.listTasks(
+        { maxResults: 50, showCompleted: true, showHidden: true },
+        userId,
+      );
     } catch {
       return [];
     }

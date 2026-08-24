@@ -6,6 +6,7 @@ import { localeTag, type IDebtListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import { useContactsQuery } from '@/modules/contacts/api/contacts-query';
 import {
   debtsQueryKeys,
   useCreateDebtPaymentMutation,
@@ -23,10 +24,20 @@ export function DebtsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
     direction: 'receivable' | 'payable';
+    counterparty: string;
+    counterpartyAlias: string;
+    contactId: string;
+    originalAmount: string;
+    remainingAmount: string;
     note: string;
     dueAt: string;
   }>({
     direction: 'receivable',
+    counterparty: '',
+    counterpartyAlias: '',
+    contactId: '',
+    originalAmount: '',
+    remainingAmount: '',
     note: '',
     dueAt: '',
   });
@@ -34,12 +45,18 @@ export function DebtsScreen() {
   const [, startTransition] = useTransition();
 
   const debts = useDebtsQuery();
+  const contactsQuery = useContactsQuery();
   const updateMutation = useUpdateDebtMutation();
   const paymentMutation = useCreateDebtPaymentMutation();
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
+    void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+  };
 
   const rawList = useMemo(() => debts.data ?? [], [debts.data]);
+  const contactsList = useMemo(() => contactsQuery.data ?? [], [contactsQuery.data]);
+
   const totalReceivable = useMemo(
     () =>
       rawList
@@ -93,6 +110,11 @@ export function DebtsScreen() {
     setEditingId(item.id);
     setEditDraft({
       direction: item.direction,
+      counterparty: item.counterparty,
+      counterpartyAlias: item.counterpartyAlias || '',
+      contactId: item.contactId || '',
+      originalAmount: String(item.originalAmount),
+      remainingAmount: String(item.remainingAmount),
       note: item.note || '',
       dueAt: item.dueAt ? item.dueAt.slice(0, 10) : '',
     });
@@ -102,17 +124,64 @@ export function DebtsScreen() {
     setEditingId(null);
     setEditDraft({
       direction: 'receivable',
+      counterparty: '',
+      counterpartyAlias: '',
+      contactId: '',
+      originalAmount: '',
+      remainingAmount: '',
       note: '',
       dueAt: '',
     });
   };
 
+  const handleCounterpartyChange = (val: string) => {
+    const matched = contactsList.find(
+      (c) =>
+        c.displayName.toLowerCase() === val.trim().toLowerCase() ||
+        (c.alias && c.alias.toLowerCase() === val.trim().toLowerCase()),
+    );
+    if (matched) {
+      setEditDraft((prev) => ({
+        ...prev,
+        counterparty: matched.displayName,
+        counterpartyAlias: matched.alias || '',
+        contactId: matched.id,
+      }));
+    } else {
+      setEditDraft((prev) => ({
+        ...prev,
+        counterparty: val,
+        contactId: '',
+        counterpartyAlias: '',
+      }));
+    }
+  };
+
   const handleSaveEdit = async (id: string) => {
+    const trimmedCounterparty = editDraft.counterparty.trim();
+    const parsedOriginal = Number(editDraft.originalAmount);
+    const parsedRemaining = Number(editDraft.remainingAmount);
+
+    if (
+      !trimmedCounterparty ||
+      Number.isNaN(parsedOriginal) ||
+      parsedOriginal < 0 ||
+      Number.isNaN(parsedRemaining) ||
+      parsedRemaining < 0
+    ) {
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         id,
         data: {
           direction: editDraft.direction,
+          counterparty: trimmedCounterparty,
+          counterpartyAlias: editDraft.counterpartyAlias || undefined,
+          contactId: editDraft.contactId || undefined,
+          originalAmount: parsedOriginal,
+          remainingAmount: parsedRemaining,
           note: editDraft.note.trim() || undefined,
           dueAt: editDraft.dueAt
             ? new Date(`${editDraft.dueAt}T23:59:59.000Z`).toISOString()
@@ -179,29 +248,106 @@ export function DebtsScreen() {
     {
       id: 'counterparty',
       header: t('dashboard.columns.counterparty'),
-      minWidth: '160px',
+      minWidth: '180px',
       hideable: false,
-      cell: (item) => (
-        <span className="cell-primary" onDoubleClick={() => handleStartEdit(item)}>
-          {item.counterparty}
-          {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
-        </span>
-      ),
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              list="debt-contacts-autocomplete"
+              className="table-inline-input"
+              value={editDraft.counterparty}
+              onChange={(e) => handleCounterpartyChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('debts.placeholder.counterparty')}
+              autoFocus
+              required
+              aria-label={t('dashboard.columns.counterparty')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-primary"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.counterparty}
+          >
+            {item.counterparty}
+            {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
+          </span>
+        );
+      },
     },
     {
       id: 'originalAmount',
       header: t('dashboard.columns.original'),
       align: 'right',
-      minWidth: '120px',
-      cell: (item) => <span>{money(item.originalAmount)}</span>,
+      minWidth: '140px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="number"
+              className="table-inline-input"
+              value={editDraft.originalAmount}
+              onChange={(e) =>
+                setEditDraft((prev) => ({ ...prev, originalAmount: e.target.value }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('debts.placeholder.originalAmount')}
+              style={{ textAlign: 'right' }}
+              min="0"
+              step="1000"
+              required
+              aria-label={t('dashboard.columns.original')}
+            />
+          );
+        }
+        return (
+          <span onDoubleClick={() => handleStartEdit(item)}>{money(item.originalAmount)}</span>
+        );
+      },
     },
     {
       id: 'remainingAmount',
       header: t('dashboard.columns.remaining'),
       align: 'right',
-      minWidth: '130px',
+      minWidth: '140px',
       hideable: false,
-      cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="number"
+              className="table-inline-input"
+              value={editDraft.remainingAmount}
+              onChange={(e) =>
+                setEditDraft((prev) => ({ ...prev, remainingAmount: e.target.value }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('debts.placeholder.remainingAmount')}
+              style={{ textAlign: 'right' }}
+              min="0"
+              step="1000"
+              required
+              aria-label={t('dashboard.columns.remaining')}
+            />
+          );
+        }
+        return (
+          <strong onDoubleClick={() => handleStartEdit(item)}>{money(item.remainingAmount)}</strong>
+        );
+      },
     },
     {
       id: 'currency',
@@ -291,7 +437,12 @@ export function DebtsScreen() {
                 type="button"
                 className="table-inline-action-btn table-inline-action-btn--save"
                 onClick={() => void handleSaveEdit(item.id)}
-                disabled={updateMutation.isPending}
+                disabled={
+                  updateMutation.isPending ||
+                  !editDraft.counterparty.trim() ||
+                  Number.isNaN(Number(editDraft.originalAmount)) ||
+                  Number.isNaN(Number(editDraft.remainingAmount))
+                }
                 title={t('debts.actions.save')}
               >
                 ✓ {t('debts.actions.save')}
@@ -342,6 +493,14 @@ export function DebtsScreen() {
         subtitle={t('debts.subtitle')}
         onRefresh={refresh}
       />
+
+      <datalist id="debt-contacts-autocomplete">
+        {contactsList.map((contact) => (
+          <option key={contact.id} value={contact.displayName}>
+            {contact.alias ? `${contact.displayName} (${contact.alias})` : contact.displayName}
+          </option>
+        ))}
+      </datalist>
 
       {toastMessage && (
         <div className="toast-notification" role="status" aria-live="polite">

@@ -87,11 +87,13 @@ export class GoogleTasksService {
   ): Promise<tasks_v1.Schema$Task[]> {
     const tasks = this.getTasksClient(userId);
     const taskListId = options.taskListId || '@default';
+    const showCompleted = options.showCompleted ?? false;
+    const showHidden = options.showHidden ?? (showCompleted ? true : false);
 
     const res = await tasks.tasks.list({
       tasklist: taskListId,
-      showCompleted: options.showCompleted ?? false,
-      showHidden: options.showHidden ?? false,
+      showCompleted,
+      showHidden,
       dueMin: options.dueMin,
       dueMax: options.dueMax,
       maxResults: options.maxResults || 50,

@@ -54,6 +54,11 @@ export interface UpdateTransactionDto {
 
 export interface UpdateDebtDto {
   direction?: 'receivable' | 'payable';
+  counterparty?: string;
+  counterpartyAlias?: string;
+  contactId?: string;
+  originalAmount?: number;
+  remainingAmount?: number;
   amount?: number;
   currency?: string;
   note?: string;
@@ -391,7 +396,35 @@ export class FinanceService {
     const debt = await this.getDebt(userId, id);
     if (!debt) return null;
     if (input.direction) debt.direction = input.direction;
-    if (input.amount !== undefined) {
+    if (input.counterparty !== undefined) {
+      debt.counterparty = input.counterparty.trim();
+    }
+    if (input.contactId !== undefined) {
+      debt.contactId = input.contactId.trim() || undefined;
+    }
+    if (input.counterpartyAlias !== undefined) {
+      debt.counterpartyAlias = input.counterpartyAlias.trim() || undefined;
+    }
+    if (input.originalAmount !== undefined) {
+      const nextOriginal = Math.round(Number(input.originalAmount));
+      if (!Number.isFinite(nextOriginal) || nextOriginal < 0) {
+        throw new Error('Số tiền ban đầu không hợp lệ.');
+      }
+      debt.originalAmount = nextOriginal;
+    }
+    if (input.remainingAmount !== undefined) {
+      const nextRemaining = Math.max(0, Math.round(Number(input.remainingAmount)));
+      if (!Number.isFinite(nextRemaining)) {
+        throw new Error('Số tiền còn lại không hợp lệ.');
+      }
+      debt.remainingAmount = nextRemaining;
+      debt.status = debt.remainingAmount === 0 ? 'settled' : 'active';
+      if (debt.status === 'settled') {
+        if (!debt.settledAt) debt.settledAt = new Date();
+      } else {
+        debt.settledAt = undefined;
+      }
+    } else if (input.amount !== undefined) {
       const nextOriginalAmount = Math.round(Number(input.amount));
       const paidAmount = debt.originalAmount - debt.remainingAmount;
       if (!Number.isFinite(nextOriginalAmount) || nextOriginalAmount <= 0) {

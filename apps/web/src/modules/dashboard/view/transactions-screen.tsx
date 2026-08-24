@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { localeTag, type TransactionType } from '@telebot/contracts';
@@ -11,6 +11,10 @@ import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
+import {
+  useDeleteTransactionMutation,
+  useUpdateTransactionMutation,
+} from '../api/transactions-query';
 
 type FilterType = 'all' | TransactionType;
 type TransactionItem = NonNullable<
@@ -31,7 +35,26 @@ export function TransactionsScreen() {
     currentTypeParam === 'income' || currentTypeParam === 'expense' ? currentTypeParam : 'all';
 
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    type: TransactionType;
+    category: string;
+    note: string;
+    amount: string;
+    occurredAt: string;
+  }>({
+    type: 'expense',
+    category: '',
+    note: '',
+    amount: '',
+    occurredAt: '',
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
   const dashboard = useDashboardQuery();
+  const updateMutation = useUpdateTransactionMutation();
+  const deleteMutation = useDeleteTransactionMutation();
 
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
@@ -100,42 +123,207 @@ export function TransactionsScreen() {
     return Math.max(...periodTransactions.map((t) => t.amount), 1);
   }, [periodTransactions]);
 
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      startTransition(() => {
+        setToastMessage(null);
+      });
+    }, 3000);
+  };
+
+  const handleStartEdit = (item: TransactionItem) => {
+    setEditingId(item.id);
+    setEditDraft({
+      type: item.type,
+      category: item.category,
+      note: item.note || '',
+      amount: String(item.amount),
+      occurredAt: item.occurredAt ? item.occurredAt.slice(0, 16) : '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDraft({
+      type: 'expense',
+      category: '',
+      note: '',
+      amount: '',
+      occurredAt: '',
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const trimmedCategory = editDraft.category.trim();
+    const trimmedNote = editDraft.note.trim();
+    const parsedAmount = Number(editDraft.amount);
+
+    if (!trimmedCategory || !trimmedNote || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: {
+          type: editDraft.type,
+          category: trimmedCategory,
+          note: trimmedNote,
+          amount: parsedAmount,
+          occurredAt: editDraft.occurredAt
+            ? new Date(editDraft.occurredAt).toISOString()
+            : undefined,
+        },
+      });
+      setEditingId(null);
+      showToast(t('transactions.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('transactions.delete.confirm'))) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+      showToast(t('transactions.delete.success'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
   const transactionColumns: DataTableColumn<TransactionItem>[] = [
     {
       id: 'type',
       header: t('dashboard.columns.direction'),
-      minWidth: '80px',
-      cell: (item) => (
-        <span
-          className={`badge ${item.type === 'income' ? 'badge--receivable' : 'badge--payable'}`}
-        >
-          {item.type === 'income' ? t('table.filter.income') : t('table.filter.expense')}
-        </span>
-      ),
+      minWidth: '90px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <select
+              className="table-inline-input"
+              value={editDraft.type}
+              onChange={(e) =>
+                setEditDraft((prev) => ({
+                  ...prev,
+                  type: e.target.value as TransactionType,
+                }))
+              }
+              aria-label={t('dashboard.columns.direction')}
+            >
+              <option value="income">{t('table.filter.income')}</option>
+              <option value="expense">{t('table.filter.expense')}</option>
+            </select>
+          );
+        }
+        return (
+          <span
+            className={`badge ${item.type === 'income' ? 'badge--receivable' : 'badge--payable'}`}
+            onDoubleClick={() => handleStartEdit(item)}
+          >
+            {item.type === 'income' ? t('table.filter.income') : t('table.filter.expense')}
+          </span>
+        );
+      },
     },
     {
       id: 'category',
       header: t('dashboard.columns.category'),
       minWidth: '150px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.category}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.category}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, category: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('transactions.placeholder.category')}
+              autoFocus
+              required
+              aria-label={t('dashboard.columns.category')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-primary"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.category}
+          >
+            {item.category}
+          </span>
+        );
+      },
     },
     {
       id: 'note',
       header: t('dashboard.columns.note'),
       minWidth: '160px',
-      cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="text"
+              className="table-inline-input"
+              value={editDraft.note}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, note: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('transactions.placeholder.note')}
+              required
+              aria-label={t('dashboard.columns.note')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.note}
+          >
+            {item.note || '—'}
+          </span>
+        );
+      },
     },
     {
       id: 'amount',
       header: t('dashboard.columns.amount'),
       align: 'right',
-      minWidth: '130px',
+      minWidth: '140px',
       hideable: false,
       cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="number"
+              className="table-inline-input"
+              value={editDraft.amount}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, amount: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              placeholder={t('transactions.placeholder.amount')}
+              style={{ textAlign: 'right' }}
+              min="0"
+              required
+              aria-label={t('dashboard.columns.amount')}
+            />
+          );
+        }
         const pct = Math.min(Math.round((item.amount / maxAmount) * 100), 100);
         return (
-          <div className="amount-cell">
+          <div className="amount-cell" onDoubleClick={() => handleStartEdit(item)}>
             <strong className={item.type === 'income' ? 'text-positive' : 'text-warning'}>
               {item.type === 'income' ? '+' : '-'} {money(item.amount)}
             </strong>
@@ -153,8 +341,89 @@ export function TransactionsScreen() {
       id: 'occurredAt',
       header: t('dashboard.columns.date'),
       align: 'right',
-      minWidth: '130px',
-      cell: (item) => <span className="cell-muted">{date(item.occurredAt)}</span>,
+      minWidth: '150px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <input
+              type="datetime-local"
+              className="table-inline-input"
+              value={editDraft.occurredAt}
+              onChange={(e) => setEditDraft((prev) => ({ ...prev, occurredAt: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSaveEdit(item.id);
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              aria-label={t('dashboard.columns.date')}
+            />
+          );
+        }
+        return (
+          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+            {date(item.occurredAt)}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: t('dashboard.columns.action'),
+      align: 'right',
+      minWidth: '110px',
+      hideable: false,
+      cell: (item) => {
+        const isEditing = editingId === item.id;
+        if (isEditing) {
+          return (
+            <div className="table-inline-actions">
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--save"
+                onClick={() => void handleSaveEdit(item.id)}
+                disabled={
+                  updateMutation.isPending ||
+                  !editDraft.category.trim() ||
+                  !editDraft.note.trim() ||
+                  !Number(editDraft.amount)
+                }
+                title={t('transactions.actions.save')}
+              >
+                ✓ {t('transactions.actions.save')}
+              </button>
+              <button
+                type="button"
+                className="table-inline-action-btn table-inline-action-btn--cancel"
+                onClick={handleCancelEdit}
+                disabled={updateMutation.isPending}
+                title={t('transactions.actions.cancel')}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div className="table-inline-actions">
+            <button
+              type="button"
+              className="table-inline-action-btn"
+              onClick={() => handleStartEdit(item)}
+              title={t('transactions.actions.edit')}
+            >
+              ✎ {t('transactions.actions.edit')}
+            </button>
+            <button
+              type="button"
+              className="table-inline-action-btn table-inline-action-btn--cancel"
+              onClick={() => void handleDelete(item.id)}
+              disabled={deleteMutation.isPending}
+              title={t('transactions.actions.delete')}
+            >
+              🗑
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -165,6 +434,12 @@ export function TransactionsScreen() {
         subtitle={t('transactions.subtitle')}
         onRefresh={refresh}
       />
+
+      {toastMessage && (
+        <div className="toast-notification" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
 
       <PeriodFilterToolbar filter={periodFilter} />
 

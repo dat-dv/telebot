@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { type ITaskListItem } from '@telebot/contracts';
+import { type tasks_v1 } from 'googleapis';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { GoogleCalendarService } from './google-calendar.service';
@@ -68,15 +70,21 @@ export class GoogleResourcesController {
 
   @Get('tasks')
   async listTasks(@Req() req: Request, @Query() query: Record<string, string | undefined>) {
+    const showCompleted = query.showCompleted === undefined ? true : query.showCompleted === 'true';
+    const showHidden = query.showHidden === undefined ? showCompleted : query.showHidden === 'true';
+    const items = await this.tasks.listTasks(
+      {
+        taskListId: query.taskListId,
+        showCompleted,
+        showHidden,
+        dueMin: query.dueMin,
+        dueMax: query.dueMax,
+        maxResults: query.maxResults ? this.limit(query.maxResults) : 100,
+      },
+      this.userId(req),
+    );
     return {
-      data: await this.tasks.listTasks(
-        {
-          taskListId: query.taskListId,
-          showCompleted: query.showCompleted === 'true',
-          maxResults: query.maxResults ? this.limit(query.maxResults) : undefined,
-        },
-        this.userId(req),
-      ),
+      data: items.map((item) => this.mapTaskToListItem(item)),
     };
   }
   @Get('tasks/:id')
@@ -85,11 +93,13 @@ export class GoogleResourcesController {
     @Param('id') id: string,
     @Query('taskListId') taskListId?: string,
   ) {
-    return { data: await this.tasks.getTask(id, taskListId, this.userId(req)) };
+    const item = await this.tasks.getTask(id, taskListId, this.userId(req));
+    return { data: this.mapTaskToListItem(item) };
   }
   @Post('tasks')
   async createTask(@Req() req: Request, @Body() body: Record<string, unknown>) {
-    return { data: await this.tasks.createTask(this.taskInput(body), this.userId(req)) };
+    const item = await this.tasks.createTask(this.taskInput(body), this.userId(req));
+    return { data: this.mapTaskToListItem(item) };
   }
   @Patch('tasks/:id')
   async updateTask(
@@ -97,13 +107,14 @@ export class GoogleResourcesController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
+    const item = await this.tasks.updateTask(
+      id,
+      this.taskInput(body, true),
+      this.optional(body.taskListId),
+      this.userId(req),
+    );
     return {
-      data: await this.tasks.updateTask(
-        id,
-        this.taskInput(body, true),
-        this.optional(body.taskListId),
-        this.userId(req),
-      ),
+      data: this.mapTaskToListItem(item),
     };
   }
   @Delete('tasks/:id')
@@ -114,6 +125,18 @@ export class GoogleResourcesController {
   ) {
     await this.tasks.deleteTask(id, taskListId, this.userId(req));
     return { data: { deleted: true } };
+  }
+
+  private mapTaskToListItem(item: tasks_v1.Schema$Task): ITaskListItem {
+    return {
+      id: item.id || item.title || 'task',
+      title: item.title || 'Không có tiêu đề',
+      notes: item.notes || undefined,
+      dueAt: item.due || undefined,
+      status: (item.status as 'needsAction' | 'completed') || 'needsAction',
+      updatedAt: item.updated || undefined,
+      completedAt: item.completed || undefined,
+    };
   }
 
   private userId(req: Request) {

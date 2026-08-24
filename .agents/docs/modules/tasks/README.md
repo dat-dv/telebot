@@ -40,18 +40,21 @@ Bảng dữ liệu công việc (`TasksScreen`) cung cấp đầy đủ các c�
   - `Enter`: Lưu thay đổi tức thì.
   - `Escape`: Hủy bỏ chỉnh sửa và khôi phục dữ liệu ban đầu.
 - **Bộ lọc & Tìm kiếm**:
-  - Dải nút lọc trạng thái: Tất cả, Cần làm, Đã xong.
+  - Thanh công cụ lọc kỳ thời gian đa cấp độ (`PeriodFilterToolbar` & `usePeriodFilter`): Ngày (`day`), Tuần (`week`), Tháng (`month`), Quý (`quarter`), Năm (`year`), Tất cả (`all`).
+  - Dải nút lọc trạng thái kèm số đếm thời gian thực: Tất cả (`all`), Cần làm (`needsAction`), Đã xong (`completed`).
   - Ô tìm kiếm tức thì theo tiêu đề và nội dung ghi chú.
 - **Thông báo phản hồi**: Toast notification xuất hiện khi lưu hoặc xóa công việc thành công.
 
-## Cấu trúc mã nguồn
+## Cấu trúc mã nguồn & Tích hợp Backend
 
 - `tasks-api.ts`: Triển khai `getTasks`, `updateTask`, `deleteTask` trỏ đến endpoint `API_ROUTES.tasks` (`/api/tasks`).
 - `tasks-query.ts`: Cung cấp Query Key Factory `tasksQueryKeys` cùng các hooks `useTasksQuery`, `useUpdateTaskMutation`, `useDeleteTaskMutation` tự động đồng bộ cache.
-- `tasks-screen.tsx`: Giao diện hiển thị bảng DataTable tích hợp chỉnh sửa trực tiếp.
+- `tasks-screen.tsx`: Giao diện hiển thị bảng DataTable tích hợp chỉnh sửa trực tiếp, bộ lọc thời gian và trạng thái.
+- `GoogleResourcesController` (`apps/api`): Tự động nạp cả task đang làm và đã hoàn thành (`showCompleted: true`, `showHidden: true`), đồng thời chuẩn hóa dữ liệu từ Google Tasks API sang `ITaskListItem` (`dueAt`, `updatedAt`, `completedAt`).
 
 ## Quy trình kiểm thử
 
 1. Chạy `npm run typecheck` và `npm run lint` để kiểm tra an toàn kiểu và chuẩn mã nguồn.
-2. Chạy `npm run build` để kiểm tra build Next.js tĩnh.
-3. Kiểm tra các thao tác sửa inline, checkbox đổi trạng thái và xóa task trên trình duyệt.
+2. Chạy `npm run test --workspace @telebot/api` để chạy test backend.
+3. Chạy `npm run build` để kiểm tra build toàn bộ monorepo.
+4. Kiểm tra các thao tác sửa inline, chuyển đổi các tab thời gian (Ngày, Tuần, Tháng, Quý, Năm, Tất cả) và lọc trạng thái (Đã xong, Cần làm) trên trình duyệt.

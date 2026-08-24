@@ -186,6 +186,17 @@ export class FinanceController {
             body.direction === undefined
               ? undefined
               : this.enum(body.direction, ['receivable', 'payable'] as const, 'direction'),
+          counterparty: this.optionalString(body.counterparty),
+          counterpartyAlias: this.optionalString(body.counterpartyAlias),
+          contactId: this.optionalString(body.contactId),
+          originalAmount:
+            body.originalAmount === undefined
+              ? undefined
+              : this.number(body.originalAmount, 'originalAmount'),
+          remainingAmount:
+            body.remainingAmount === undefined
+              ? undefined
+              : this.number(body.remainingAmount, 'remainingAmount'),
           amount: body.amount === undefined ? undefined : this.number(body.amount, 'amount'),
           currency: this.optionalString(body.currency),
           note: this.optionalString(body.note),

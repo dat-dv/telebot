@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale } from '@/shared/providers/locale-provider';
 
-export type PeriodGrain = 'week' | 'month' | 'quarter' | 'year';
+export type PeriodGrain = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'all';
 
 export interface ChartBucket {
   key: string;
@@ -71,10 +71,12 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
   const refParam = searchParams.get('ref');
 
   const grain: PeriodGrain =
+    periodParam === 'day' ||
     periodParam === 'week' ||
     periodParam === 'month' ||
     periodParam === 'quarter' ||
-    periodParam === 'year'
+    periodParam === 'year' ||
+    periodParam === 'all'
       ? periodParam
       : defaultGrain;
 
@@ -100,6 +102,17 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
     const year = refDate.getFullYear();
     const month = refDate.getMonth(); // 0-11
     const pad = (n: number) => String(n).padStart(2, '0');
+
+    if (grain === 'day') {
+      const start = new Date(year, month, refDate.getDate(), 0, 0, 0, 0);
+      const end = new Date(year, month, refDate.getDate(), 23, 59, 59, 999);
+      const formattedDate = `${pad(refDate.getDate())}/${pad(month + 1)}/${year}`;
+      return {
+        startDate: start,
+        endDate: end,
+        label: t('period.label.day', { date: formattedDate }),
+      };
+    }
 
     if (grain === 'week') {
       const start = getStartOfWeek(refDate);
@@ -134,13 +147,21 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
       };
     }
 
-    // year
-    const start = new Date(year, 0, 1, 0, 0, 0, 0);
-    const end = new Date(year, 11, 31, 23, 59, 59, 999);
+    if (grain === 'year') {
+      const start = new Date(year, 0, 1, 0, 0, 0, 0);
+      const end = new Date(year, 11, 31, 23, 59, 59, 999);
+      return {
+        startDate: start,
+        endDate: end,
+        label: t('period.label.year', { year }),
+      };
+    }
+
+    // all
     return {
-      startDate: start,
-      endDate: end,
-      label: t('period.label.year', { year }),
+      startDate: new Date(0),
+      endDate: new Date(8640000000000000),
+      label: t('period.label.all'),
     };
   }, [grain, refDate, t]);
 
@@ -152,8 +173,11 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
   );
 
   const prevPeriod = useCallback(() => {
+    if (grain === 'all') return;
     const nextDate = new Date(refDate);
-    if (grain === 'week') {
+    if (grain === 'day') {
+      nextDate.setDate(nextDate.getDate() - 1);
+    } else if (grain === 'week') {
       nextDate.setDate(nextDate.getDate() - 7);
     } else if (grain === 'month') {
       nextDate.setMonth(nextDate.getMonth() - 1);
@@ -166,8 +190,11 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
   }, [grain, refDate, updateUrl]);
 
   const nextPeriod = useCallback(() => {
+    if (grain === 'all') return;
     const nextDate = new Date(refDate);
-    if (grain === 'week') {
+    if (grain === 'day') {
+      nextDate.setDate(nextDate.getDate() + 1);
+    } else if (grain === 'week') {
       nextDate.setDate(nextDate.getDate() + 7);
     } else if (grain === 'month') {
       nextDate.setMonth(nextDate.getMonth() + 1);
@@ -185,12 +212,13 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
 
   const isItemInPeriod = useCallback(
     (dateInput: string | Date | undefined | null): boolean => {
+      if (grain === 'all') return true;
       if (!dateInput) return false;
       const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
       if (isNaN(d.getTime())) return false;
       return d >= startDate && d <= endDate;
     },
-    [startDate, endDate],
+    [grain, startDate, endDate],
   );
 
   const generateBuckets = useCallback(

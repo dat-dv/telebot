@@ -219,6 +219,9 @@ const messages = {
     'debts.actions.cancel': 'Hủy',
     'debts.actions.repay': 'Trả nợ',
     'debts.inlineEdit.saved': 'Đã cập nhật khoản vay nợ',
+    'debts.placeholder.counterparty': 'Nhập hoặc chọn người liên quan...',
+    'debts.placeholder.originalAmount': 'Số tiền ban đầu...',
+    'debts.placeholder.remainingAmount': 'Số tiền còn lại...',
     'debts.placeholder.note': 'Nhập ghi chú...',
     'debts.placeholder.due': 'Hạn chót...',
     'contacts.selectedCount': 'Đã chọn {count}',
@@ -226,6 +229,16 @@ const messages = {
     'contacts.deselectAll': 'Bỏ chọn',
     'transactions.title': 'Thu chi',
     'transactions.subtitle': 'Lịch sử dòng tiền và các giao dịch thu chi',
+    'transactions.actions.edit': 'Sửa',
+    'transactions.actions.save': 'Lưu',
+    'transactions.actions.cancel': 'Hủy',
+    'transactions.actions.delete': 'Xóa',
+    'transactions.delete.confirm': 'Bạn có chắc chắn muốn xóa giao dịch này không?',
+    'transactions.delete.success': 'Đã xóa giao dịch',
+    'transactions.inlineEdit.saved': 'Đã cập nhật giao dịch',
+    'transactions.placeholder.category': 'Nhập danh mục...',
+    'transactions.placeholder.note': 'Nhập ghi chú...',
+    'transactions.placeholder.amount': 'Nhập số tiền...',
     'analytics.title': 'Phân tích',
     'analytics.subtitle': 'Tổng quan xu hướng tài chính và phân bổ chi tiêu',
     'calendar.title': 'Lịch',
@@ -264,6 +277,10 @@ const messages = {
     'tasks.filter.all': 'Tất cả',
     'tasks.filter.needsAction': 'Cần làm',
     'tasks.filter.completed': 'Đã xong',
+    'tasks.stats.total': 'Tổng số việc',
+    'tasks.stats.pending': 'Cần làm',
+    'tasks.stats.completed': 'Đã xong',
+    'tasks.stats.overdue': 'Quá hạn',
     'reminders.title': 'Nhắc nhở',
     'reminders.subtitle': 'Danh sách lời nhắc tự động qua Telegram & Gọi điện',
     'reminders.columns.notifyType': 'Hình thức',
@@ -283,16 +300,20 @@ const messages = {
     'reminders.repeatType.daily': 'Hàng ngày',
     'reminders.repeatType.weekly': 'Hàng tuần',
     'reminders.placeholder.title': 'Nhập tiêu đề lời nhắc...',
+    'period.day': 'Ngày',
     'period.week': 'Tuần',
     'period.month': 'Tháng',
     'period.quarter': 'Quý',
     'period.year': 'Năm',
+    'period.all': 'Tất cả',
     'period.prev': 'Kỳ trước',
     'period.next': 'Kỳ sau',
+    'period.label.day': 'Ngày {date}',
     'period.label.week': 'Tuần {week} ({range})',
     'period.label.month': 'Tháng {month}/{year}',
     'period.label.quarter': 'Quý {quarter}/{year}',
     'period.label.year': 'Năm {year}',
+    'period.label.all': 'Tất cả thời gian',
     'chart.toggleShow': 'Hiện biểu đồ',
     'chart.toggleHide': 'Ẩn biểu đồ',
     'chart.incomeVsExpense': 'Xu hướng Thu vs Chi',
@@ -466,6 +487,9 @@ const messages = {
     'debts.actions.cancel': 'Cancel',
     'debts.actions.repay': 'Repay',
     'debts.inlineEdit.saved': 'Debt updated successfully',
+    'debts.placeholder.counterparty': 'Enter or select person...',
+    'debts.placeholder.originalAmount': 'Original amount...',
+    'debts.placeholder.remainingAmount': 'Remaining amount...',
     'debts.placeholder.note': 'Debt note...',
     'debts.placeholder.due': 'Due date...',
     'contacts.selectedCount': '{count} selected',
@@ -473,6 +497,16 @@ const messages = {
     'contacts.deselectAll': 'Deselect all',
     'transactions.title': 'Transactions',
     'transactions.subtitle': 'Cash flow and transaction history',
+    'transactions.actions.edit': 'Edit',
+    'transactions.actions.save': 'Save',
+    'transactions.actions.cancel': 'Cancel',
+    'transactions.actions.delete': 'Delete',
+    'transactions.delete.confirm': 'Are you sure you want to delete this transaction?',
+    'transactions.delete.success': 'Transaction deleted successfully',
+    'transactions.inlineEdit.saved': 'Transaction updated successfully',
+    'transactions.placeholder.category': 'Enter category...',
+    'transactions.placeholder.note': 'Enter note...',
+    'transactions.placeholder.amount': 'Enter amount...',
     'analytics.title': 'Analytics',
     'analytics.subtitle': 'Financial trends and spending breakdown',
     'calendar.title': 'Calendar',
@@ -511,6 +545,10 @@ const messages = {
     'tasks.filter.all': 'All',
     'tasks.filter.needsAction': 'Pending',
     'tasks.filter.completed': 'Completed',
+    'tasks.stats.total': 'Total tasks',
+    'tasks.stats.pending': 'Pending',
+    'tasks.stats.completed': 'Completed',
+    'tasks.stats.overdue': 'Overdue',
     'reminders.title': 'Reminders',
     'reminders.subtitle': 'Automated reminders via Telegram & Call',
     'reminders.columns.notifyType': 'Type',
@@ -530,16 +568,20 @@ const messages = {
     'reminders.repeatType.daily': 'Daily',
     'reminders.repeatType.weekly': 'Weekly',
     'reminders.placeholder.title': 'Reminder title...',
+    'period.day': 'Day',
     'period.week': 'Week',
     'period.month': 'Month',
     'period.quarter': 'Quarter',
     'period.year': 'Year',
+    'period.all': 'All',
     'period.prev': 'Previous period',
     'period.next': 'Next period',
+    'period.label.day': '{date}',
     'period.label.week': 'Week {week} ({range})',
     'period.label.month': '{month}/{year}',
     'period.label.quarter': 'Q{quarter}/{year}',
     'period.label.year': '{year}',
+    'period.label.all': 'All time',
     'chart.toggleShow': 'Show chart',
     'chart.toggleHide': 'Hide chart',
     'chart.incomeVsExpense': 'Income vs Expense Trend',
@@ -618,6 +660,7 @@ export interface IDebtListItem {
   direction: 'receivable' | 'payable';
   counterparty: string;
   counterpartyAlias?: string;
+  contactId?: string;
   originalAmount: number;
   remainingAmount: number;
   currency?: string;
@@ -726,6 +769,19 @@ export interface IUpdateReminderRequest {
   snoozedUntil?: string;
 }
 
+export interface IUpdateTransactionRequest {
+  type?: TransactionType;
+  category?: string;
+  note?: string;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  contactId?: string;
+  placeName?: string;
+  occurredAt?: string;
+}
+
 export interface IUpdateExpenseRequest {
   category?: string;
   note?: string;
@@ -740,6 +796,11 @@ export interface IUpdateExpenseRequest {
 
 export interface IUpdateDebtRequest {
   direction?: 'receivable' | 'payable';
+  counterparty?: string;
+  counterpartyAlias?: string;
+  contactId?: string;
+  originalAmount?: number;
+  remainingAmount?: number;
   amount?: number;
   currency?: string;
   note?: string;
@@ -779,6 +840,18 @@ export type TransactionType = 'income' | 'expense';
 export type DebtDirection = 'receivable' | 'payable';
 export type ReminderNotifyType = 'text' | 'call';
 export type ReminderRepeatType = 'none' | 'daily' | 'weekly';
+
+export interface ITransactionItem {
+  id: string;
+  type: TransactionType;
+  category: string;
+  note: string;
+  amount: number;
+  currency?: string;
+  paymentMethod?: string;
+  occurredAt: string;
+  createdAt?: string;
+}
 
 export interface ICreateTransactionRequest {
   type: TransactionType;

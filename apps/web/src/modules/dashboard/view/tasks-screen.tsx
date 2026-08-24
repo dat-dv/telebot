@@ -6,6 +6,8 @@ import { localeTag, type ITaskListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+import { usePeriodFilter, type PeriodGrain } from '@/shared/hooks/use-period-filter';
+import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import {
   tasksQueryKeys,
   useTasksQuery,
@@ -14,9 +16,12 @@ import {
 } from '@/modules/tasks/api/tasks-query';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
+const TASK_GRAINS: PeriodGrain[] = ['day', 'week', 'month', 'quarter', 'year', 'all'];
+
 export function TasksScreen() {
   const queryClient = useQueryClient();
   const { locale, t } = useLocale();
+  const periodFilter = usePeriodFilter('month');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needsAction' | 'completed'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,8 +58,44 @@ export function TasksScreen() {
 
   const isGoogleConnected = dashboard.data?.user.googleConnected;
 
-  const filteredTasks = useMemo(() => {
+  // 1. Filter by period first
+  const periodTasks = useMemo(() => {
     return rawList.filter((item) => {
+      const dateToCheck = item.dueAt || item.updatedAt;
+      return periodFilter.isItemInPeriod(dateToCheck);
+    });
+  }, [rawList, periodFilter]);
+
+  // 2. Compute quick summary stats for selected period
+  const stats = useMemo(() => {
+    let pending = 0;
+    let completed = 0;
+    let overdue = 0;
+    const now = new Date();
+
+    for (const task of periodTasks) {
+      const isCompleted = task.status === 'completed';
+      if (isCompleted) {
+        completed++;
+      } else {
+        pending++;
+        if (task.dueAt && new Date(task.dueAt) < now) {
+          overdue++;
+        }
+      }
+    }
+
+    return {
+      total: periodTasks.length,
+      pending,
+      completed,
+      overdue,
+    };
+  }, [periodTasks]);
+
+  // 3. Filter by status & search
+  const filteredTasks = useMemo(() => {
+    return periodTasks.filter((item) => {
       if (statusFilter !== 'all') {
         const itemStatus = item.status || 'needsAction';
         if (itemStatus !== statusFilter) return false;
@@ -65,7 +106,7 @@ export function TasksScreen() {
         item.title.toLowerCase().includes(q) || (item.notes && item.notes.toLowerCase().includes(q))
       );
     });
-  }, [rawList, statusFilter, search]);
+  }, [periodTasks, statusFilter, search]);
 
   const date = (value?: string) =>
     value
@@ -380,6 +421,8 @@ export function TasksScreen() {
         </div>
       )}
 
+      <PeriodFilterToolbar filter={periodFilter} grains={TASK_GRAINS} />
+
       {isError ? (
         <section className="inline-alert" role="alert">
           <strong>{t('dashboard.error.title')}</strong>
@@ -401,21 +444,21 @@ export function TasksScreen() {
                     className={`filter-pill ${statusFilter === 'all' ? 'is-active' : ''}`}
                     onClick={() => setStatusFilter('all')}
                   >
-                    {t('tasks.filter.all')}
+                    {t('tasks.filter.all')} ({stats.total})
                   </button>
                   <button
                     type="button"
                     className={`filter-pill ${statusFilter === 'needsAction' ? 'is-active' : ''}`}
                     onClick={() => setStatusFilter('needsAction')}
                   >
-                    {t('tasks.filter.needsAction')}
+                    {t('tasks.filter.needsAction')} ({stats.pending})
                   </button>
                   <button
                     type="button"
                     className={`filter-pill ${statusFilter === 'completed' ? 'is-active' : ''}`}
                     onClick={() => setStatusFilter('completed')}
                   >
-                    {t('tasks.filter.completed')}
+                    {t('tasks.filter.completed')} ({stats.completed})
                   </button>
                 </div>
                 <input
