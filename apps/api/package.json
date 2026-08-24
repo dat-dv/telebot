@@ -20,6 +20,7 @@
     "start:prod": "node dist/main.js",
     "auth": "tsx scripts/auth.ts",
     "gramjs-login": "tsx scripts/gramjs-login.ts",
+    "database:migrate-sqlite": "node scripts/migrate-sqlite-to-postgres.cjs",
     "prepare": "husky || true"
   },
   "dependencies": {
@@ -36,7 +37,9 @@
     "dotenv": "^16.4.7",
     "google-auth-library": "^9.15.1",
     "googleapis": "^144.0.0",
+    "ioredis": "^5.11.1",
     "nestjs-telegraf": "^2.9.1",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",

@@ -1,4 +1,31 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-telebot}
+      POSTGRES_USER: ${POSTGRES_USER:-telebot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local}
+    volumes:
+      - telebot-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - telebot-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
@@ -11,8 +38,17 @@ services:
       - ${ENV_FILE:-.env.local}
     environment:
       WHISPER_URL: http://127.0.0.1:8080
+      DATABASE_URL: postgresql://${POSTGRES_USER:-telebot}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local}@postgres:5432/${POSTGRES_DB:-telebot}
+      DATABASE_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      TYPEORM_SYNCHRONIZE: "false"
     volumes:
       - telebot-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   web:
     build:
       context: .
@@ -28,3 +64,5 @@ services:
 
 volumes:
   telebot-data:
+  telebot-postgres:
+  telebot-redis:

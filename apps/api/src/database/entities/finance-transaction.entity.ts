@@ -49,7 +49,7 @@ export class FinanceTransactionEntity {
   note: string;
 
   @Index()
-  @Column({ name: 'occurred_at', type: 'datetime' })
+  @Column({ name: 'occurred_at', type: Date })
   occurredAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })

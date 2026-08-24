@@ -13,10 +13,10 @@ export class DashboardExchangeTokenEntity {
   @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
-  @Column({ name: 'expires_at', type: 'datetime' })
+  @Column({ name: 'expires_at', type: Date })
   expiresAt: Date;
 
-  @Column({ name: 'consumed_at', type: 'datetime', nullable: true })
+  @Column({ name: 'consumed_at', type: Date, nullable: true })
   consumedAt?: Date;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -54,10 +54,10 @@ export class DebtEntity {
   @Column({ type: 'varchar', default: 'active' })
   status: 'active' | 'settled';
 
-  @Column({ name: 'due_at', type: 'datetime', nullable: true })
+  @Column({ name: 'due_at', type: Date, nullable: true })
   dueAt?: Date;
 
-  @Column({ name: 'settled_at', type: 'datetime', nullable: true })
+  @Column({ name: 'settled_at', type: Date, nullable: true })
   settledAt?: Date;
 
   @OneToMany(() => DebtPaymentEntity, (payment) => payment.debt)

@@ -160,3 +160,13 @@ pm2 monit
 | Người lạ nhắn tin báo `Truy cập bị từ chối`                | Chưa được Admin mời qua link `/invite`.               | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`.          |
 | Lỗi `Google OAuth credentials chưa được cấu hình`          | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`.          |
 | AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key.             | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio.                    |
+## PostgreSQL & Redis cutover
+
+The Compose stack now includes PostgreSQL and Redis. Before switching an existing SQLite deployment, take a backup of `data/telebot.sqlite`, start only PostgreSQL, then run:
+
+```bash
+docker compose run --rm --no-deps -e MIGRATION_CREATE_SCHEMA=true api \
+  node apps/api/scripts/migrate-sqlite-to-postgres.cjs
+```
+
+The command refuses a non-empty PostgreSQL target unless `MIGRATION_ALLOW_NONEMPTY=true` is explicitly supplied after reconciliation. After counts are verified, keep `TYPEORM_SYNCHRONIZE=false`, remove `MIGRATION_CREATE_SCHEMA`, and restart the API with `DATABASE_URL` and `REDIS_URL` configured. Do not run the migration against a live writer; pause the API first.

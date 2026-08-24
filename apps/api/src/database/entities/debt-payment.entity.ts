@@ -29,7 +29,7 @@ export class DebtPaymentEntity {
   @Column({ type: 'integer' })
   amount: number;
 
-  @Column({ name: 'payment_date', type: 'datetime' })
+  @Column({ name: 'payment_date', type: Date })
   paymentDate: Date;
 
   @Column({ type: 'varchar', nullable: true })

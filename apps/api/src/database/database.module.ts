@@ -20,6 +20,35 @@ import { fromProjectRoot } from '../config/project-root';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: () => {
+        const databaseUrl = process.env.DATABASE_URL?.trim();
+        const databaseSsl = process.env.DATABASE_SSL?.trim().toLowerCase() === 'true';
+        const synchronize = process.env.TYPEORM_SYNCHRONIZE?.trim().toLowerCase() === 'true';
+        const entities = [
+          UserEntity,
+          InviteEntity,
+          UserTokenEntity,
+          ReminderEntity,
+          FinanceTransactionEntity,
+          DebtEntity,
+          DebtContactEntity,
+          DebtPaymentEntity,
+          AuditLogEntity,
+          DashboardExchangeTokenEntity,
+          UserCategoryEntity,
+        ];
+
+        if (databaseUrl) {
+          return {
+            type: 'postgres' as const,
+            url: databaseUrl,
+            ssl: databaseSsl ? { rejectUnauthorized: false } : false,
+            entities,
+            subscribers: [AuditLogSubscriber],
+            synchronize,
+            logging: false,
+          };
+        }
+
         const dataDir = fromProjectRoot('data');
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
@@ -28,19 +57,7 @@ import { fromProjectRoot } from '../config/project-root';
         return {
           type: 'better-sqlite3',
           database: dbPath,
-          entities: [
-            UserEntity,
-            InviteEntity,
-            UserTokenEntity,
-            ReminderEntity,
-            FinanceTransactionEntity,
-            DebtEntity,
-            DebtContactEntity,
-            DebtPaymentEntity,
-            AuditLogEntity,
-            DashboardExchangeTokenEntity,
-            UserCategoryEntity,
-          ],
+          entities,
           subscribers: [AuditLogSubscriber],
           synchronize: true,
           logging: false,

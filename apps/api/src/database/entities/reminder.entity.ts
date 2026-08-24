@@ -20,7 +20,7 @@ export class ReminderEntity {
   title: string;
 
   @Index()
-  @Column({ name: 'remind_at', type: 'datetime' })
+  @Column({ name: 'remind_at', type: Date })
   remindAt: Date;
 
   @Index()
@@ -34,10 +34,10 @@ export class ReminderEntity {
   @Column({ name: 'snooze_count', type: 'integer', default: 0 })
   snoozeCount: number;
 
-  @Column({ name: 'snoozed_until', type: 'datetime', nullable: true })
+  @Column({ name: 'snoozed_until', type: Date, nullable: true })
   snoozedUntil?: Date;
 
-  @Column({ name: 'completed_at', type: 'datetime', nullable: true })
+  @Column({ name: 'completed_at', type: Date, nullable: true })
   completedAt?: Date;
 
   @Column({ name: 'notify_type', type: 'varchar', default: 'text' })

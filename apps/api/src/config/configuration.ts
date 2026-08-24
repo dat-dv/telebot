@@ -3,6 +3,14 @@ export interface AppConfig {
   appUrl: string;
   webOrigin: string;
   cors: { allowAll: boolean };
+  database: {
+    url?: string;
+    ssl: boolean;
+    synchronize: boolean;
+  };
+  redis: {
+    url?: string;
+  };
   telegram: {
     token: string;
     longPollingEnabled: boolean;
@@ -87,6 +95,12 @@ export default (): AppConfig => {
     appUrl,
     webOrigin: readEnv('WEB_ORIGIN').replace(/\/+$/, ''),
     cors: { allowAll: readBooleanEnv('CORS_ALLOW_ALL') },
+    database: {
+      url: readOptionalEnv('DATABASE_URL'),
+      ssl: readOptionalEnv('DATABASE_SSL') === 'true',
+      synchronize: readOptionalEnv('TYPEORM_SYNCHRONIZE') === 'true',
+    },
+    redis: { url: readOptionalEnv('REDIS_URL') },
     telegram: {
       token: readEnv('TELEGRAM_BOT_TOKEN'),
       longPollingEnabled: readBooleanEnv('TELEGRAM_LONG_POLLING_ENABLED'),
