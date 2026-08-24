@@ -27,8 +27,8 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache curl ffmpeg libgomp libstdc++ && \
     mkdir -p /app/assets/tessdata && \
-    curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/vie.traineddata.gz -o /app/assets/tessdata/vie.traineddata.gz && \
-    curl -fsSL https://tessdata.projectnaptha.com/4.0.0_fast/eng.traineddata.gz -o /app/assets/tessdata/eng.traineddata.gz
+    curl -fsSL https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata -o /app/assets/tessdata/vie.traineddata && \
+    curl -fsSL https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/eng.traineddata -o /app/assets/tessdata/eng.traineddata
 ENV NODE_ENV=production
 EXPOSE 3000
 

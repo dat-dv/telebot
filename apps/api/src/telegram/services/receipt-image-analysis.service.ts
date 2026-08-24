@@ -62,7 +62,7 @@ export class ReceiptImageAnalysisService {
       this.workerPromise = createWorker(['vie', 'eng'], undefined, {
         langPath: this.langPath,
         cacheMethod: 'none',
-        gzip: true,
+        gzip: false,
       });
     }
     return this.workerPromise;
