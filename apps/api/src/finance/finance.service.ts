@@ -204,6 +204,13 @@ export class FinanceService {
     return this.transactionRepo.findOne({ where: { id, userId: userId.toString() } });
   }
 
+  public getLatestTransaction(userId: number): Promise<FinanceTransactionEntity | null> {
+    return this.transactionRepo.findOne({
+      where: { userId: userId.toString() },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   public async updateTransaction(
     userId: number,
     id: string,

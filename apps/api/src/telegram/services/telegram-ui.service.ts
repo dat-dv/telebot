@@ -273,6 +273,30 @@ export class TelegramUiService {
 
       return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\n📄 <b>Payload JSON:</b>\n${jsonBlock}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
     }
+    if (name === 'update_finance_transaction') {
+      const type =
+        payload.type === 'income'
+          ? 'Khoản thu'
+          : payload.type === 'expense'
+            ? 'Khoản chi'
+            : undefined;
+      const amount =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : undefined;
+      const category = typeof payload.category === 'string' ? payload.category : undefined;
+      const note = typeof payload.note === 'string' ? payload.note : undefined;
+      const occurredAtFormatted = this.formatFinanceOccurredAt(payload.occurredAt);
+
+      const changeLines: string[] = [];
+      if (type) changeLines.push(`<b>${this.escapeHtml(type)}</b>`);
+      if (amount) changeLines.push(`💵 ${this.escapeHtml(amount)}`);
+      if (category) changeLines.push(`🏷️ ${this.escapeHtml(category)}`);
+      if (note) changeLines.push(`📝 ${this.escapeHtml(note)}`);
+      if (occurredAtFormatted) {
+        changeLines.push(`📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`);
+      }
+
+      return `⚠️ <b>XÁC NHẬN CẬP NHẬT THU–CHI</b>\n\n${changeLines.join('\n') || 'Cập nhật thông tin giao dịch gần nhất'}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cập nhật.`;
+    }
     if (name === 'create_finance_transactions') {
       const list = Array.isArray(payload.transactions)
         ? (payload.transactions as Array<Record<string, unknown>>)
@@ -475,6 +499,22 @@ export class TelegramUiService {
       const occurredAtText = this.formatFinanceOccurredAt(tx?.occurredAt);
       const dateSuffix = occurredAtText ? ` · 📅 ${occurredAtText}` : '';
       return `✅ <b>Đã ghi sổ thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(placeText)}${this.escapeHtml(dateSuffix)}`;
+    }
+    if (name === 'update_finance_transaction') {
+      const tx = result.transaction as Record<string, unknown> | undefined;
+      const typeText = tx?.type === 'income' ? 'Khoản thu' : 'Khoản chi';
+      const amountText =
+        typeof tx?.amountText === 'string'
+          ? tx.amountText
+          : typeof tx?.amount === 'number'
+            ? this.formatMoney(tx.amount)
+            : '';
+      const noteText = typeof tx?.note === 'string' ? tx.note : '';
+      const categoryText =
+        typeof tx?.category === 'string' && tx.category !== 'Khác' ? ` (${tx.category})` : '';
+      const occurredAtText = this.formatFinanceOccurredAt(tx?.occurredAt);
+      const dateSuffix = occurredAtText ? ` · 📅 ${occurredAtText}` : '';
+      return `✅ <b>Đã cập nhật giao dịch thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(dateSuffix)}`;
     }
     if (name === 'create_finance_transactions') {
       const created = Array.isArray(result.created)

@@ -26,6 +26,7 @@ void test('/week attaches week-scoped actions', async () => {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
     ui as never,
     {} as never,
     {} as never,

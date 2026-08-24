@@ -18,6 +18,7 @@ import { ListRemindersTool } from './tools/list-reminders.tool';
 import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
 import { CreateFinanceTransactionsTool } from './tools/create-finance-transactions.tool';
+import { UpdateFinanceTransactionTool } from './tools/update-finance-transaction.tool';
 import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
 import { CreateDebtTool } from './tools/create-debt.tool';
 import { ListDebtsTool } from './tools/list-debts.tool';
@@ -127,6 +128,7 @@ export class GeminiService {
     'delete_reminder',
     'create_finance_transaction',
     'create_finance_transactions',
+    'update_finance_transaction',
     'create_debt',
     'record_debt_payment',
     'update_debt_contact',
@@ -153,6 +155,7 @@ export class GeminiService {
     private readonly deleteReminderTool: DeleteReminderTool,
     private readonly createFinanceTransactionTool: CreateFinanceTransactionTool,
     private readonly createFinanceTransactionsTool: CreateFinanceTransactionsTool,
+    private readonly updateFinanceTransactionTool: UpdateFinanceTransactionTool,
     private readonly getFinanceSummaryTool: GetFinanceSummaryTool,
     private readonly createDebtTool: CreateDebtTool,
     private readonly listDebtsTool: ListDebtsTool,
@@ -186,6 +189,7 @@ export class GeminiService {
       this.deleteReminderTool,
       this.createFinanceTransactionTool,
       this.createFinanceTransactionsTool,
+      this.updateFinanceTransactionTool,
       this.getFinanceSummaryTool,
       this.createDebtTool,
       this.listDebtsTool,

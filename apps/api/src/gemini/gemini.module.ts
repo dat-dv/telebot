@@ -20,6 +20,7 @@ import { DeleteReminderTool } from './tools/delete-reminder.tool';
 import { FinanceModule } from '../finance/finance.module';
 import { CreateFinanceTransactionTool } from './tools/create-finance-transaction.tool';
 import { CreateFinanceTransactionsTool } from './tools/create-finance-transactions.tool';
+import { UpdateFinanceTransactionTool } from './tools/update-finance-transaction.tool';
 import { GetFinanceSummaryTool } from './tools/get-finance-summary.tool';
 import { CreateDebtTool } from './tools/create-debt.tool';
 import { ListDebtsTool } from './tools/list-debts.tool';
@@ -27,11 +28,13 @@ import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
 import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
 import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
+import { ConversationHistoryService } from './services/conversation-history.service';
 
 @Module({
   imports: [GoogleModule, UsersModule, RemindersModule, FinanceModule],
   providers: [
     GeminiService,
+    ConversationHistoryService,
     CreateCalendarTool,
     ListCalendarTool,
     DeleteCalendarTool,
@@ -48,6 +51,7 @@ import { UpdateReminderTool } from './tools/update-reminder.tool';
     DeleteReminderTool,
     CreateFinanceTransactionTool,
     CreateFinanceTransactionsTool,
+    UpdateFinanceTransactionTool,
     GetFinanceSummaryTool,
     CreateDebtTool,
     ListDebtsTool,
@@ -56,6 +60,6 @@ import { UpdateReminderTool } from './tools/update-reminder.tool';
     UpdateDebtContactTool,
     UpdateReminderTool,
   ],
-  exports: [GeminiService],
+  exports: [GeminiService, ConversationHistoryService],
 })
 export class GeminiModule {}

@@ -6,6 +6,7 @@ import { TelegramUiService } from './services/telegram-ui.service';
 import { VoiceTranscriptionService } from './services/voice-transcription.service';
 import { ReceiptImageAnalysisService } from './services/receipt-image-analysis.service';
 import { GeminiService } from '../gemini/gemini.service';
+import { ConversationHistoryService } from '../gemini/services/conversation-history.service';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from '../google/google-auth.service';
 import { GoogleTasksService } from '../google/google-tasks.service';
@@ -24,6 +25,7 @@ export class TelegramUpdate {
 
   constructor(
     private readonly geminiService: GeminiService,
+    private readonly conversationHistoryService: ConversationHistoryService,
     private readonly usersService: UsersService,
     private readonly googleAuthService: GoogleAuthService,
     private readonly tasksService: GoogleTasksService,
@@ -74,17 +76,30 @@ export class TelegramUpdate {
 
   private async processAgentRequest(ctx: Context, text: string, userId: number): Promise<void> {
     const botUsername = ctx.botInfo?.username;
+    const history = this.conversationHistoryService.getHistory(userId);
     const chatResult = await this.uiService.withTyping(ctx, () =>
-      this.geminiService.chat(text, [], userId, botUsername),
+      this.geminiService.chat(text, history, userId, botUsername),
     );
+
+    // Lưu tin nhắn người dùng vào bộ nhớ đệm ngắn hạn
+    this.conversationHistoryService.appendUserMessage(userId, text);
 
     if (chatResult.pendingAction) {
       const { name, payload, id, referenceId } = chatResult.pendingAction;
-      await ctx.reply(this.uiService.formatConfirmationBox(name, payload, referenceId), {
+      const confirmBox = this.uiService.formatConfirmationBox(name, payload, referenceId);
+      this.conversationHistoryService.appendModelMessage(
+        userId,
+        `Yêu cầu xác nhận thao tác ${name}: ${JSON.stringify(payload)}`,
+      );
+      await ctx.reply(confirmBox, {
         parse_mode: 'HTML',
         ...this.uiService.buildConfirmationMarkup(id),
       });
       return;
+    }
+
+    if (chatResult.text) {
+      this.conversationHistoryService.appendModelMessage(userId, chatResult.text);
     }
 
     let extraMarkup: ReturnType<typeof Markup.inlineKeyboard> | undefined = undefined;
@@ -1011,8 +1026,10 @@ ${googleStatus}
         actionId,
         userId,
       );
+      const resultBox = this.uiService.formatResultBox(name, result, referenceId);
+      this.conversationHistoryService.appendModelMessage(userId, resultBox);
       await ctx.answerCbQuery('Đã xác nhận và thực hiện.');
-      await ctx.editMessageText(this.uiService.formatResultBox(name, result, referenceId), {
+      await ctx.editMessageText(resultBox, {
         parse_mode: 'HTML',
         ...this.uiService.buildNotificationActionsMarkup(),
       });
