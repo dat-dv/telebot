@@ -54,4 +54,4 @@ Khi cần frontend local gọi API remote, đặt `NEXT_PUBLIC_API_URL=https://t
 
 ## Docker
 
-Dùng `docker compose up --build` tại root. Compose build API và static web qua `apps/api/Dockerfile` và `apps/web/Dockerfile`; web được phục vụ bởi Nginx tại `WEB_PORT` (mặc định 3001), đồng thời Nginx tự động reverse proxy các route `/api/*` và `/oauth2callback` sang container API backend (`http://api:3000`), còn API mount `./data` để giữ SQLite. Với kiến trúc này, Cloudflare Tunnel chỉ cần trỏ vào duy nhất cổng Web (`localhost:3001`).
+Dùng `docker compose up --build` tại root. Compose build API và static web qua `apps/api/Dockerfile` và `apps/web/Dockerfile`; web được phục vụ bởi Nginx tại `WEB_PORT` (mặc định 3001), đồng thời Nginx tự động reverse proxy các route `/api/*` (bao gồm Swagger UI `/api/docs` và OAuth callback `/api/oauth2callback`) sang container API backend (`http://api:3000`), còn API mount `./data` để giữ SQLite. Với kiến trúc này, Cloudflare Tunnel chỉ cần trỏ vào duy nhất cổng Web (`localhost:3001`).

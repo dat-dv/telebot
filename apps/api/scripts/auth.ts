@@ -65,7 +65,7 @@ function main(): void {
 
   const clientId = keys.client_id;
   const clientSecret = keys.client_secret;
-  const redirectUri = 'http://localhost:3000/oauth2callback';
+  const redirectUri = 'http://localhost:3000/api/oauth2callback';
 
   if (!clientId || !clientSecret) {
     console.error('❌ File credentials không hợp lệ (thiếu client_id hoặc client_secret).');
@@ -91,7 +91,12 @@ function main(): void {
   // Start temporary local server to catch callback
   const server = http.createServer(async (req, res) => {
     try {
-      if (req.url && (req.url.startsWith('/oauth2callback') || req.url.includes('code='))) {
+      if (
+        req.url &&
+        (req.url.startsWith('/api/oauth2callback') ||
+          req.url.startsWith('/oauth2callback') ||
+          req.url.includes('code='))
+      ) {
         const parsedUrl = new url.URL(req.url, 'http://localhost:3000');
         const code = parsedUrl.searchParams.get('code');
 

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { calendar_v3, tasks_v1 } from 'googleapis';
@@ -11,6 +12,7 @@ import { RemindersService } from '../reminders/reminders.service';
 import { UsersService } from '../users/users.service';
 import { ReportsTokenService } from './reports-token.service';
 
+@ApiTags('Reports & Dashboard')
 @Controller()
 export class ReportsController {
   constructor(
@@ -26,6 +28,7 @@ export class ReportsController {
   ) {}
 
   @Get('access')
+  @ApiOperation({ summary: 'Đổi One-Time Token từ Telegram lấy Dashboard Session Token' })
   public async access(@Query('token') token: string, @Res() res: Response): Promise<void> {
     let userId: number;
     try {
@@ -63,6 +66,8 @@ export class ReportsController {
   }
 
   @Get('dashboard')
+  @ApiBearerAuth('bearer-jwt')
+  @ApiOperation({ summary: 'Lấy dữ liệu tổng quan cho Dashboard' })
   public async dashboard(@Req() req: Request) {
     const userId = this.getAccessUserId(req);
     const now = new Date();
@@ -139,6 +144,8 @@ export class ReportsController {
   }
 
   @Get('contacts')
+  @ApiBearerAuth('bearer-jwt')
+  @ApiOperation({ summary: 'Lấy danh sách danh bạ người dùng' })
   public async contacts(@Req() req: Request) {
     const userId = this.getAccessUserId(req);
     const contacts = await this.finance.listContacts(userId);
@@ -154,6 +161,8 @@ export class ReportsController {
   }
 
   @Get('debts')
+  @ApiBearerAuth('bearer-jwt')
+  @ApiOperation({ summary: 'Lấy danh sách các khoản nợ / cho vay' })
   public async debts(@Req() req: Request) {
     const userId = this.getAccessUserId(req);
     const debts = await this.finance.getActiveDebts(userId);
@@ -173,6 +182,8 @@ export class ReportsController {
   }
 
   @Get('expenses')
+  @ApiBearerAuth('bearer-jwt')
+  @ApiOperation({ summary: 'Lấy danh sách các khoản chi tiêu' })
   public async expenses(@Req() req: Request) {
     const userId = this.getAccessUserId(req);
     const expenses = await this.finance.listExpenses(userId);
@@ -188,6 +199,7 @@ export class ReportsController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Làm mới Access Token thông qua Refresh Token trong cookie' })
   public refresh(@Req() req: Request, @Res() res: Response): void {
     const refreshToken = this.getCookie(req, 'reports_refresh');
     if (!refreshToken) throw new UnauthorizedException();
@@ -199,6 +211,7 @@ export class ReportsController {
   }
 
   @Post('logout')
+  @ApiOperation({ summary: 'Đăng xuất khỏi Dashboard' })
   public logout(@Res() res: Response): void {
     res.clearCookie('reports_refresh', {
       httpOnly: true,

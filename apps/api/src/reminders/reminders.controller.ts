@@ -10,11 +10,14 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { RemindersService } from './reminders.service';
 
+@ApiTags('Reminders')
+@ApiBearerAuth('bearer-jwt')
 @Controller('reminders')
 export class RemindersController {
   constructor(
@@ -23,6 +26,7 @@ export class RemindersController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Lấy danh sách lời nhắc sắp tới của người dùng' })
   async list(@Req() req: Request) {
     return { data: await this.reminders.getUserUpcomingReminders(this.userId(req)) };
   }

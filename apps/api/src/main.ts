@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, RequestMethod } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import {
   loadEnvironment,
@@ -21,15 +22,38 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api', {
-    exclude: [
-      { path: 'oauth2callback', method: RequestMethod.ALL },
-      { path: 'auth/google/callback', method: RequestMethod.ALL },
-      { path: 'callback', method: RequestMethod.ALL },
-    ],
-  });
-
+  app.setGlobalPrefix('api');
   app.enableShutdownHooks();
+
+  // 3. Configure Swagger OpenAPI Documentation
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Telebot Assistant API')
+    .setDescription(
+      'Hệ thống API RESTful và Webhook cho trợ lý ảo Telegram kết hợp Google Workspace và AI.',
+    )
+    .setVersion('1.0.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT Authorization',
+        description: 'Nhập JWT Access Token để xác thực',
+        in: 'header',
+      },
+      'bearer-jwt',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document, {
+    customSiteTitle: 'Telebot API Documentation',
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+    },
+  });
 
   const configService = app.get(ConfigService);
   const port = configService.getOrThrow<number>('port');
@@ -49,7 +73,8 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 Web Server is listening on port ${port}`);
-  logger.log(`🌐 Public OAuth Callback URL: ${appUrl}/oauth2callback`);
+  logger.log(`📚 Swagger OpenAPI Docs: ${appUrl}/api/docs`);
+  logger.log(`🌐 Public OAuth Callback URL: ${appUrl}/api/oauth2callback`);
   logger.log(
     longPollingEnabled
       ? '🤖 Listening for messages and commands on Telegram (Long Polling)...'

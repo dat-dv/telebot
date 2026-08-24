@@ -12,6 +12,8 @@ export const API_ROUTES = {
   invites: '/api/invites',
   calendarEvents: '/api/calendar/events',
   tasks: '/api/tasks',
+  googleAuthCallback: '/api/oauth2callback',
+  swaggerDocs: '/api/docs',
 } as const;
 
 export const APP_ROUTES = {
@@ -82,6 +84,9 @@ const messages = {
     'nav.section.other': 'KHÁC',
     'nav.dark': 'Giao diện tối',
     'nav.light': 'Giao diện sáng',
+    'nav.menu': 'Menu điều hướng',
+    'nav.openMenu': 'Mở menu điều hướng',
+    'nav.closeMenu': 'Đóng menu điều hướng',
     'web.language.vi': 'Tiếng Việt',
     'web.language.en': 'English',
     'reminder.header.text': '⏰ *TING TING! LỜI NHẮC CỦA BẠN ĐÃ ĐẾN GIỜ!*',
@@ -194,6 +199,9 @@ const messages = {
     'nav.section.other': 'OTHER',
     'nav.dark': 'Dark mode',
     'nav.light': 'Light mode',
+    'nav.menu': 'Navigation menu',
+    'nav.openMenu': 'Open navigation menu',
+    'nav.closeMenu': 'Close navigation menu',
     'web.language.vi': 'Tiếng Việt',
     'web.language.en': 'English',
     'reminder.header.text': '⏰ *REMINDER: IT IS TIME!*',

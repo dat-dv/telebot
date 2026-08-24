@@ -8,4 +8,5 @@ Shared UI primitives in `apps/web/src/shared/ui/` own reusable panel/table behav
 
 Interactive controls need visible keyboard focus, sufficient contrast, and clear error/retry affordances. Secondary actions should not dominate primary operational work.
 
-The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. It stays sticky beside the workspace and must retain visible text plus `aria-current` for the active route. On narrow screens it becomes a horizontally scrollable navigation row; do not collapse it into an icon-only or multi-level menu.
+The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. It stays sticky beside the workspace and must retain visible text plus `aria-current` for the active route. On narrow screens (<= 960px), it transitions to a sticky mobile topbar with a brand mark and an accessible hamburger button that opens a smooth slide-out navigation drawer with backdrop overlay.
+

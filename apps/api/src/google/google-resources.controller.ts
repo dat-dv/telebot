@@ -10,12 +10,15 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { GoogleCalendarService } from './google-calendar.service';
 import { GoogleTasksService } from './google-tasks.service';
 
+@ApiTags('Google Workspace (Calendar & Tasks)')
+@ApiBearerAuth('bearer-jwt')
 @Controller()
 export class GoogleResourcesController {
   constructor(
@@ -25,6 +28,7 @@ export class GoogleResourcesController {
   ) {}
 
   @Get('calendar/events')
+  @ApiOperation({ summary: 'Lấy danh sách sự kiện Google Calendar' })
   async listEvents(@Req() req: Request, @Query() query: Record<string, string | undefined>) {
     return {
       data: await this.calendar.listEvents(

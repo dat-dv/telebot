@@ -11,11 +11,14 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { UsersService } from './users.service';
 
+@ApiTags('Users & Invitations (Admin Only)')
+@ApiBearerAuth('bearer-jwt')
 @Controller()
 export class UsersController {
   constructor(
@@ -24,6 +27,7 @@ export class UsersController {
   ) {}
 
   @Get('users')
+  @ApiOperation({ summary: 'Lấy danh sách người dùng trong hệ thống (Yêu cầu quyền Admin)' })
   async listUsers(@Req() req: Request) {
     this.admin(req);
     return { data: await this.users.getUsers() };

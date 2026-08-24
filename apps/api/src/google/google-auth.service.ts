@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { google } from 'googleapis';
 import { OAuth2Client, Credentials } from 'google-auth-library';
+import { API_ROUTES } from '@telebot/contracts';
 import { UserTokenEntity } from '../database/entities/user-token.entity';
 import { TokenEncryptionService } from './token-encryption.service';
 
@@ -90,7 +91,7 @@ export class GoogleAuthService implements OnModuleInit {
 
   public getClientKeys(): { clientId: string; clientSecret: string; redirectUri: string } | null {
     const appUrl = this.configService.getOrThrow<string>('appUrl');
-    const defaultRedirectUri = `${appUrl.replace(/\/+$/, '')}/oauth2callback`;
+    const defaultRedirectUri = `${appUrl.replace(/\/+$/, '')}${API_ROUTES.googleAuthCallback}`;
 
     return {
       clientId: this.configService.getOrThrow<string>('google.clientId'),

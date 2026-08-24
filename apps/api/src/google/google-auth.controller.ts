@@ -1,10 +1,12 @@
 import { Controller, Get, Query, Logger, Res } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf, Context } from 'telegraf';
 import { GoogleAuthService } from './google-auth.service';
 import { renderSuccessHtml, renderErrorHtml } from './templates/oauth-html.template';
 
+@ApiTags('Google Auth & System Health')
 @Controller()
 export class GoogleAuthController {
   private readonly logger = new Logger(GoogleAuthController.name);
@@ -14,12 +16,17 @@ export class GoogleAuthController {
     @InjectBot() private readonly bot: Telegraf<Context>,
   ) {}
 
-  @Get()
+  @Get(['', 'health'])
+  @ApiOperation({ summary: 'Kiểm tra trạng thái hoạt động của hệ thống (Health check)' })
+  @ApiResponse({ status: 200, description: 'Hệ thống đang hoạt động bình thường' })
   public getHealth(): string {
     return '🟢 Telebot Assistant is up and running!';
   }
 
   @Get(['oauth2callback', 'auth/google/callback', 'callback'])
+  @ApiOperation({ summary: 'Google OAuth 2.0 Authorization Callback' })
+  @ApiResponse({ status: 200, description: 'Xác thực thành công và lưu token' })
+  @ApiResponse({ status: 400, description: 'Thiếu mã xác thực hoặc state ID không hợp lệ' })
   public async handleCallback(
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,

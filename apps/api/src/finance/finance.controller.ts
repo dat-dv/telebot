@@ -11,6 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
@@ -18,6 +19,8 @@ import { FinanceService } from './finance.service';
 
 type RecordBody = Record<string, unknown>;
 
+@ApiTags('Finance & Transactions')
+@ApiBearerAuth('bearer-jwt')
 @Controller()
 export class FinanceController {
   constructor(
@@ -26,6 +29,7 @@ export class FinanceController {
   ) {}
 
   @Get('transactions')
+  @ApiOperation({ summary: 'Lấy danh sách giao dịch thu/chi' })
   async listTransactions(@Req() req: Request, @Query('type') type?: 'income' | 'expense') {
     return { data: await this.finance.listTransactions(this.userId(req), type) };
   }
