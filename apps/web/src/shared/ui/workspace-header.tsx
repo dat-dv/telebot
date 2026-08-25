@@ -36,21 +36,21 @@ export function WorkspaceHeader({
   };
 
   return (
-    <header className="workspace__header">
+    <header className="flex min-h-12 items-center justify-between gap-4 rounded border border-slate-200 bg-white px-3 py-2 max-[960px]:flex-wrap max-[960px]:gap-2 max-[960px]:px-2.5">
       <div>
-        <p className="eyebrow">Telebot</p>
-        <h1>{title}</h1>
-        {subtitle && <p className="muted">{subtitle}</p>}
+        <p className="text-[10px] font-bold tracking-[.08em] text-slate-400 uppercase">Telebot</p>
+        <h1 className="text-base font-bold text-slate-900">{title}</h1>
+        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
       </div>
-      <div className="header-status">
+      <div className="flex items-center gap-2 max-[960px]:flex-wrap">
         {extraActions}
         {onRefresh && (
-          <button type="button" onClick={onRefresh}>
+          <button className="inline-flex min-h-[30px] items-center justify-center rounded-[3px] border border-slate-300 !bg-white px-2.5 text-xs font-medium text-slate-900 hover:!border-slate-400 hover:!bg-slate-100" type="button" onClick={onRefresh}>
             {t('common.refresh')}
           </button>
         )}
         {showLogout && (
-          <button type="button" className="button--quiet" onClick={() => void handleLogout()}>
+          <button className="inline-flex min-h-[30px] items-center justify-center rounded-[3px] border border-transparent !bg-transparent px-2.5 text-xs font-medium text-slate-600 hover:!border-slate-200 hover:!bg-slate-100 hover:!text-slate-900" type="button" onClick={() => void handleLogout()}>
             {t('common.logout')}
           </button>
         )}

@@ -143,13 +143,13 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
 
   return (
     <>
-      <header className="mobile-header">
+      <header className="sticky top-0 z-40 hidden min-h-[46px] items-center justify-between rounded border border-slate-200 bg-white px-3 py-1.5 max-[960px]:flex">
         <Link
-          className="mobile-header__brand"
+          className="inline-flex items-center gap-2 text-slate-900 no-underline"
           href={APP_ROUTES.home}
           onClick={() => setIsOpen(false)}
         >
-          <span className="app-nav__brand-mark" aria-hidden="true">
+          <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white" aria-hidden="true">
             T
           </span>
           <strong>Telebot</strong>
@@ -158,7 +158,7 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
           aria-controls="app-navigation-drawer"
           aria-expanded={isOpen}
           aria-label={isOpen ? t('nav.closeMenu') : t('nav.openMenu')}
-          className="mobile-header__toggle"
+          className="inline-flex size-8 items-center justify-center rounded-[3px] border border-slate-300 !bg-transparent !p-0 !text-slate-900 hover:!border-slate-400 hover:!bg-slate-100"
           onClick={() => setIsOpen((prev) => !prev)}
           type="button"
         >
@@ -167,27 +167,27 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
       </header>
 
       {isOpen && (
-        <div aria-hidden="true" className="app-nav__backdrop" onClick={() => setIsOpen(false)} />
+        <div aria-hidden="true" className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[3px]" onClick={() => setIsOpen(false)} />
       )}
 
       <aside
         id="app-navigation-drawer"
-        className={isOpen ? 'app-nav is-open' : 'app-nav'}
+        className={`flex h-full w-[210px] flex-col justify-between rounded border border-slate-200 bg-white p-2.5 max-[960px]:fixed max-[960px]:inset-y-0 max-[960px]:left-0 max-[960px]:z-[60] max-[960px]:h-screen max-[960px]:max-w-[85vw] max-[960px]:w-[280px] max-[960px]:rounded-none max-[960px]:border-y-0 max-[960px]:border-l-0 max-[960px]:border-r-slate-200 max-[960px]:px-3 max-[960px]:py-3.5 max-[960px]:shadow-[4px_0_24px_rgba(0,0,0,0.15)] max-[960px]:transition-transform max-[960px]:duration-[250ms] max-[960px]:ease-out ${isOpen ? 'max-[960px]:translate-x-0' : 'max-[960px]:-translate-x-full'}`}
         aria-label={t('nav.personalSpace')}
       >
-        <div className="app-nav__header">
-          <div className="app-nav__brand">
-            <span className="app-nav__brand-mark" aria-hidden="true">
+        <div className="mb-3.5 block max-[960px]:flex max-[960px]:items-center max-[960px]:justify-between">
+          <div className="flex items-center gap-2 text-slate-900">
+            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white" aria-hidden="true">
               T
             </span>
             <span>
-              <strong>Telebot</strong>
-              <small>{t('nav.personalSpace')}</small>
+              <strong className="block text-[13px] leading-[1.1] font-bold tracking-[-.01em]">Telebot</strong>
+              <small className="block text-[11px] font-medium text-slate-500">{t('nav.personalSpace')}</small>
             </span>
           </div>
           <button
             aria-label={t('nav.closeMenu')}
-            className="app-nav__close-btn"
+            className="hidden size-[30px] items-center justify-center rounded-[3px] border border-slate-200 !bg-transparent !p-0 !text-slate-500 hover:!bg-slate-100 hover:!text-slate-900 max-[960px]:inline-flex"
             onClick={() => setIsOpen(false)}
             type="button"
           >
@@ -195,15 +195,15 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
           </button>
         </div>
 
-        <nav aria-label={t('nav.personalSpace')}>
+        <nav className="grid gap-2.5" aria-label={t('nav.personalSpace')}>
           {navSections.map((section) => (
-            <div key={section.titleKey} className="app-nav__group">
-              <p className="app-nav__section-label">{t(section.titleKey)}</p>
+            <div key={section.titleKey} className="grid gap-0.5">
+              <p className="mx-1.5 mb-1.5 text-[10px] font-bold tracking-[.08em] text-slate-400 uppercase">{t(section.titleKey)}</p>
               {section.items.map((item) => {
                 const activeState = isItemActive(item);
                 return (
                   <Link
-                    className={activeState ? 'app-nav__item is-active' : 'app-nav__item'}
+                    className={activeState ? 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] bg-slate-900 px-2 text-left text-[12.5px] font-semibold text-white no-underline max-[960px]:min-h-8' : 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12.5px] font-medium text-slate-600 no-underline hover:bg-slate-100 hover:text-slate-900 max-[960px]:min-h-8'}
                     aria-current={activeState ? 'page' : undefined}
                     href={item.href}
                     key={item.page}
@@ -217,11 +217,11 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
             </div>
           ))}
         </nav>
-        <div className="app-nav__footer">
+        <div className="mt-auto grid gap-1 border-t border-slate-200 pt-2">
           {footer}
           <button
             aria-label={nextThemeLabel}
-            className="theme-toggle"
+            className="flex min-h-7 w-full items-center gap-2 rounded-[3px] !bg-transparent px-1.5 text-left text-xs font-medium text-slate-600 hover:!bg-slate-100 hover:!text-slate-900"
             onClick={toggleTheme}
             title={nextThemeLabel}
             type="button"
@@ -229,9 +229,10 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
             <ThemeIcon theme={theme} />
             <span>{theme === 'light' ? t('nav.dark') : t('nav.light')}</span>
           </button>
-          <div className="language-selector">
-            <span>{t('common.language')}</span>
+          <div className="flex items-center gap-1.5 px-1.5 py-0.5">
+            <span className="text-[11px] text-slate-500">{t('common.language')}</span>
             <select
+              className="h-6 min-h-6 rounded-[3px] border border-slate-300 bg-white px-1 text-[11px] text-slate-900"
               aria-label={t('common.language')}
               onChange={(event) => setLocale(event.target.value as typeof locale)}
               value={locale}
@@ -249,7 +250,7 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
 function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
   const sharedProps = {
     'aria-hidden': true,
-    className: 'app-nav__icon',
+    className: 'size-[15px] shrink-0',
     fill: 'none',
     stroke: 'currentColor',
     strokeLinecap: 'round' as const,
@@ -273,7 +274,7 @@ function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
 function NavigationItemIcon({ icon }: { icon: NavigationIcon }) {
   const sharedProps = {
     'aria-hidden': true,
-    className: 'app-nav__icon',
+    className: 'size-[15px] shrink-0',
     fill: 'none',
     stroke: 'currentColor',
     strokeLinecap: 'round' as const,
@@ -364,7 +365,7 @@ function NavigationItemIcon({ icon }: { icon: NavigationIcon }) {
 function HamburgerIcon() {
   const sharedProps = {
     'aria-hidden': true,
-    className: 'app-nav__icon',
+    className: 'size-[15px] shrink-0',
     fill: 'none',
     stroke: 'currentColor',
     strokeLinecap: 'round' as const,
@@ -385,7 +386,7 @@ function HamburgerIcon() {
 function CloseIcon() {
   const sharedProps = {
     'aria-hidden': true,
-    className: 'app-nav__icon',
+    className: 'size-[15px] shrink-0',
     fill: 'none',
     stroke: 'currentColor',
     strokeLinecap: 'round' as const,

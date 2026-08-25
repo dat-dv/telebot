@@ -2,7 +2,7 @@
 
 > Developer guide (Vietnamese): [`web-ui-direction.md`](../../docs/global/web-ui-direction.md)
 
-The web app is an operational, data-dense personal dashboard. Prefer one flat workspace, subtle borders, compact controls, and semantic table markup over decorative cards or heavy shadows.
+The web app is an operational, data-dense personal dashboard. Prefer one flat workspace, subtle borders, compact controls, and semantic table markup over decorative cards or heavy shadows. Tailwind CSS v4 is the styling foundation for new and migrated UI: use readable utility groups on layout and view components, keep repeated domain interactions in shared UI components, and avoid adding new legacy global selectors.
 
 Shared UI primitives in `apps/web/src/shared/ui/` own reusable panel/table behavior. Tables fill their containing data panel on desktop, keep semantic headers, right-align numeric data, provide loading, empty, and populated states, and support smooth horizontal scrolling within their own wrapper on narrow mobile screens (`min-width: max-content` with column-level `minWidth` definitions to prevent data squashing).
 
@@ -10,4 +10,4 @@ DataTable includes a built-in Column Visibility Settings popover (`TableColumnSe
 
 Interactive controls need visible keyboard focus, sufficient contrast, and clear error/retry affordances. Secondary actions should not dominate primary operational work.
 
-The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. It stays sticky beside the workspace and must retain visible text plus `aria-current` for the active route. On narrow screens (<= 960px), it transitions to a sticky mobile topbar with a brand mark and an accessible hamburger button that opens a smooth slide-out navigation drawer with backdrop overlay.
+The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. Desktop private routes use a viewport-bound shell: only the main content pane scrolls, while the sidebar remains fixed beside it. It must retain visible text plus `aria-current` for the active route. On narrow screens (<= 960px), the shell returns to normal document scrolling and navigation transitions to a sticky mobile topbar with a brand mark and an accessible hamburger button that opens a smooth slide-out navigation drawer with backdrop overlay.
