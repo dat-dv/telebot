@@ -501,7 +501,6 @@ export function CalendarScreen() {
                 emptyMessage={t('dashboard.noCalendar')}
                 columns={calendarColumns}
                 getRowKey={(item) => item.id}
-                allowColumnResize
               />
             )}
           </DataPanel>

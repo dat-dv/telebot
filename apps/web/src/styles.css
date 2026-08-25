@@ -915,6 +915,13 @@ h2 {
   font-size: 11.5px;
 }
 
+.data-table__id {
+  color: #475569;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .calendar-description-cell {
   overflow-wrap: anywhere;
   text-overflow: clip;
@@ -1429,6 +1436,7 @@ html[data-theme='dark'] .muted,
 html[data-theme='dark'] .app-nav__brand small,
 html[data-theme='dark'] .data-panel__header p,
 html[data-theme='dark'] .cell-muted,
+html[data-theme='dark'] .data-table__id,
 html[data-theme='dark'] .data-table__empty-row td {
   color: #64748b;
 }

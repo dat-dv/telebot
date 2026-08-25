@@ -35,3 +35,4 @@ Thư mục này chứa toàn bộ tài liệu hướng dẫn dành cho lập tr�
 6. **CRUD backend**: Tài liệu vận hành cho finance, reminders, users và google nằm trong [`modules/README.md`](modules/README.md); mọi endpoint ghi dữ liệu phải dùng dashboard access token và kiểm tra ownership/phân quyền tương ứng.
 7. **Đa ngôn ngữ**: Chuẩn locale dùng chung, cách đổi ngôn ngữ Telegram và cookie dashboard nằm ở [`global/i18n.md`](global/i18n.md).
 8. **Google OAuth public**: Scope được xin phải đúng tính năng đã phát hành; các URL `/about`, `/privacy` và `/terms` cùng checklist Google review nằm ở [`global/google-oauth-public-verification.md`](global/google-oauth-public-verification.md).
+9. **Bảng dữ liệu dùng chung**: Quy ước cột `STT` và `ID` bắt buộc, cấu hình ẩn/hiện cột và đổi độ rộng nằm ở [`global/web-ui-direction.md`](global/web-ui-direction.md).

@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { useLocale } from '@/shared/providers/locale-provider';
 
-export type DataTableColumn<T> = {
+type DataTableRow = { id: string };
+
+export type DataTableColumn<T extends DataTableRow> = {
   id: string;
   header: ReactNode;
   label?: string;
-  cell: (row: T) => ReactNode;
+  cell: (row: T, index: number) => ReactNode;
   align?: 'left' | 'right';
   className?: string;
   minWidth?: number | string;
@@ -16,7 +18,7 @@ export type DataTableColumn<T> = {
   defaultHidden?: boolean;
 };
 
-type DataTableProps<T> = {
+type DataTableProps<T extends DataTableRow> = {
   id?: string;
   ariaLabel: string;
   columns: DataTableColumn<T>[];
@@ -55,7 +57,7 @@ export function DataPanel({
   );
 }
 
-export function TableColumnSettings<T>({
+export function TableColumnSettings<T extends DataTableRow>({
   columns,
   visibleColumnIds,
   onToggleColumn,
@@ -197,25 +199,51 @@ export function TableColumnSettings<T>({
   );
 }
 
-export function DataTable<T>({
+export function DataTable<T extends DataTableRow>({
   id,
   ariaLabel,
   columns,
   rows,
   emptyMessage,
-  getRowKey = (_, index) => index,
+  getRowKey = (row) => row.id,
   loading = false,
   allowColumnToggle,
-  allowColumnResize = false,
+  allowColumnResize = Boolean(id),
 }: DataTableProps<T>) {
+  const { t } = useLocale();
   const isToggleAllowed = allowColumnToggle ?? (Boolean(id) || columns.length > 2);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const hasLoadedColumnWidths = useRef(false);
   const hasChangedColumnWidths = useRef(false);
 
+  const systemColumns = useMemo<DataTableColumn<T>[]>(
+    () => [
+      {
+        id: 'stt',
+        header: t('table.ordinal'),
+        align: 'right',
+        minWidth: 56,
+        width: 56,
+        hideable: false,
+        cell: (_, index) => <span className="cell-muted">{index + 1}</span>,
+      },
+      {
+        id: 'id',
+        header: t('table.id'),
+        minWidth: 160,
+        width: 220,
+        hideable: false,
+        cell: (row) => <code className="data-table__id">{row.id}</code>,
+      },
+    ],
+    [t],
+  );
+
+  const allColumns = useMemo(() => [...systemColumns, ...columns], [columns, systemColumns]);
+
   const initialColumnIds = useMemo(() => {
-    return columns.filter((c) => !c.defaultHidden).map((c) => c.id);
-  }, [columns]);
+    return allColumns.filter((column) => !column.defaultHidden).map((column) => column.id);
+  }, [allColumns]);
 
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(initialColumnIds);
 
@@ -234,7 +262,7 @@ export function DataTable<T>({
             Object.fromEntries(
               Object.entries(parsed).filter(
                 ([columnId, width]) =>
-                  columns.some((column) => column.id === columnId) &&
+                  allColumns.some((column) => column.id === columnId) &&
                   typeof width === 'number' &&
                   Number.isFinite(width) &&
                   width > 0,
@@ -248,7 +276,7 @@ export function DataTable<T>({
     } finally {
       hasLoadedColumnWidths.current = true;
     }
-  }, [allowColumnResize, columns, id]);
+  }, [allColumns, allowColumnResize, id]);
 
   useEffect(() => {
     if (
@@ -276,8 +304,12 @@ export function DataTable<T>({
       if (stored) {
         const parsed = JSON.parse(stored) as string[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const validIds = parsed.filter((colId) => columns.some((c) => c.id === colId));
-          const nonHideableIds = columns.filter((c) => c.hideable === false).map((c) => c.id);
+          const validIds = parsed.filter((columnId) =>
+            allColumns.some((column) => column.id === columnId),
+          );
+          const nonHideableIds = allColumns
+            .filter((column) => column.hideable === false)
+            .map((column) => column.id);
           const merged = Array.from(new Set([...validIds, ...nonHideableIds]));
           if (merged.length > 0) {
             setVisibleColumnIds(merged);
@@ -287,7 +319,7 @@ export function DataTable<T>({
     } catch {
       // Gracefully ignore storage access errors
     }
-  }, [id, columns]);
+  }, [allColumns, id]);
 
   const saveVisibleColumnIds = (newIds: string[]) => {
     setVisibleColumnIds(newIds);
@@ -303,7 +335,7 @@ export function DataTable<T>({
   const handleToggleColumn = (columnId: string) => {
     const isVisible = visibleColumnIds.includes(columnId);
     if (isVisible) {
-      const col = columns.find((c) => c.id === columnId);
+      const col = allColumns.find((column) => column.id === columnId);
       if (col?.hideable === false) return;
       if (visibleColumnIds.length <= 1) return;
       saveVisibleColumnIds(visibleColumnIds.filter((cid) => cid !== columnId));
@@ -317,14 +349,14 @@ export function DataTable<T>({
   };
 
   const handleShowAllColumns = () => {
-    saveVisibleColumnIds(columns.map((c) => c.id));
+    saveVisibleColumnIds(allColumns.map((column) => column.id));
   };
 
   const visibleColumns = useMemo(() => {
     const visibleSet = new Set(visibleColumnIds);
-    const filtered = columns.filter((c) => visibleSet.has(c.id));
-    return filtered.length > 0 ? filtered : columns;
-  }, [columns, visibleColumnIds]);
+    const filtered = allColumns.filter((column) => visibleSet.has(column.id));
+    return filtered.length > 0 ? filtered : allColumns;
+  }, [allColumns, visibleColumnIds]);
 
   const getColumnWidth = (column: DataTableColumn<T>) => columnWidths[column.id] ?? column.width;
 
@@ -373,7 +405,7 @@ export function DataTable<T>({
       {isToggleAllowed && (
         <div className="data-table__controls">
           <TableColumnSettings
-            columns={columns}
+            columns={allColumns}
             visibleColumnIds={visibleColumnIds}
             onToggleColumn={handleToggleColumn}
             onResetColumns={handleResetColumns}
@@ -445,7 +477,7 @@ export function DataTable<T>({
                         width: getColumnWidth(column),
                       }}
                     >
-                      {column.cell(row)}
+                      {column.cell(row, index)}
                     </td>
                   ))}
                 </tr>

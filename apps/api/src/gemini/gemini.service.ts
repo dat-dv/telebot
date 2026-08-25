@@ -41,6 +41,27 @@ export interface ReceiptImageAnalysis {
   summary: string;
 }
 
+export function buildReceiptAnalysisPrompt(
+  ocrText: string,
+  timeInfo: { nowText: string; nowIso: string },
+): string {
+  return `Phân tích text OCR do Tesseract trích xuất từ ảnh. Chỉ trả JSON hợp lệ, không Markdown và không gọi tool.
+=== NGỮ CẢNH THỜI GIAN ===
+${timeInfo.nowText}
+Mốc ISO-8601 hiện tại theo giờ Việt Nam là ${timeInfo.nowIso}. Chỉ dùng mốc này để diễn giải ngày tương đối được đọc chắc chắn trong OCR; không suy đoán ngày khi ảnh không thể hiện rõ.
+
+Nếu text là hoá đơn, bill hoặc ảnh chụp giao dịch với đủ dữ liệu, trả:
+{"kind":"ready","type":"income"|"expense","amount":số_VND_dương,"category":"...","note":"...","occurredAt":"ISO-8601 nếu đọc chắc chắn","summary":"..."}
+Nếu là giao dịch nhưng thiếu loại hoặc số tiền, trả:
+{"kind":"missing_fields","missingFields":["type"|"amount"],"summary":"..."}
+Nếu text không phải giao dịch/hoá đơn, trả:
+{"kind":"not_receipt","summary":"..."}
+Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là VND đầy đủ.
+
+TEXT OCR:
+${ocrText}`;
+}
+
 export function parseReceiptImageAnalysis(raw: string): ReceiptImageAnalysis {
   const json = raw.trim().replace(/^```json\s*|\s*```$/g, '');
   let value: unknown;
@@ -210,17 +231,7 @@ export class GeminiService {
 
   public async analyzeReceiptText(ocrText: string): Promise<ReceiptImageAnalysis> {
     const model = this.genAI.getGenerativeModel({ model: this.primaryModelName });
-    const prompt = `Phân tích text OCR do Tesseract trích xuất từ ảnh. Chỉ trả JSON hợp lệ, không Markdown và không gọi tool.
-Nếu text là hoá đơn, bill hoặc ảnh chụp giao dịch với đủ dữ liệu, trả:
-{"kind":"ready","type":"income"|"expense","amount":số_VND_dương,"category":"...","note":"...","occurredAt":"ISO-8601 nếu đọc chắc chắn","summary":"..."}
-Nếu là giao dịch nhưng thiếu loại hoặc số tiền, trả:
-{"kind":"missing_fields","missingFields":["type"|"amount"],"summary":"..."}
-Nếu text không phải giao dịch/hoá đơn, trả:
-{"kind":"not_receipt","summary":"..."}
-Không suy đoán số tiền, loại giao dịch hoặc ngày. amount luôn là VND đầy đủ.
-
-TEXT OCR:
-${ocrText}`;
+    const prompt = buildReceiptAnalysisPrompt(ocrText, this.getCurrentTimeInfo());
     const response = await model.generateContent(prompt);
     return parseReceiptImageAnalysis(response.response.text());
   }

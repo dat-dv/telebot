@@ -1,6 +1,12 @@
 # Kế hoạch: resize và ghi nhớ độ rộng cho mọi DataTable
 
-RequestFeedback: true
+RequestFeedback: false
+
+## Kết quả triển khai
+
+- `DataTable` tự bật kéo resize cho mọi bảng có `id` và vẫn có thể tắt rõ ràng bằng `allowColumnResize={false}`.
+- Mỗi bảng lưu độ rộng riêng vào `telebot:table-widths:<id>`; Calendar không còn cần cấu hình đặc biệt.
+- Đã chạy thành công `npm run typecheck`, `npm run lint` và `git diff --check`.
 
 ## Mục tiêu
 
