@@ -5,6 +5,7 @@ RequestFeedback: false
 ## Kết quả triển khai
 
 - Đã đồng bộ tài liệu Dashboard bằng tiếng Anh và tiếng Việt cho Calendar List View, mô tả đa dòng và resize cột có ghi nhớ.
+- Đã chạy thành công `npm run agent-system:validate -- --check-changes --check-i18n` và `git diff --check`.
 
 ## Mục tiêu
 
