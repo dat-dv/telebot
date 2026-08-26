@@ -4,7 +4,7 @@ This directory is the canonical, agent-facing source of project knowledge. To op
 
 ## Structure
 
-```text
+```
 .agents/knowledge/
 ├── README.md                              # Knowledge index and architectural mapping
 ├── project-overview.md                    # High-level project goals, business domain, and scope

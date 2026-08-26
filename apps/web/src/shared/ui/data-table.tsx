@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import type { TranslationKey } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
@@ -384,12 +385,14 @@ function getOccurrenceTime(row: DataTableRow): { timestamp: number; ascending: b
 
 export function DataPanel({
   title,
+  titleHref,
   description,
   toolbar,
   counter,
   children,
 }: {
   title: string;
+  titleHref?: string;
   description?: string;
   toolbar?: ReactNode;
   counter?: ReactNode;
@@ -403,7 +406,22 @@ export function DataPanel({
       <header className="flex min-h-10 flex-wrap items-center justify-between gap-2.5 border-b border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-950/60 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:gap-2">
         <div className="flex min-w-0 flex-col">
           <h2 className="m-0 text-[13px] font-semibold text-slate-900 dark:text-slate-100">
-            {title}
+            {titleHref ? (
+              <Link
+                href={titleHref}
+                className="group inline-flex items-center gap-1.5 transition-colors hover:text-sky-600 dark:hover:text-sky-400"
+              >
+                <span>{title}</span>
+                <span
+                  className="text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600 dark:group-hover:text-sky-400"
+                  aria-hidden="true"
+                >
+                  &rarr;
+                </span>
+              </Link>
+            ) : (
+              title
+            )}
           </h2>
           {description && (
             <p className="m-0 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">

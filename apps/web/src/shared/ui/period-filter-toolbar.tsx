@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { type TranslationKey } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { type PeriodFilterState, type PeriodGrain } from '@/shared/hooks/use-period-filter';
+import { Button } from './button';
 
 interface PeriodFilterToolbarProps {
   filter: PeriodFilterState;
@@ -37,7 +38,7 @@ export function PeriodFilterToolbar({
         role="group"
       >
         {grains.map((g) => (
-          <button
+          <Button
             key={g}
             type="button"
             className={
@@ -48,13 +49,13 @@ export function PeriodFilterToolbar({
             onClick={() => filter.setGrain(g)}
           >
             {t(GRAIN_LABELS[g])}
-          </button>
+          </Button>
         ))}
       </div>
 
       {!isAll ? (
         <div className="flex items-center gap-1">
-          <button
+          <Button
             type="button"
             className="inline-flex size-7 items-center justify-center rounded-[3px] border border-slate-300 !bg-white !p-0 text-base text-slate-600 hover:!bg-slate-100 dark:border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-slate-700"
             onClick={filter.prevPeriod}
@@ -62,11 +63,11 @@ export function PeriodFilterToolbar({
             title={t('period.prev')}
           >
             ‹
-          </button>
+          </Button>
           <span className="min-w-24 text-center text-xs font-medium text-slate-700 dark:text-slate-200">
             {filter.label}
           </span>
-          <button
+          <Button
             type="button"
             className="inline-flex size-7 items-center justify-center rounded-[3px] border border-slate-300 !bg-white !p-0 text-base text-slate-600 hover:!bg-slate-100 dark:border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-slate-700"
             onClick={filter.nextPeriod}
@@ -74,7 +75,7 @@ export function PeriodFilterToolbar({
             title={t('period.next')}
           >
             ›
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex items-center gap-1">

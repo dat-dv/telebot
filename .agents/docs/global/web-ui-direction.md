@@ -37,14 +37,10 @@ Trạng thái Skeleton Loading có nhiệm vụ giữ vững khung xương khôn
    - Từng ô skeleton `td` bắt buộc phải có đầy đủ viền dọc `border-r border-r-slate-50 last:border-r-0 dark:border-r-slate-900/60` và viền đáy `border-b border-b-slate-100 dark:border-b-slate-800`.
    - Phải truyền inline style `style={{ minWidth: column.minWidth, width: getColumnWidth(column) }}` trên từng ô `td` để giữ nguyên độ rộng cột theo cấu hình.
    - Các cột có `align === 'right'` (Số tiền, Ngày giờ, Thao tác) phải thêm `ml-auto` vào thẻ span pulse để thanh nhấp nháy căn phải như dữ liệu thực.
-
-2. **Bảo tồn toàn bộ các khối bao ngoài (Containers)**:
+1. **Bảo tồn toàn bộ các khối bao ngoài (Containers)**:
    - Khi trang đang tải (`isLoading === true`), không được ẩn hoặc bỏ qua các khối `DataPanel` bao quanh. Phải render đầy đủ `DataPanel` với viền `border border-slate-200`, header `border-b`, ô tìm kiếm dạng pulse và lồng bảng `DataTable loading={true}` bên trong.
    - Giữ nguyên thanh công cụ lọc kỳ (`PeriodFilterToolbar`) và thanh liên kết nhanh (`Quick Links`) có viền `border border-slate-200`.
-
-3. **Cấm tuyệt đối Text Loading thô sơ**:
+1. **Cấm tuyệt đối Text Loading thô sơ**:
    - Không được dùng các đoạn text đơn sơ kiểu `{isLoading ? <div>Đang tải...</div> : <MainUI />}` vì sẽ làm mất toàn bộ cấu trúc trang và gây giật khung mạnh khi nạp xong.
-
-4. **Cấm Header thừa trong View Skeleton**:
+1. **Cấm Header thừa trong View Skeleton**:
    - `WorkspaceHeader` đã được layout chung (`PrivateLayout`) cung cấp. View skeleton tuyệt đối không được tự ý sinh thêm thẻ `<header>` chứa chữ loading.
-

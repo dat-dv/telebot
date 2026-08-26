@@ -18,23 +18,19 @@ RequestFeedback: true
 1. Tạo một danh mục menu dùng chung tại khu vực Telegram:
    - Mỗi mục có command Telegram, nhãn/biểu tượng, mô tả ngắn, callback hoặc URL Dashboard, và quyền hiển thị (mọi người/admin).
    - Bao phủ các thao tác hiện có: Dashboard, Lịch hôm nay, Lịch 7 ngày, Việc cần làm, Thu–chi, Công nợ, Trạng thái; thêm các thao tác quản trị phù hợp với Admin (Danh sách user, Tạo link mời). Giữ `/help`, `/start`, `/login`, `/ban` là lệnh điều hướng/hệ thống thay vì dồn vào dãy action chính.
-
-2. Đăng ký command menu Telegram từ danh mục đó khi bot khởi động:
+1. Đăng ký command menu Telegram từ danh mục đó khi bot khởi động:
    - Người dùng nhìn thấy command, nhãn và mô tả cùng nội dung với nút nhanh.
    - Dùng scope phù hợp để mục quản trị không lộ cho người dùng thường; nếu Telegram không hỗ trợ thay đổi menu theo từng user trong phiên, command admin vẫn được bảo vệ bởi handler hiện hữu và menu mặc định chỉ chứa các mục chung.
-
-3. Dựng inline menu từ danh mục chung:
+1. Dựng inline menu từ danh mục chung:
    - Đổi nhãn thành `📊 Dashboard` và đặt Dashboard trong nhóm thao tác chính khi tạo được URL truy cập.
    - Chuyển các action callback thành hai nút mỗi hàng; nút Dashboard là URL và đặt cùng hàng khi có thể. Các hàng lẻ sẽ tự căn đúng, không tạo khoảng trống giả.
    - Giữ luồng chưa kết nối Google: chỉ hiện nút đăng nhập, tránh hiển thị action phụ thuộc Google.
    - Bảo toàn callback cũ `action:view_reports` để các tin nhắn đã gửi trước đó vẫn hoạt động.
-
-4. Bổ sung/điều chỉnh kiểm thử:
+1. Bổ sung/điều chỉnh kiểm thử:
    - Xác minh danh mục chung tạo ra menu `/start` và `/help` giống hệt nhau.
    - Xác minh Dashboard là URL trực tiếp, xuất hiện khi có link, và các action được đóng gói tối đa hai nút mỗi hàng.
    - Xác minh command/menu không làm lộ action Admin cho người dùng thường; callback admin vẫn bị kiểm tra quyền ở handler.
-
-5. Đồng bộ tài liệu bắt buộc:
+1. Đồng bộ tài liệu bắt buộc:
    - Cập nhật canonical knowledge tiếng Anh và developer docs tiếng Việt cho Telegram/dashboard, bao gồm quy tắc menu 2 cột, nguồn danh mục chung, quyền admin và hành vi Dashboard.
    - Cập nhật chỉ mục docs nếu xuất hiện tài liệu module Telegram mới.
 

@@ -8,7 +8,7 @@ RequestFeedback: true
 
 Thay hoàn toàn Gemini Vision/OCR bằng luồng sau:
 
-```text
+```
 Ảnh Telegram → Tesseract OCR chạy cục bộ → text OCR đã làm sạch → Gemini phân tích thu/chi → Xác nhận/Hủy → ghi sổ
 ```
 
@@ -45,12 +45,12 @@ Gemini **không được nhận ảnh**, base64 ảnh, URL Telegram, hoặc dữ
 
 ## Rủi ro và kiểm soát
 
-| Rủi ro | Kiểm soát |
-| --- | --- |
+| Rủi ro                                  | Kiểm soát                                                                                 |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Tesseract OCR tiếng Việt đọc kém ảnh mờ | Dùng `vie+eng`, yêu cầu ảnh rõ hơn khi text không đủ; không fallback gửi ảnh sang Gemini. |
-| Tăng kích thước image Docker | Chỉ đóng gói `vie` và `eng` fast data cần thiết; báo kích thước thực tế sau build. |
-| OCR worker chậm khi khởi động | Khởi tạo worker dùng lại trong service và giới hạn song song; timeout rõ ràng. |
-| Gemini diễn giải text OCR sai | Hiển thị payload thu-chi và bắt buộc người dùng xác nhận trước khi ghi. |
+| Tăng kích thước image Docker            | Chỉ đóng gói `vie` và `eng` fast data cần thiết; báo kích thước thực tế sau build.        |
+| OCR worker chậm khi khởi động           | Khởi tạo worker dùng lại trong service và giới hạn song song; timeout rõ ràng.            |
+| Gemini diễn giải text OCR sai           | Hiển thị payload thu-chi và bắt buộc người dùng xác nhận trước khi ghi.                   |
 
 ## Tiêu chí nghiệm thu
 
