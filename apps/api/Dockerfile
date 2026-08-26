@@ -9,7 +9,7 @@ RUN apk add --no-cache curl && \
 
 # Stage 2: Whisper C++ server builder (pinned version for deterministic caching)
 FROM alpine:3.21 AS whisper-builder
-RUN apk add --no-cache cmake curl g++ git make
+RUN apk add --no-cache cmake curl g++ git make wget
 WORKDIR /opt
 ARG WHISPER_CPP_VERSION=v1.7.4
 RUN git clone --depth 1 --branch ${WHISPER_CPP_VERSION} https://github.com/ggml-org/whisper.cpp.git && \

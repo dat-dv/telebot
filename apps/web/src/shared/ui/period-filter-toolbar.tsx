@@ -32,12 +32,19 @@ export function PeriodFilterToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="toolbar">
-      <div className="inline-flex rounded-[3px] border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-900" role="group">
+      <div
+        className="inline-flex rounded-[3px] border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-900"
+        role="group"
+      >
         {grains.map((g) => (
           <button
             key={g}
             type="button"
-            className={filter.grain === g ? 'min-h-7 rounded-[2px] !border-0 !bg-slate-900 px-2 text-xs font-semibold text-white dark:!bg-slate-100 dark:!text-slate-900' : 'min-h-7 rounded-[2px] !border-0 !bg-transparent px-2 text-xs font-medium text-slate-600 hover:!bg-white hover:!text-slate-900 dark:!text-slate-300 dark:hover:!bg-slate-800 dark:hover:!text-slate-100'}
+            className={
+              filter.grain === g
+                ? 'min-h-7 rounded-[2px] !border border-slate-200/80 !bg-white px-2 text-xs font-semibold !text-slate-900 shadow-xs dark:!border-transparent dark:!bg-slate-800 dark:!text-slate-100'
+                : 'min-h-7 rounded-[2px] !border-0 !bg-transparent px-2 text-xs font-medium text-slate-600 hover:!bg-white/80 hover:!text-slate-900 dark:!text-slate-300 dark:hover:!bg-slate-800/80 dark:hover:!text-slate-100'
+            }
             onClick={() => filter.setGrain(g)}
           >
             {t(GRAIN_LABELS[g])}
@@ -56,7 +63,9 @@ export function PeriodFilterToolbar({
           >
             ‹
           </button>
-          <span className="min-w-24 text-center text-xs font-medium text-slate-700 dark:text-slate-200">{filter.label}</span>
+          <span className="min-w-24 text-center text-xs font-medium text-slate-700 dark:text-slate-200">
+            {filter.label}
+          </span>
           <button
             type="button"
             className="inline-flex size-7 items-center justify-center rounded-[3px] border border-slate-300 !bg-white !p-0 text-base text-slate-600 hover:!bg-slate-100 dark:border-slate-600 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-slate-700"
@@ -69,7 +78,9 @@ export function PeriodFilterToolbar({
         </div>
       ) : (
         <div className="flex items-center gap-1">
-          <span className="min-w-24 text-center text-xs font-medium text-slate-700 dark:text-slate-200">{filter.label}</span>
+          <span className="min-w-24 text-center text-xs font-medium text-slate-700 dark:text-slate-200">
+            {filter.label}
+          </span>
         </div>
       )}
 

@@ -149,7 +149,10 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
           href={APP_ROUTES.home}
           onClick={() => setIsOpen(false)}
         >
-          <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white" aria-hidden="true">
+          <span
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white"
+            aria-hidden="true"
+          >
             T
           </span>
           <strong>Telebot</strong>
@@ -167,7 +170,11 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
       </header>
 
       {isOpen && (
-        <div aria-hidden="true" className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[3px]" onClick={() => setIsOpen(false)} />
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[3px]"
+          onClick={() => setIsOpen(false)}
+        />
       )}
 
       <aside
@@ -177,17 +184,24 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
       >
         <div className="mb-3.5 block max-[960px]:flex max-[960px]:items-center max-[960px]:justify-between">
           <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white" aria-hidden="true">
+            <span
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-slate-900 text-xs font-extrabold text-white"
+              aria-hidden="true"
+            >
               T
             </span>
             <span>
-              <strong className="block text-[13px] leading-[1.1] font-bold tracking-[-.01em]">Telebot</strong>
-              <small className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">{t('nav.personalSpace')}</small>
+              <strong className="block text-[13px] leading-[1.1] font-bold tracking-[-.01em]">
+                Telebot
+              </strong>
+              <small className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                {t('nav.personalSpace')}
+              </small>
             </span>
           </div>
           <button
             aria-label={t('nav.closeMenu')}
-            className="hidden size-[30px] items-center justify-center rounded-[3px] border border-slate-200 !bg-transparent !p-0 !text-slate-500 hover:!bg-slate-100 hover:!text-slate-900 dark:border-slate-700 dark:!text-slate-400 dark:hover:!bg-slate-800 dark:hover:!text-slate-100 max-[960px]:inline-flex"
+            className="!hidden size-[30px] items-center justify-center rounded-[3px] border border-slate-200 !bg-transparent !p-0 !text-slate-500 hover:!bg-slate-100 hover:!text-slate-900 dark:border-slate-700 dark:!text-slate-400 dark:hover:!bg-slate-800 dark:hover:!text-slate-100 max-[960px]:!inline-flex app-nav__close-btn"
             onClick={() => setIsOpen(false)}
             type="button"
           >
@@ -198,12 +212,18 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
         <nav className="grid gap-2.5" aria-label={t('nav.personalSpace')}>
           {navSections.map((section) => (
             <div key={section.titleKey} className="grid gap-0.5">
-              <p className="mx-1.5 mb-1.5 text-[10px] font-bold tracking-[.08em] text-slate-400 uppercase dark:text-slate-500">{t(section.titleKey)}</p>
+              <p className="mx-1.5 mb-1.5 text-[10px] font-bold tracking-[.08em] text-slate-400 uppercase dark:text-slate-500">
+                {t(section.titleKey)}
+              </p>
               {section.items.map((item) => {
                 const activeState = isItemActive(item);
                 return (
                   <Link
-                    className={activeState ? 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] bg-slate-900 px-2 text-left text-[12.5px] font-semibold text-white no-underline dark:bg-slate-100 dark:text-slate-900 max-[960px]:min-h-8' : 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12.5px] font-medium text-slate-600 no-underline hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100 max-[960px]:min-h-8'}
+                    className={
+                      activeState
+                        ? 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] bg-slate-900 px-2 text-left text-[12.5px] font-semibold text-white no-underline dark:bg-slate-100 dark:text-slate-900 max-[960px]:min-h-8'
+                        : 'flex min-h-[30px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12.5px] font-medium text-slate-600 no-underline hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100 max-[960px]:min-h-8'
+                    }
                     aria-current={activeState ? 'page' : undefined}
                     href={item.href}
                     key={item.page}
@@ -230,7 +250,9 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
             <span>{theme === 'light' ? t('nav.dark') : t('nav.light')}</span>
           </button>
           <div className="flex items-center gap-1.5 px-1.5 py-0.5">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">{t('common.language')}</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t('common.language')}
+            </span>
             <select
               className="h-6 min-h-6 rounded-[3px] border border-slate-300 bg-white px-1 text-[11px] text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
               aria-label={t('common.language')}
