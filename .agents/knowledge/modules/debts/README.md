@@ -16,7 +16,7 @@ The table is ordered by debt occurrence time descending. A debt stores `occurred
 - **Due Date & Note**: Inline editable date picker and note text.
 - **Actions**: Save / Cancel with `Enter` / `Escape` keyboard shortcuts, Quick Repay (`+`) and Edit (`✎`).
 
-It includes KPI summary metrics for active total receivable and payable balances, dual filter pill groups (Status: All / Active / Settled with real-time count badges, Direction: All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. The table utilizes `DataTable` with column persistence (`id="debts"`), defined column minimum widths (`minWidth`), and non-hideable core columns (`status`, `counterparty`, `remainingAmount`). It supports loading, empty, success, and retryable-error states.
+It includes KPI summary metrics for active total receivable and payable balances, dual filter pill groups (Status: All / Active / Settled with real-time count badges, Direction: All / Receivable / Payable), quick search toolbar, and i18n currency & date formatting. All displayed monetary amounts (KPIs, original/remaining columns, footer totals) adhere to session money visibility masking via `useMoneyFormatter()`, displaying `'••••••'` when hidden while keeping editable input fields unmasked during inline edits. The table utilizes `DataTable` with column persistence (`id="debts"`), defined column minimum widths (`minWidth`), and non-hideable core columns (`status`, `counterparty`, `remainingAmount`). It supports loading, empty, success, and retryable-error states.
 
 ## Integration seams
 

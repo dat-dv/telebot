@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { localeTag, type TransactionType } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
+import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
@@ -77,12 +78,7 @@ export function AnalyticsScreen() {
     void queryClient.invalidateQueries({ queryKey: ['contacts'] });
   };
 
-  const money = (value: number) =>
-    new Intl.NumberFormat(localeTag(locale), {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(value);
+  const money = useMoneyFormatter();
 
   const date = (value?: string) =>
     value

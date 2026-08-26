@@ -10,6 +10,8 @@ DataTable includes a built-in Column Visibility Settings popover (`TableColumnSe
 
 Interactive controls need visible keyboard focus, sufficient contrast, and clear error/retry affordances. Secondary actions should not dominate primary operational work.
 
+Private workspace headers (`WorkspaceHeader`) provide operational controls including in-session Money Visibility Toggle (`useMoneyVisibility`), manual data refresh, and logout. Masking replaces financial amounts across KPI metric blocks, data tables, and chart tooltips with `'••••••'` using in-memory state without browser persistence. Inline editing inputs remain unmasked for immediate correction.
+
 The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. Desktop private routes use a viewport-bound shell: only the main content pane scrolls, while the sidebar remains fixed beside it. It must retain visible text plus `aria-current` for the active route. On narrow screens (<= 960px), the shell returns to normal document scrolling and navigation transitions to a sticky mobile topbar with a brand mark and an accessible hamburger button that opens a smooth slide-out navigation drawer with backdrop overlay.
 
 Dark mode is activated by `html[data-theme='dark']`; Tailwind dark utilities must target this same data attribute. Shared surfaces (desktop/mobile navigation, workspace headers, period controls, and public/legal pages) need dark background, border, text, hover, active, and focus states. Keep the selected navigation/action state high contrast and retain a visible light-blue keyboard focus outline.

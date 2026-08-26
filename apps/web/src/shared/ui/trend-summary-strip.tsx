@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { localeTag } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
+import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { MicroBarChart, type ChartBucket } from './micro-bar-chart';
 
 interface TrendSummaryStripProps {
@@ -20,17 +20,11 @@ export function TrendSummaryStrip({
   collapsible = true,
   extraMetrics,
 }: TrendSummaryStripProps) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
+  const money = useMoneyFormatter();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const balance = income - expense;
-
-  const money = (value: number) =>
-    new Intl.NumberFormat(localeTag(locale), {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(value);
 
   return (
     <section className="trend-strip" aria-label={t('chart.incomeVsExpense')}>

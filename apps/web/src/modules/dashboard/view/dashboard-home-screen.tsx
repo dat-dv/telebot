@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { APP_ROUTES, localeTag } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
+import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
@@ -70,16 +71,10 @@ function Metric({
 
 function DashboardHomeContent({ data }: { data: DashboardData }) {
   const { locale, t } = useLocale();
+  const money = useMoneyFormatter();
   const [taskSearch, setTaskSearch] = useState('');
   const [reminderSearch, setReminderSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
-
-  const money = (value: number) =>
-    new Intl.NumberFormat(localeTag(locale), {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(value);
 
   const date = (value?: string) =>
     value

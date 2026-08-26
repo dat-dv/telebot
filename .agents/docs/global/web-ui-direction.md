@@ -17,6 +17,8 @@ Thành phần `DataTable` tích hợp sẵn nút Cài đặt cột (`TableColumn
 
 Nút phải có focus rõ, độ tương phản đủ và lỗi phải kèm cách thử lại.
 
+Tiêu đề không gian làm việc (`WorkspaceHeader`) tích hợp nút chuyển đổi `Ẩn số tiền` / `Hiện số tiền` (`useMoneyVisibility`), nút Làm mới dữ liệu và Đăng xuất. Mặt nạ che số tiền (`'••••••'`) áp dụng đồng bộ cho các khối KPI, bảng dữ liệu và tooltip biểu đồ mà không lưu bền vào trình duyệt; các ô input khi đang sửa trực tiếp trên dòng (inline edit) vẫn giữ số thực để phục vụ thao tác.
+
 Thanh điều hướng dùng chung (`apps/web/src/shared/ui/app-navigation.tsx`) theo kiểu sidebar quản trị trên desktop: phân thành 4 nhóm nghiệp vụ rõ ràng (TỔNG QUAN, TÀI CHÍNH, KẾ HOẠCH, DỮ LIỆU), có dấu nhận diện sản phẩm, icon đi cùng chữ và tự động nhận diện trạng thái trang đang mở theo `usePathname()`. Desktop dùng app shell giới hạn theo viewport: chỉ vùng main content được cuộn, còn sidebar luôn đứng yên bên cạnh. Khi thêm mục mới, luôn giữ nhãn chữ hiển thị qua hệ thống i18n, SVG chỉ là phần hỗ trợ quét nhanh, và đặt `aria-current="page"` cho mục active.
 
 Trên màn hình hẹp (<= 960px), shell trở lại cơ chế cuộn trang bình thường và giao diện tự động chuyển đổi thành Mobile Topbar sticky trên cùng kết hợp nút Hamburger Button. Khi bấm vào, Drawer Menu điều hướng trượt mượt mà từ bên trái kèm Backdrop làm mờ nền; tự động đóng khi chọn link, bấm backdrop hoặc bấm Escape.

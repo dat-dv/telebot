@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { localeTag } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
+import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 
 export interface ChartBucket {
   key: string;
@@ -17,15 +17,9 @@ interface MicroBarChartProps {
 }
 
 export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
+  const money = useMoneyFormatter();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const money = (val: number) =>
-    new Intl.NumberFormat(localeTag(locale), {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(val);
 
   if (!buckets.length) {
     return (
