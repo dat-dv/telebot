@@ -9,6 +9,7 @@ import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 import { FinanceService } from './finance.service';
 import { FinanceController } from './finance.controller';
 import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
+import { ReceiptStorageModule } from '../receipt-storage/receipt-storage.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
       FinancePlaceEntity,
     ]),
     DashboardAuthModule,
+    ReceiptStorageModule,
   ],
   controllers: [FinanceController],
   providers: [FinanceService],

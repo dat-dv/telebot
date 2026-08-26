@@ -12,6 +12,7 @@ interface CreateFinanceTransactionArgs {
   createNewPlace?: boolean;
   placeName?: string;
   occurredAt?: string;
+  receiptUrl?: string;
 }
 
 @Injectable()
@@ -96,6 +97,7 @@ export class CreateFinanceTransactionTool implements GeminiTool {
           placeId: transaction.placeId,
           placeName: payload.placeName?.trim() || undefined,
           occurredAt: transaction.occurredAt.toISOString(),
+          receiptUrl: transaction.receiptUrl,
         },
       };
     } catch (error) {

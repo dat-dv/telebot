@@ -13,6 +13,7 @@ export type TransactionTableItem = {
   category: string;
   note?: string;
   amount: number;
+  runningBalance?: number;
   placeId?: string | null;
   placeName?: string | null;
   occurredAt: string;
@@ -294,6 +295,27 @@ export function TransactionsTable({
                 />
               </div>
             </div>
+          );
+        },
+      },
+      {
+        id: 'runningBalance',
+        header: t('dashboard.columns.runningBalance'),
+        align: 'right',
+        minWidth: '140px',
+        cell: (item) => {
+          if (typeof item.runningBalance !== 'number') {
+            return <span className="text-slate-400 select-none dark:text-slate-500">—</span>;
+          }
+          const isPos = item.runningBalance >= 0;
+          return (
+            <span
+              className={`tabular-nums font-semibold select-none ${
+                isPos ? 'text-violet-700 dark:text-violet-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {money(item.runningBalance)}
+            </span>
           );
         },
       },

@@ -67,6 +67,7 @@ export function validateEnvironment(): EnvValidationResult {
     'DASHBOARD_ACCESS_TOKEN_SECRET',
     'DASHBOARD_REFRESH_TOKEN_SECRET',
     'TESSERACT_LANG_PATH',
+    'RECEIPT_STORAGE_DIR',
   ];
   for (const key of requiredKeys) {
     if (!readEnv(key))

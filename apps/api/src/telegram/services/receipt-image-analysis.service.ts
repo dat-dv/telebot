@@ -19,6 +19,11 @@ export function normalizeOcrText(value: string): string {
     .slice(0, 12_000);
 }
 
+export interface ReceiptImageAnalysisResult {
+  analysis: ReceiptImageAnalysis;
+  image: Buffer;
+}
+
 @Injectable()
 export class ReceiptImageAnalysisService {
   private readonly maxBytes: number;
@@ -35,7 +40,10 @@ export class ReceiptImageAnalysisService {
     this.langPath = configService.getOrThrow<string>('receiptImage.langPath');
   }
 
-  public async analyze(telegram: Telegram, photos: TelegramPhoto[]): Promise<ReceiptImageAnalysis> {
+  public async analyze(
+    telegram: Telegram,
+    photos: TelegramPhoto[],
+  ): Promise<ReceiptImageAnalysisResult> {
     const photo = photos[photos.length - 1];
     if (!photo) throw new Error('Không tìm thấy ảnh để phân tích.');
     if (photo.file_size && photo.file_size > this.maxBytes) {
@@ -54,7 +62,7 @@ export class ReceiptImageAnalysisService {
     const result = await worker.recognize(image);
     const ocrText = normalizeOcrText(result.data.text);
     if (!ocrText) throw new Error('Không đọc được chữ trong ảnh. Vui lòng gửi ảnh rõ hơn.');
-    return this.geminiService.analyzeReceiptText(ocrText);
+    return { analysis: await this.geminiService.analyzeReceiptText(ocrText), image };
   }
 
   private async getWorker() {

@@ -35,6 +35,9 @@ export interface AppConfig {
     maxBytes: number;
     langPath: string;
   };
+  receiptStorage: {
+    dir: string;
+  };
   timezone: string;
   google: {
     clientId: string;
@@ -124,6 +127,9 @@ export default (): AppConfig => {
       timeoutMs: readNumberEnv('RECEIPT_IMAGE_TIMEOUT_MS'),
       maxBytes: readNumberEnv('RECEIPT_IMAGE_MAX_BYTES'),
       langPath: readEnv('TESSERACT_LANG_PATH'),
+    },
+    receiptStorage: {
+      dir: readEnv('RECEIPT_STORAGE_DIR'),
     },
     timezone: readEnv('DEFAULT_TIMEZONE'),
     google: {

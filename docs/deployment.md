@@ -102,7 +102,7 @@ docker logs -f telegram-assistant-bot
 docker-compose down
 ```
 
-> [!NOTE] Compose dùng Docker volumes `telebot-postgres` và `telebot-redis`. API không có database file hoặc mount `/app/data`.
+> [!NOTE] Compose dùng Docker volumes `telebot-postgres`, `telebot-redis` và `telebot-receipts`. `telebot-receipts` được mount vào `/app/data` để giữ ảnh bill đã nén qua các lần redeploy. Khi deploy bằng Coolify, cũng cần cấu hình persistent storage mount vào `/app/data`.
 
 ---
 

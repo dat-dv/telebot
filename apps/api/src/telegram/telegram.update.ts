@@ -5,6 +5,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { TelegramUiService } from './services/telegram-ui.service';
 import { VoiceTranscriptionService } from './services/voice-transcription.service';
 import { ReceiptImageAnalysisService } from './services/receipt-image-analysis.service';
+import { ReceiptImageStorageService } from '../receipt-storage/receipt-image-storage.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { ConversationHistoryService } from '../gemini/services/conversation-history.service';
 import { UsersService } from '../users/users.service';
@@ -34,6 +35,7 @@ export class TelegramUpdate {
     private readonly uiService: TelegramUiService,
     private readonly voiceTranscriptionService: VoiceTranscriptionService,
     private readonly receiptImageAnalysisService: ReceiptImageAnalysisService,
+    private readonly receiptImageStorage: ReceiptImageStorageService,
     private readonly financeService: FinanceService,
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
@@ -59,6 +61,7 @@ export class TelegramUpdate {
   private async cancelPendingUserActions(ctx: Context, userId: number): Promise<void> {
     const cancelledToolActions = this.geminiService.cancelPendingActionsForUser?.(userId) ?? [];
     for (const action of cancelledToolActions) {
+      await this.removePendingReceipt(userId, action.payload.receiptUrl);
       if (action.chatId && action.messageId) {
         try {
           await ctx.telegram.editMessageText(
@@ -98,6 +101,15 @@ export class TelegramUpdate {
           );
         }
       }
+    }
+  }
+
+  private async removePendingReceipt(userId: number, receiptUrl: unknown): Promise<void> {
+    if (typeof receiptUrl !== 'string') return;
+    try {
+      await this.receiptImageStorage.remove(userId, receiptUrl);
+    } catch (error) {
+      this.logger.warn(`Could not delete cancelled receipt image: ${(error as Error).message}`);
     }
   }
 
@@ -1014,10 +1026,12 @@ ${googleStatus}
     const userId = ctx.from?.id;
     if (!actionId || !userId) return;
     try {
+      const receiptUrl = this.geminiService.getPendingReceiptUrl(actionId, userId);
       const { name, result, referenceId } = await this.geminiService.confirmPendingAction(
         actionId,
         userId,
       );
+      if (result.success !== true) await this.removePendingReceipt(userId, receiptUrl);
       const resultBox = this.uiService.formatResultBox(name, result, referenceId);
       this.conversationHistoryService.appendModelMessage(userId, resultBox);
       await ctx.answerCbQuery('Đã xác nhận và thực hiện.');
@@ -1036,7 +1050,9 @@ ${googleStatus}
     const actionId = (ctx as { match?: RegExpExecArray }).match?.[1];
     const userId = ctx.from?.id;
     if (!actionId || !userId) return;
+    const receiptUrl = this.geminiService.getPendingReceiptUrl(actionId, userId);
     const cancelled = this.geminiService.cancelPendingAction(actionId, userId);
+    if (cancelled) await this.removePendingReceipt(userId, receiptUrl);
     await ctx.answerCbQuery(cancelled ? 'Đã hủy thao tác.' : 'Yêu cầu không còn hiệu lực.');
     if (cancelled) {
       await ctx.editMessageText(
@@ -1192,7 +1208,7 @@ ${googleStatus}
     await this.cancelPendingUserActions(ctx, userId);
 
     try {
-      const analysis = await this.uiService.withTyping(ctx, () =>
+      const { analysis, image } = await this.uiService.withTyping(ctx, () =>
         this.receiptImageAnalysisService.analyze(ctx.telegram, message.photo),
       );
       if (analysis.kind === 'not_receipt') {
@@ -1204,12 +1220,14 @@ ${googleStatus}
         await ctx.reply(`🖼️ ${analysis.summary}\nAnh cho em biết thêm ${missing} nhé.`);
         return;
       }
+      const receiptUrl = await this.receiptImageStorage.store(userId, image);
       await this.requestToolConfirmation(ctx, userId, 'create_finance_transaction', {
         type: analysis.type,
         amount: analysis.amount,
         category: analysis.category || 'Khác',
         note: analysis.note,
         ...(analysis.occurredAt ? { occurredAt: analysis.occurredAt } : {}),
+        receiptUrl,
       });
     } catch (error) {
       await ctx.reply(`⚠️ ${(error as Error).message}`);

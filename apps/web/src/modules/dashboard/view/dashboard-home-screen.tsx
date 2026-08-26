@@ -8,7 +8,7 @@ import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { SessionStateScreen } from '@/modules/auth/view/session-state-screen';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { TransactionsTable } from './transactions-table';
+import { TransactionsTable, type TransactionTableItem } from './transactions-table';
 import { DebtsTable } from '@/modules/debts/view/debts-table';
 import { TasksTable } from './tasks-table';
 import { RemindersTable } from './reminders-table';
@@ -117,15 +117,41 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     return data.calendar.filter((item) => item.title.toLowerCase().includes(q));
   }, [data.calendar, calendarSearch]);
 
+  const transactionsWithBalance = useMemo<TransactionTableItem[]>(() => {
+    const list = data.transactions ?? [];
+    if (!list.length) return [];
+
+    const sortedAsc = [...list].sort(
+      (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+    );
+
+    let running = 0;
+    const balanceMap = new Map<string, number>();
+    for (const item of sortedAsc) {
+      if (item.type === 'income') {
+        running += item.amount;
+      } else {
+        running -= item.amount;
+      }
+      balanceMap.set(item.id, running);
+    }
+
+    return list.map((item) => ({
+      ...item,
+      runningBalance: balanceMap.get(item.id) ?? 0,
+    }));
+  }, [data.transactions]);
+
   const filteredTransactions = useMemo(() => {
-    if (!txSearch.trim()) return data.transactions;
+    if (!txSearch.trim()) return transactionsWithBalance;
     const q = txSearch.toLowerCase();
-    return data.transactions.filter(
+    return transactionsWithBalance.filter(
       (item) =>
         item.category.toLowerCase().includes(q) ||
-        (item.note && item.note.toLowerCase().includes(q)),
+        (item.note && item.note.toLowerCase().includes(q)) ||
+        (item.placeName && item.placeName.toLowerCase().includes(q)),
     );
-  }, [data.transactions, txSearch]);
+  }, [transactionsWithBalance, txSearch]);
 
   const filteredDebts = useMemo(() => {
     if (!debtSearch.trim()) return data.debts;

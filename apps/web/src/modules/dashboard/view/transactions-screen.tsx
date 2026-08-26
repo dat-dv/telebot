@@ -69,7 +69,32 @@ export function TransactionsScreen() {
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
 
-  const rawList = useMemo(() => dashboard.data?.transactions ?? [], [dashboard.data]);
+  const rawList = useMemo<TransactionTableItem[]>(() => {
+    const list = dashboard.data?.transactions ?? [];
+    if (!list.length) return [];
+
+    // Sort chronologically ascending to calculate running balance
+    const sortedAsc = [...list].sort(
+      (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+    );
+
+    let running = 0;
+    const balanceMap = new Map<string, number>();
+    for (const item of sortedAsc) {
+      if (item.type === 'income') {
+        running += item.amount;
+      } else {
+        running -= item.amount;
+      }
+      balanceMap.set(item.id, running);
+    }
+
+    return list.map((item) => ({
+      ...item,
+      runningBalance: balanceMap.get(item.id) ?? 0,
+    }));
+  }, [dashboard.data?.transactions]);
+
   const configuredCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
   const placeSuggestions = useMemo(
     () => (placesQuery.data ?? []).map((place) => place.name),
@@ -121,8 +146,8 @@ export function TransactionsScreen() {
       const q = search.toLowerCase();
       return (
         item.category.toLowerCase().includes(q) ||
-        item.note.toLowerCase().includes(q) ||
-        item.placeName?.toLowerCase().includes(q)
+        (item.note?.toLowerCase().includes(q) ?? false) ||
+        (item.placeName?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [periodTransactions, activeFilter, search]);

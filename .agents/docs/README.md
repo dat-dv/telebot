@@ -37,3 +37,4 @@ Thư mục này chứa toàn bộ tài liệu hướng dẫn dành cho lập tr�
 8. **Google OAuth public**: Scope được xin phải đúng tính năng đã phát hành; các URL `/about`, `/privacy` và `/terms` cùng checklist Google review nằm ở `global/google-oauth-public-verification.md`.
 9. **Bảng dữ liệu dùng chung**: Quy ước cột `STT` và `ID` bắt buộc, cấu hình ẩn/hiện cột và đổi độ rộng nằm ở `global/web-ui-direction.md`.
 10. **Dữ liệu nơi chốn thu chi**: Hợp đồng tạo/sửa/xóa nơi chốn riêng, liên kết `placeId` của phát sinh và cách vận hành dashboard nằm ở `modules/finance/README.md` và `modules/dashboard/README.md`.
+11. **Ảnh bill đã nén**: Luồng OCR local, JPEG storage persistent, kiểm soát ownership và biến môi trường nằm ở `global/receipt-image-analysis.md`.

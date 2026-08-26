@@ -47,6 +47,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - telebot-receipts:/app/data
   web:
     build:
       context: .
@@ -63,3 +65,4 @@ services:
 volumes:
   telebot-postgres:
   telebot-redis:
+  telebot-receipts:

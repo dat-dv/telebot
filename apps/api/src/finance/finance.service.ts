@@ -484,6 +484,13 @@ export class FinanceService {
     });
   }
 
+  public findReceiptTransaction(
+    userId: number,
+    receiptUrl: string,
+  ): Promise<FinanceTransactionEntity | null> {
+    return this.transactionRepo.findOne({ where: { userId: userId.toString(), receiptUrl } });
+  }
+
   public async updateTransaction(
     userId: number,
     id: string,

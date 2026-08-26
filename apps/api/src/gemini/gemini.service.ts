@@ -307,6 +307,12 @@ export class GeminiService {
     return true;
   }
 
+  public getPendingReceiptUrl(actionId: string, userId: number): string | undefined {
+    const pending = this.pendingActions.get(actionId);
+    if (!pending || pending.userId !== userId) return undefined;
+    return typeof pending.payload.receiptUrl === 'string' ? pending.payload.receiptUrl : undefined;
+  }
+
   public attachMessageToPendingAction(
     actionId: string,
     chatId: number | string,

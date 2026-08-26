@@ -14,6 +14,7 @@ import { RemindersModule } from '../reminders/reminders.module';
 import { FinanceModule } from '../finance/finance.module';
 import { AuditModule } from '../audit/audit.module';
 import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
+import { ReceiptStorageModule } from '../receipt-storage/receipt-storage.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { DashboardAuthModule } from '../dashboard-auth/dashboard-auth.module';
     FinanceModule,
     AuditModule,
     DashboardAuthModule,
+    ReceiptStorageModule,
   ],
   providers: [
     TelegramUpdate,
