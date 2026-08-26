@@ -26,9 +26,17 @@ metadata:
 - Ẩn/hiện số tiền nhạy cảm toàn ứng dụng: Component `WorkspaceHeader` được render **một lần duy nhất** trong common private layout (`apps/web/app/(private)/layout.tsx`), tích hợp nút `Ẩn số tiền` / `Hiện số tiền` (`MoneyVisibilityProvider`). **Các screen file trong từng module tuyệt đối không tự render `<WorkspaceHeader>` riêng.** Trạng thái mặc định là **Ẩn (`false`)** khi mới truy cập để bảo vệ quyền riêng tư, và tùy chọn của người dùng được lưu trong `localStorage` (`telebot-money-visibility`). Khi bật chế độ ẩn, các số tiền ở thẻ KPI, cột bảng, footer tổng kết và tooltip biểu đồ được che bằng mặt nạ `'••••••'`; riêng các ô input khi đang sửa trực tiếp (inline edit) vẫn giữ số thực để người dùng thao tác bình thường.
 - Đăng xuất: gọi API logout, xóa token qua module `auth`, xóa cache query rồi chuyển hướng về `${APP_ROUTES.home}?status=logged_out` để hiển thị màn hình Đã đăng xuất thành công qua `SessionStateScreen`.
 
-## Nơi chốn trong bảng Thu chi
+## Nơi chốn trong bảng Thu chi & Trang Quản lý Nơi chốn (/places)
 
-Bảng Thu chi có cột **Nơi chốn** để hiển thị quán ăn, cửa hàng hoặc địa điểm của phát sinh. Trường sửa nhanh dùng combobox lấy danh sách `/api/places`, vẫn cho phép gõ tên mới để backend tạo/tái sử dụng nơi chốn. Tìm kiếm bảng bao gồm cả tên nơi chốn. Khi xóa nội dung trường này rồi lưu, client gửi `placeId: null` để chỉ gỡ liên kết, không xóa giao dịch hay lịch sử nơi chốn.
+- **Cột Nơi chốn trên bảng Thu chi**: Bảng Thu chi có cột **Nơi chốn** để hiển thị quán ăn, cửa hàng hoặc địa điểm của phát sinh. Trường sửa nhanh dùng combobox lấy danh sách `/api/places`, vẫn cho phép gõ tên mới để backend tạo/tái sử dụng nơi chốn. Tìm kiếm bảng bao gồm cả tên nơi chốn. Khi xóa nội dung trường này rồi lưu, client gửi `placeId: null` để chỉ gỡ liên kết, không xóa giao dịch hay lịch sử nơi chốn.
+- **Trang Quản lý Nơi chốn & Địa điểm (`/places` - `PlacesScreen`)**:
+  - Cung cấp màn hình quản lý độc lập cho danh mục địa điểm, quán ăn, cửa hàng và bệnh viện.
+  - Bảng dữ liệu bao gồm các cột: `STT`, `ID`, `Tên nơi chốn / Địa điểm` (hỗ trợ double-click inline edit, phím tắt `Enter`/`Escape`), `Thời gian tạo`, `Hoạt động` (Sửa, Xóa).
+  - Hỗ trợ thêm nhanh nơi chốn mới qua nút `+ Thêm nơi chốn` trên toolbar, tìm kiếm theo thời gian thực và xác nhận xóa an toàn 2 bước inline.
+  - Tích hợp vào thanh điều hướng Sidebar dưới mục **DỮ LIỆU** (`nav.section.data`) với icon định vị chuẩn.
+- **Cơ chế Migration chuyển đổi dữ liệu cũ**:
+  - Script migration TypeORM `1724660000000-MigrateLegacyPlaceContacts.ts` tự động chạy khi khởi động backend (`migrationsRun: true`).
+  - Tự động backfill các địa điểm cũ từ `debt_contacts` sang `finance_places` (xử lý trùng lặp bằng `DISTINCT ON` và `UNIQUE INDEX`), chuyển đổi `place_id` cho `finance_transactions` và dọn dẹp các bản ghi địa điểm thừa khỏi `debt_contacts` để trả lại danh bạ cá nhân sạch sẽ.
 
 ## Cấu hình production
 

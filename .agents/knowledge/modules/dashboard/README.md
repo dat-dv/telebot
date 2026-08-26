@@ -35,9 +35,17 @@ A global `MoneyVisibilityProvider` manages `isMoneyVisible` in React context, de
 
 During inline transaction editing, Category is a controlled combobox rather than a native datalist. It draws type-specific defaults, configured user categories, and historical categories. Focus or click opens choices, typing filters them, Arrow keys plus Enter choose a value, and Escape closes the menu before a later Escape cancels the edit. The component permits new category text and portals its listbox above the scrollable data table.
 
-## Transaction places
-
-Transactions include an optional `placeId`/`placeName` from the Finance module. The table displays a Place column, includes it in text search, and its inline combobox loads saved places with `usePlacesQuery`. New typed names are resolved by the API; clearing the field sends `placeId: null` to detach the place without removing the transaction.
+## Transaction places & Dedicated Places Page (/places)
+ 
+- **Transaction Place Column**: Transactions include an optional `placeId`/`placeName` from the Finance module. The table displays a Place column, includes it in text search, and its inline combobox loads saved places with `usePlacesQuery`. New typed names are resolved by the API; clearing the field sends `placeId: null` to detach the place without removing the transaction.
+- **Dedicated Places Screen (`/places` - `PlacesScreen`)**:
+  - Independent management page for venues, restaurants, stores, and hospitals.
+  - Data table features `ordinal`, `id`, `name` (inline edit on double-click with `Enter`/`Escape`), `createdAt`, and `actions` (Edit, 2-step safe inline deletion).
+  - Search toolbar and quick Add Place form (`+ Add place`).
+  - Integrated into navigation drawer and sidebar under `DATA` (`nav.section.data`) with a dedicated location pin icon.
+- **Legacy Place Migration**:
+  - TypeORM migration `1724660000000-MigrateLegacyPlaceContacts.ts` automatically executes on server boot (`migrationsRun: true`).
+  - Backfills historical place contacts from `debt_contacts` into `finance_places` (with deduplication via `DISTINCT ON` and unique indexing), links `finance_transactions.place_id`, and removes legacy place entries from `debt_contacts` while preserving all transaction history.
 
 ## Integration seams
 
