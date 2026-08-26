@@ -336,17 +336,32 @@ export function usePeriodFilter(defaultGrain: PeriodGrain = 'month'): PeriodFilt
     [grain, refDate, startDate, endDate],
   );
 
-  return {
-    grain,
-    refDate,
-    startDate,
-    endDate,
-    label,
-    setGrain,
-    prevPeriod,
-    nextPeriod,
-    resetToToday,
-    isItemInPeriod,
-    generateBuckets,
-  };
+  return useMemo(
+    () => ({
+      grain,
+      refDate,
+      startDate,
+      endDate,
+      label,
+      setGrain,
+      prevPeriod,
+      nextPeriod,
+      resetToToday,
+      isItemInPeriod,
+      generateBuckets,
+    }),
+    [
+      grain,
+      refDate,
+      startDate,
+      endDate,
+      label,
+      setGrain,
+      prevPeriod,
+      nextPeriod,
+      resetToToday,
+      isItemInPeriod,
+      generateBuckets,
+    ],
+  );
 }

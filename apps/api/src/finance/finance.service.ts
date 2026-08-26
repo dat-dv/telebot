@@ -546,10 +546,27 @@ export class FinanceService {
   ): Promise<FinanceTransactionEntity | null> {
     const transaction = await this.getTransaction(userId, id);
     if (!transaction) return null;
-    if (input.type) transaction.type = input.type;
+
+    const currentAllocations = transaction.allocations || [];
+    const currentAllocatedSum = currentAllocations.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0,
+    );
+
+    if (input.type && input.type !== transaction.type) {
+      if (currentAllocatedSum > 0) {
+        throw new Error('Không thể đổi loại giao dịch khi đang có phân bổ công nợ.');
+      }
+      transaction.type = input.type;
+    }
     if (input.amount !== undefined) {
       const amount = Math.round(Number(input.amount));
       if (!Number.isFinite(amount) || amount <= 0) throw new Error('Số tiền phải lớn hơn 0.');
+      if (amount < currentAllocatedSum) {
+        throw new Error(
+          `Số tiền giao dịch mới không được nhỏ hơn tổng số tiền đã phân bổ công nợ (${this.formatMoney(currentAllocatedSum)}).`,
+        );
+      }
       transaction.amount = amount;
     }
     if (input.currency !== undefined) transaction.currency = input.currency.trim() || 'VND';

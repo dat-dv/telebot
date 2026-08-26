@@ -84,6 +84,7 @@ const messages = {
     'common.toggleMoneyVisibility': 'Ẩn/hiện số tiền',
     'common.maskedAmount': '••••••',
     'common.today': 'Hôm nay',
+    'common.saving': 'Đang lưu...',
     'nav.home': 'Tổng quan',
     'nav.statistics': 'Phân tích',
     'nav.contacts': 'Người liên quan',
@@ -366,6 +367,16 @@ const messages = {
       'Tổng tiền phân bổ không được vượt quá số tiền giao dịch',
     'transactions.allocation.exceededDebtRemaining': 'Số tiền phân bổ vượt quá số nợ còn lại',
     'transactions.allocation.noCandidates': 'Không có khoản công nợ phù hợp để phân bổ',
+    'transactions.allocation.badgeAllocated': '{count} phân bổ',
+    'transactions.allocation.modalSubtitleIncome':
+      'Gắn số tiền thu được vào các khoản cho vay đang mở (Phải thu)',
+    'transactions.allocation.modalSubtitleExpense':
+      'Gắn số tiền đã chi vào các khoản nợ đang mở (Phải trả)',
+    'transactions.allocation.cannotChangeTypeWithAllocations':
+      'Không thể đổi loại giao dịch khi đang có phân bổ công nợ',
+    'transactions.allocation.cannotReduceBelowAllocated':
+      'Số tiền giao dịch mới không được nhỏ hơn tổng số tiền đã phân bổ ({amount})',
+    'transactions.allocation.noteOptional': 'Ghi chú phân bổ (tùy chọn)',
     'debts.payments.linkedTransaction': 'Giao dịch liên kết',
     'category.debtRecovery': 'Thu hồi công nợ',
     'category.debtPayment': 'Trả công nợ',
@@ -615,6 +626,7 @@ const messages = {
     'common.toggleMoneyVisibility': 'Toggle amount visibility',
     'common.maskedAmount': '••••••',
     'common.today': 'Today',
+    'common.saving': 'Saving...',
     'nav.home': 'Overview',
     'nav.statistics': 'Analytics',
     'nav.contacts': 'People',
@@ -897,6 +909,15 @@ const messages = {
       'Total allocated amount cannot exceed transaction amount',
     'transactions.allocation.exceededDebtRemaining': 'Allocated amount exceeds remaining debt',
     'transactions.allocation.noCandidates': 'No matching open debts available for allocation',
+    'transactions.allocation.badgeAllocated': '{count} allocations',
+    'transactions.allocation.modalSubtitleIncome':
+      'Allocate received income to open receivable debts',
+    'transactions.allocation.modalSubtitleExpense': 'Allocate expense amount to open payable debts',
+    'transactions.allocation.cannotChangeTypeWithAllocations':
+      'Cannot change transaction type while active debt allocations exist',
+    'transactions.allocation.cannotReduceBelowAllocated':
+      'New transaction amount cannot be less than the total allocated amount ({amount})',
+    'transactions.allocation.noteOptional': 'Allocation note (optional)',
     'debts.payments.linkedTransaction': 'Linked Transaction',
     'category.debtRecovery': 'Debt Recovery',
     'category.debtPayment': 'Debt Repayment',

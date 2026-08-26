@@ -667,6 +667,10 @@ export function DataTable<T extends DataTableRow>({
   );
 
   const allColumns = useMemo(() => [...systemColumns, ...columns], [columns, systemColumns]);
+  const allColumnsKey = useMemo(
+    () => allColumns.map((column) => column.id).join(','),
+    [allColumns],
+  );
 
   const initialColumnIds = useMemo(() => {
     return allColumns.filter((column) => !column.defaultHidden).map((column) => column.id);
@@ -685,17 +689,26 @@ export function DataTable<T extends DataTableRow>({
       if (stored) {
         const parsed = JSON.parse(stored) as Record<string, number>;
         if (parsed && typeof parsed === 'object') {
-          setColumnWidths(
-            Object.fromEntries(
-              Object.entries(parsed).filter(
-                ([columnId, width]) =>
-                  allColumns.some((column) => column.id === columnId) &&
-                  typeof width === 'number' &&
-                  Number.isFinite(width) &&
-                  width > 0,
-              ),
+          const nextWidths = Object.fromEntries(
+            Object.entries(parsed).filter(
+              ([columnId, width]) =>
+                allColumns.some((column) => column.id === columnId) &&
+                typeof width === 'number' &&
+                Number.isFinite(width) &&
+                width > 0,
             ),
           );
+          setColumnWidths((prev) => {
+            const prevKeys = Object.keys(prev);
+            const nextKeys = Object.keys(nextWidths);
+            if (
+              prevKeys.length === nextKeys.length &&
+              nextKeys.every((k) => prev[k] === nextWidths[k])
+            ) {
+              return prev;
+            }
+            return nextWidths;
+          });
         }
       }
     } catch {
@@ -703,7 +716,7 @@ export function DataTable<T extends DataTableRow>({
     } finally {
       hasLoadedColumnWidths.current = true;
     }
-  }, [allColumns, allowColumnResize, id]);
+  }, [allColumnsKey, allColumns, allowColumnResize, id]);
 
   useEffect(() => {
     if (
@@ -739,14 +752,19 @@ export function DataTable<T extends DataTableRow>({
             .map((column) => column.id);
           const merged = Array.from(new Set([...validIds, ...nonHideableIds]));
           if (merged.length > 0) {
-            setVisibleColumnIds(merged);
+            setVisibleColumnIds((prev) => {
+              if (prev.length === merged.length && prev.every((val, idx) => val === merged[idx])) {
+                return prev;
+              }
+              return merged;
+            });
           }
         }
       }
     } catch {
       // Gracefully ignore storage access errors
     }
-  }, [allColumns, id]);
+  }, [allColumnsKey, allColumns, id]);
 
   const saveVisibleColumnIds = (newIds: string[]) => {
     setVisibleColumnIds(newIds);

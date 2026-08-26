@@ -196,16 +196,35 @@ export function TransactionsTable({
               />
             );
           }
+          const allocationCount = item.allocations?.length || 0;
           return (
-            <span
-              className={`text-slate-500 select-none dark:text-slate-400 ${
-                onStartEdit ? 'cursor-pointer' : ''
-              }`}
-              onDoubleClick={() => onStartEdit?.(item)}
-              title={item.note || undefined}
-            >
-              {item.note || '—'}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className={`text-slate-500 select-none dark:text-slate-400 ${
+                  onStartEdit ? 'cursor-pointer' : ''
+                }`}
+                onDoubleClick={() => onStartEdit?.(item)}
+                title={item.note || undefined}
+              >
+                {item.note || '—'}
+              </span>
+              {allocationCount > 0 && onOpenAllocate && (
+                <button
+                  type="button"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-[2px] border border-sky-200 bg-sky-50 px-1 py-0.5 text-[10px] font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenAllocate(item);
+                  }}
+                  title={t('transactions.allocation.badgeAllocated', { count: allocationCount })}
+                >
+                  <span>🔗</span>
+                  <span>
+                    {t('transactions.allocation.badgeAllocated', { count: allocationCount })}
+                  </span>
+                </button>
+              )}
+            </div>
           );
         },
       },
@@ -375,24 +394,54 @@ export function TransactionsTable({
         id: 'actions',
         header: t('dashboard.columns.action'),
         align: 'right',
-        minWidth: onOpenAllocate ? '210px' : '130px',
+        minWidth: '130px',
         hideable: false,
         cell: (item) => {
           const isEditing = editingId === item.id;
           if (isEditing && editDraft && onSaveEdit && onCancelEdit) {
+            const itemAllocatedSum = (item.allocations || []).reduce(
+              (sum, a) => sum + Number(a.amount || 0),
+              0,
+            );
+            const enteredAmount = Number(editDraft.amount) || 0;
+            const isTypeChangedWithAllocations =
+              itemAllocatedSum > 0 && editDraft.type !== item.type;
+            const isAmountBelowAllocations =
+              itemAllocatedSum > 0 && enteredAmount < itemAllocatedSum;
+            const isSaveDisabled =
+              isPending ||
+              !editDraft.category.trim() ||
+              !editDraft.note.trim() ||
+              enteredAmount <= 0 ||
+              isTypeChangedWithAllocations ||
+              isAmountBelowAllocations;
+
+            const saveButtonTitle = isTypeChangedWithAllocations
+              ? t('transactions.allocation.cannotChangeTypeWithAllocations')
+              : isAmountBelowAllocations
+                ? t('transactions.allocation.cannotReduceBelowAllocated', {
+                    amount: money(itemAllocatedSum),
+                  })
+                : t('transactions.actions.save');
+
             return (
               <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+                {onOpenAllocate && (
+                  <button
+                    type="button"
+                    className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center gap-1 rounded-[2px] border border-sky-200 bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700 whitespace-nowrap transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-400 dark:hover:bg-sky-950/70"
+                    onClick={() => onOpenAllocate(item)}
+                    title={t('transactions.actions.allocateDebts')}
+                  >
+                    <span>🔗</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white whitespace-nowrap transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                   onClick={() => void onSaveEdit(item.id)}
-                  disabled={
-                    isPending ||
-                    !editDraft.category.trim() ||
-                    !editDraft.note.trim() ||
-                    !Number(editDraft.amount)
-                  }
-                  title={t('transactions.actions.save')}
+                  disabled={isSaveDisabled}
+                  title={saveButtonTitle}
                 >
                   ✓ {t('transactions.actions.save')}
                 </button>
@@ -408,25 +457,8 @@ export function TransactionsTable({
               </div>
             );
           }
-          const allocationCount = item.allocations?.length || 0;
           return (
             <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-              {onOpenAllocate && (
-                <button
-                  type="button"
-                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center gap-1 rounded-[2px] border border-sky-200 bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700 whitespace-nowrap transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-400 dark:hover:bg-sky-950/70"
-                  onClick={() => onOpenAllocate(item)}
-                  title={t('transactions.actions.allocateDebts')}
-                >
-                  <span>🔗</span>
-                  {allocationCount > 0 && (
-                    <span className="inline-flex items-center justify-center rounded-full bg-sky-600 px-1 text-[9px] font-bold text-white leading-none">
-                      {allocationCount}
-                    </span>
-                  )}
-                  <span>{t('transactions.actions.allocateDebts')}</span>
-                </button>
-              )}
               {onStartEdit && (
                 <button
                   type="button"

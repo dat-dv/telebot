@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useCallback, useTransition } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   DEFAULT_INCOME_CATEGORIES,
@@ -63,16 +63,19 @@ export function TransactionsScreen() {
   const updateMutation = useUpdateTransactionMutation();
   const deleteMutation = useDeleteTransactionMutation();
 
-  const setFilter = (type: FilterType) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (type === 'all') {
-      params.delete('type');
-    } else {
-      params.set('type', type);
-    }
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  };
+  const setFilter = useCallback(
+    (type: FilterType) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (type === 'all') {
+        params.delete('type');
+      } else {
+        params.set('type', type);
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [router, pathname, searchParams],
+  );
 
   const rawList = useMemo<TransactionTableItem[]>(() => {
     const list = dashboard.data?.transactions ?? [];
@@ -161,16 +164,19 @@ export function TransactionsScreen() {
     return Math.max(...periodTransactions.map((t) => t.amount), 1);
   }, [periodTransactions]);
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      startTransition(() => {
-        setToastMessage(null);
-      });
-    }, 3000);
-  };
+  const showToast = useCallback(
+    (message: string) => {
+      setToastMessage(message);
+      setTimeout(() => {
+        startTransition(() => {
+          setToastMessage(null);
+        });
+      }, 3000);
+    },
+    [startTransition],
+  );
 
-  const handleStartEdit = (item: TransactionTableItem) => {
+  const handleStartEdit = useCallback((item: TransactionTableItem) => {
     setEditingId(item.id);
     setEditDraft({
       type: item.type,
@@ -180,9 +186,9 @@ export function TransactionsScreen() {
       placeName: item.placeName || '',
       occurredAt: item.occurredAt ? item.occurredAt.slice(0, 16) : '',
     });
-  };
+  }, []);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingId(null);
     setEditDraft({
       type: 'expense',
@@ -192,48 +198,62 @@ export function TransactionsScreen() {
       placeName: '',
       occurredAt: '',
     });
-  };
+  }, []);
 
-  const handleSaveEdit = async (id: string) => {
-    const trimmedCategory = editDraft.category.trim();
-    const trimmedNote = editDraft.note.trim();
-    const parsedAmount = Number(editDraft.amount);
+  const handleSaveEdit = useCallback(
+    async (id: string) => {
+      const trimmedCategory = editDraft.category.trim();
+      const trimmedNote = editDraft.note.trim();
+      const parsedAmount = Number(editDraft.amount);
 
-    if (!trimmedCategory || !trimmedNote || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      return;
-    }
+      if (!trimmedCategory || !trimmedNote || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+        return;
+      }
 
-    try {
-      await updateMutation.mutateAsync({
-        id,
-        data: {
-          type: editDraft.type,
-          category: trimmedCategory,
-          note: trimmedNote,
-          amount: parsedAmount,
-          placeId: editDraft.placeName.trim() ? undefined : null,
-          placeName: editDraft.placeName.trim() || undefined,
-          occurredAt: editDraft.occurredAt
-            ? new Date(editDraft.occurredAt).toISOString()
-            : undefined,
-        },
-      });
-      setEditingId(null);
-      showToast(t('transactions.inlineEdit.saved'));
-    } catch {
-      // Error handled by mutation
-    }
-  };
+      try {
+        await updateMutation.mutateAsync({
+          id,
+          data: {
+            type: editDraft.type,
+            category: trimmedCategory,
+            note: trimmedNote,
+            amount: parsedAmount,
+            placeId: editDraft.placeName.trim() ? undefined : null,
+            placeName: editDraft.placeName.trim() || undefined,
+            occurredAt: editDraft.occurredAt
+              ? new Date(editDraft.occurredAt).toISOString()
+              : undefined,
+          },
+        });
+        setEditingId(null);
+        showToast(t('transactions.inlineEdit.saved'));
+      } catch {
+        // Error handled by mutation
+      }
+    },
+    [editDraft, updateMutation, showToast, t],
+  );
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t('transactions.delete.confirm'))) return;
-    try {
-      await deleteMutation.mutateAsync(id);
-      showToast(t('transactions.delete.success'));
-    } catch {
-      // Error handled by mutation
-    }
-  };
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!window.confirm(t('transactions.delete.confirm'))) return;
+      try {
+        await deleteMutation.mutateAsync(id);
+        showToast(t('transactions.delete.success'));
+      } catch {
+        // Error handled by mutation
+      }
+    },
+    [deleteMutation, showToast, t],
+  );
+
+  const handleCloseAllocate = useCallback(() => {
+    setAllocatingTransaction(null);
+  }, []);
+
+  const handleAllocateSuccess = useCallback(() => {
+    showToast(t('transactions.allocation.success'));
+  }, [showToast, t]);
 
   if (dashboard.isError) {
     return <SessionStateScreen reason="expired" onRetry={() => void dashboard.refetch()} />;
@@ -329,10 +349,8 @@ export function TransactionsScreen() {
       <DebtAllocationModal
         isOpen={Boolean(allocatingTransaction)}
         transaction={allocatingTransaction}
-        onClose={() => setAllocatingTransaction(null)}
-        onSuccess={() => {
-          setToastMessage(t('transactions.allocation.success'));
-        }}
+        onClose={handleCloseAllocate}
+        onSuccess={handleAllocateSuccess}
       />
     </>
   );

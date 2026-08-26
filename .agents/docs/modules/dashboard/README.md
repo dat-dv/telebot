@@ -41,9 +41,12 @@ metadata:
 - **Phân bổ Giao dịch vào Công nợ (`DebtAllocationModal`)**:
   - Trên bảng giao dịch thu chi, nút phân bổ mở cửa sổ `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
   - Tải danh sách các khoản nợ khả dụng của liên hệ tương ứng qua `useDebtAllocationCandidatesQuery`, cho phép phân bổ số tiền giao dịch vào một hoặc nhiều khoản nợ, gọi `POST /api/debts/allocations` qua `useAllocateTransactionMutation`.
-- **Cơ chế Migration chuyển đổi dữ liệu cũ**:
-  - Script migration TypeORM `1724660000000-MigrateLegacyPlaceContacts.ts` tự động chạy khi khởi động backend (`migrationsRun: true`).
-  - Tự động backfill các địa điểm cũ từ `debt_contacts` sang `finance_places` (xử lý trùng lặp bằng `DISTINCT ON` và `UNIQUE INDEX`), chuyển đổi `place_id` cho `finance_transactions` và dọn dẹp các bản ghi địa điểm thừa khỏi `debt_contacts` để trả lại danh bạ cá nhân sạch sẽ.
+  - Toàn bộ callbacks (`onClose`, `onSuccess`) và các action handlers trên `TransactionsScreen` đều được bọc trong `useCallback` để đảm bảo tính ổn định của tham chiếu.
+
+## Cơ chế chống treo render & Tối ưu hiệu năng Bảng dữ liệu
+
+- **Chống vòng lặp re-render vô tận trong `DataTable`**: `DataTable` (`src/shared/ui/data-table.tsx`) sử dụng chuỗi khóa `allColumnsKey` làm dependency cho `useEffect` thay vì mảng đối tượng `allColumns`. Đồng thời tích hợp cơ chế so sánh giá trị cũ/mới (equality guard) trước khi cập nhật state `setVisibleColumnIds` và `setColumnWidths` từ `localStorage`. Trạng thái chỉ được ghi nhận lại khi có sự thay đổi thực sự, triệt tiêu 100% hiện tượng re-render vô tận làm đơ chuột hay khóa giao diện trên trang `/transactions`.
+- **Tối ưu hóa `usePeriodFilter`**: Object trả về của `usePeriodFilter` được bọc trong `useMemo` để giữ nguyên tham chiếu giữa các lượt render khi khoảng thời gian lọc không đổi.
 
 ## Cấu hình production
 

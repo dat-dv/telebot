@@ -53,9 +53,12 @@ During inline transaction editing, Category is a controlled combobox rather than
   - On the transactions table, transactions can be linked to candidate active debts via an Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
   - Fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).
   - Preserves traceability between cashflow events and debt payments.
-- **Legacy Place Migration**:
-  - TypeORM migration `1724660000000-MigrateLegacyPlaceContacts.ts` automatically executes on server boot (`migrationsRun: true`).
-  - Backfills historical place contacts from `debt_contacts` into `finance_places` (with deduplication via `DISTINCT ON` and unique indexing), links `finance_transactions.place_id`, and removes legacy place entries from `debt_contacts` while preserving all transaction history.
+  - All modal callbacks (`onClose`, `onSuccess`) and transaction table handlers are memoized via `useCallback` to prevent superfluous re-renders.
+
+## High-performance Data Tables & Render Loop Prevention
+
+- `DataTable` (`src/shared/ui/data-table.tsx`) utilizes `allColumnsKey` string dependency tracking alongside functional state equality guards (`setVisibleColumnIds`, `setColumnWidths`). State updates from `localStorage` (`telebot:table-columns:*`, `telebot:table-widths:*`) only commit when values actually diverge from previous state, eliminating infinite render loops across dense views like `TransactionsScreen`.
+- `usePeriodFilter` memoizes its returned state object with `useMemo`, preventing downstream cascade renders when the active period date range is unchanged.
 
 ## Integration seams
 

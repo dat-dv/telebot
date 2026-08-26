@@ -759,3 +759,112 @@ void test('FinanceService.listTransactions queries transactions with relations a
     type: 'expense',
   });
 });
+
+void test('FinanceService.updateTransaction blocks changing type when allocations exist', async () => {
+  const mockTx: Partial<FinanceTransactionEntity> = {
+    id: 'tx-alloc-1',
+    userId: '42',
+    type: 'income',
+    amount: 1_000_000,
+    category: 'Thu hồi nợ',
+    note: 'Được trả nợ',
+    allocations: [
+      {
+        id: 'alloc-1',
+        userId: '42',
+        financeTransactionId: 'tx-alloc-1',
+        debtId: 'debt-1',
+        amount: 600_000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as DebtPaymentAllocationEntity,
+    ],
+  };
+
+  const transactionRepository = {
+    findOne: () => Promise.resolve(mockTx as FinanceTransactionEntity),
+    save: (entity: unknown) => Promise.resolve(entity),
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  await assert.rejects(
+    async () => {
+      await service.updateTransaction(42, 'tx-alloc-1', { type: 'expense' });
+    },
+    {
+      name: 'Error',
+      message: 'Không thể đổi loại giao dịch khi đang có phân bổ công nợ.',
+    },
+  );
+});
+
+void test('FinanceService.updateTransaction blocks reducing amount below total allocated amount', async () => {
+  const mockTx: Partial<FinanceTransactionEntity> = {
+    id: 'tx-alloc-2',
+    userId: '42',
+    type: 'expense',
+    amount: 1_000_000,
+    category: 'Trả nợ',
+    note: 'Trả nợ',
+    allocations: [
+      {
+        id: 'alloc-1',
+        userId: '42',
+        financeTransactionId: 'tx-alloc-2',
+        debtId: 'debt-1',
+        amount: 400_000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as DebtPaymentAllocationEntity,
+      {
+        id: 'alloc-2',
+        userId: '42',
+        financeTransactionId: 'tx-alloc-2',
+        debtId: 'debt-2',
+        amount: 300_000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as DebtPaymentAllocationEntity,
+    ],
+  };
+
+  const transactionRepository = {
+    findOne: () => Promise.resolve(mockTx as FinanceTransactionEntity),
+    save: (entity: unknown) => Promise.resolve(entity),
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  // Total allocated is 700_000. Reducing amount to 500_000 should fail.
+  await assert.rejects(
+    async () => {
+      await service.updateTransaction(42, 'tx-alloc-2', { amount: 500_000 });
+    },
+    {
+      name: 'Error',
+      message:
+        'Số tiền giao dịch mới không được nhỏ hơn tổng số tiền đã phân bổ công nợ (700.000đ).',
+    },
+  );
+
+  // Updating amount to 800_000 (>= 700_000) should succeed.
+  const updated = await service.updateTransaction(42, 'tx-alloc-2', { amount: 800_000 });
+  assert.equal(updated?.amount, 800_000);
+});

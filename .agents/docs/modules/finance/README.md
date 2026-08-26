@@ -23,9 +23,10 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
 ## Dashboard và Gemini
 
 - Trang **Báo cáo & Phân tích** (`/analytics`) gọi `GET /api/finance/analytics` để trực quan hóa biểu đồ dòng tiền (Cashflow trend), cơ cấu chi tiêu (Category donut), và phân bổ công nợ (Debt structure).
-- Bảng **Thu chi** có cột **Nơi chốn** và nút **🔗 Phân bổ công nợ** trên từng dòng.
-- **Tính năng Phân bổ Giao dịch vào Công nợ**:
+- Bảng **Thu chi** có cột **Hoạt động** tinh gọn (chỉ gồm nút **Sửa** và **Xóa**, chiều rộng 130px). Với giao dịch đã có phân bổ công nợ, hiển thị badge nhỏ gọn `🔗 <N> phân bổ` tại ô Ghi chú để mở nhanh modal phân bổ. Ở chế độ sửa trực tiếp (inline edit), cung cấp nút lối tắt `🔗` mở modal phân bổ.
+- **Tính năng Phân bổ Giao dịch vào Công nợ & Validation toàn diện**:
   * Cho phép người dùng gắn trực tiếp số tiền của một giao dịch thu/chi có sẵn vào một hoặc nhiều khoản công nợ đang mở (Thu phân bổ cho Phải thu, Chi phân bổ cho Phải trả).
+  * Backend & Frontend kiểm soát chặt chẽ: không cho phép giảm số tiền giao dịch xuống thấp hơn tổng tiền đã phân bổ, và không cho phép đổi chiều giao dịch (`income` ↔ `expense`) khi đang có phân bổ gắn kèm.
   * Modal `DebtAllocationModal` hiển thị thông tin giao dịch nguồn, tính toán số dư chưa phân bổ real-time, danh sách khoản nợ ứng viên, hỗ trợ nút "Phân bổ tối đa" và kiểm soát chặt chẽ giới hạn số tiền.
   * API hỗ trợ: `GET /api/transactions/:id/candidate-debts`, `GET /api/transactions/:id/allocations`, `POST /api/transactions/:id/allocations`, `DELETE /api/transactions/:id/allocations/:allocationId`.
 - Tìm kiếm giao dịch áp dụng cho danh mục, ghi chú và nơi chốn.

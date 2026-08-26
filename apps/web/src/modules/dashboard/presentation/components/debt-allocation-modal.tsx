@@ -210,8 +210,8 @@ export function DebtAllocationModal({
             </h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               {isIncome
-                ? 'Gắn số tiền thu được vào các khoản cho vay đang mở (Phải thu)'
-                : 'Gắn số tiền đã chi vào các khoản nợ đang mở (Phải trả)'}
+                ? t('transactions.allocation.modalSubtitleIncome')
+                : t('transactions.allocation.modalSubtitleExpense')}
             </p>
           </div>
           <button
@@ -389,7 +389,7 @@ export function DebtAllocationModal({
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">
-                            Ghi chú phân bổ (tùy chọn)
+                            {t('transactions.allocation.noteOptional')}
                           </label>
                           <input
                             type="text"
@@ -431,7 +431,9 @@ export function DebtAllocationModal({
               }
               className="cursor-pointer rounded-[4px] border border-sky-600 bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-500 dark:bg-sky-600 dark:hover:bg-sky-500"
             >
-              {allocateMutation.isPending ? 'Đang lưu...' : t('transactions.allocation.submit')}
+              {allocateMutation.isPending
+                ? t('common.saving')
+                : t('transactions.allocation.submit')}
             </button>
           </div>
         </form>
