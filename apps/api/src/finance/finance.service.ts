@@ -469,7 +469,8 @@ export class FinanceService {
       .leftJoinAndSelect('debt.payments', 'payments')
       .where('debt.user_id = :userId', { userId: userId.toString() })
       .andWhere('debt.status = :status', { status: 'active' })
-      .orderBy('COALESCE(debt.occurred_at, debt.created_at)', 'DESC')
+      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
+      .addOrderBy('debt.created_at', 'DESC')
       .addOrderBy('debt.id', 'DESC')
       .getMany();
   }
@@ -482,7 +483,8 @@ export class FinanceService {
       .where('debt.user_id = :userId', { userId: userId.toString() });
     if (status) query.andWhere('debt.status = :status', { status });
     return query
-      .orderBy('COALESCE(debt.occurred_at, debt.created_at)', 'DESC')
+      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
+      .addOrderBy('debt.created_at', 'DESC')
       .addOrderBy('debt.id', 'DESC')
       .take(200)
       .getMany();
