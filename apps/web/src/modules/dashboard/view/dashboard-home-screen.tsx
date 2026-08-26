@@ -217,9 +217,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       minWidth: '160px',
       hideable: false,
       cell: (item) => (
-        <span className="inline-flex items-center font-semibold text-slate-900 dark:text-slate-100">
+        <span className="inline-flex flex-nowrap items-center font-semibold text-slate-900 whitespace-nowrap dark:text-slate-100">
           <span
-            className={`mr-1.5 inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+            className={`mr-1.5 inline-flex shrink-0 items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
               item.type === 'income'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                 : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
@@ -256,9 +256,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       minWidth: '160px',
       hideable: false,
       cell: (item) => (
-        <span className="inline-flex items-center font-semibold text-slate-900 dark:text-slate-100">
+        <span className="inline-flex flex-nowrap items-center font-semibold text-slate-900 whitespace-nowrap dark:text-slate-100">
           <span
-            className={`mr-1.5 inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+            className={`mr-1.5 inline-flex shrink-0 items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
               item.direction === 'receivable'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                 : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'

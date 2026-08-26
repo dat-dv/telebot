@@ -14,6 +14,7 @@ import { UserCategoryEntity } from './entities/user-category.entity';
 import { FinancePlaceEntity } from './entities/finance-place.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
 import { InitSchema1724650000000 } from './migrations/1724650000000-InitSchema';
+import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000000-MigrateLegacyPlaceContacts';
 
 @Module({
   imports: [
@@ -43,7 +44,7 @@ import { InitSchema1724650000000 } from './migrations/1724650000000-InitSchema';
           ssl: databaseSsl ? { rejectUnauthorized: false } : false,
           entities,
           subscribers: [AuditLogSubscriber],
-          migrations: [InitSchema1724650000000],
+          migrations: [InitSchema1724650000000, MigrateLegacyPlaceContacts1724660000000],
           migrationsRun: true,
           migrationsTableName: 'typeorm_migrations',
           synchronize,

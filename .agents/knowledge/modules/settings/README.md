@@ -8,7 +8,7 @@
 
 ## UI and state
 
-`SettingsScreen` is built with 100% Tailwind CSS utility classes and provides tab navigation between `categories` and `preferences`. The `categories` view presents two distinct `DataPanel` widgets for expense and income categories. Each panel includes live search filtering, inline item addition (`addExpense` / `addIncome`), inline name editing on double-click or edit action, and deletion with confirmation. State is managed via TanStack Query hooks (`useCategoriesQuery`, `useCreateCategoryMutation`, `useUpdateCategoryMutation`, `useDeleteCategoryMutation`) under the `categories` query key namespace.
+`SettingsScreen` is built with 100% Tailwind CSS utility classes and provides tab navigation between `categories` and `preferences`. The `categories` view presents two distinct `DataPanel` widgets for expense and income categories. Each panel includes live search filtering, inline item addition (`addExpense` / `addIncome`), inline name editing on double-click or edit action, action buttons configured with `flex-nowrap whitespace-nowrap` and `shrink-0` to prevent wrapping, and deletion with confirmation. State is managed via TanStack Query hooks (`useCategoriesQuery`, `useCreateCategoryMutation`, `useUpdateCategoryMutation`, `useDeleteCategoryMutation`) under the `categories` query key namespace.
 
 ## Integration seams
 

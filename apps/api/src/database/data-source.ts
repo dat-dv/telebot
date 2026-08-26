@@ -15,6 +15,7 @@ import { UserCategoryEntity } from './entities/user-category.entity';
 import { FinancePlaceEntity } from './entities/finance-place.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
 import { InitSchema1724650000000 } from './migrations/1724650000000-InitSchema';
+import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000000-MigrateLegacyPlaceContacts';
 
 // Load environment variables for TypeORM CLI
 loadDotenv({ path: fromProjectRoot('.env.local') });
@@ -44,7 +45,7 @@ export const AppDataSource = new DataSource({
     FinancePlaceEntity,
   ],
   subscribers: [AuditLogSubscriber],
-  migrations: [InitSchema1724650000000],
+  migrations: [InitSchema1724650000000, MigrateLegacyPlaceContacts1724660000000],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
   logging: process.env.NODE_ENV !== 'production',
