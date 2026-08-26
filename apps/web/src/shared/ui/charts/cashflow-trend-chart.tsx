@@ -39,7 +39,10 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const data = payload[0]?.payload;
   if (!data) return null;
 
-  const isPos = data.balance >= 0;
+  const netCashflow =
+    typeof data.netCashflow === 'number' ? data.netCashflow : data.income - data.expense;
+  const isNetPos = netCashflow >= 0;
+  const isBalancePos = data.balance >= 0;
 
   return (
     <div className="flex flex-col gap-1.5 rounded-[4px] border border-slate-200 bg-white/95 p-2.5 text-xs shadow-lg backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
@@ -65,17 +68,34 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
             - {money(data.expense)}
           </span>
         </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+            <span className="size-2 rounded-xs bg-slate-400" />
+            {t('analytics.chart.netCashflow')}:
+          </span>
+          <span
+            className={`font-medium tabular-nums ${
+              isNetPos
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {isNetPos ? '+ ' : ''}
+            {money(netCashflow)}
+          </span>
+        </div>
         <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-1 dark:border-slate-800">
-          <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-400">
+          <span className="flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-400">
             <span className="size-2 rounded-xs bg-violet-500" />
-            {t('analytics.chart.netBalance')}:
+            {t('analytics.chart.walletBalance')}:
           </span>
           <span
             className={`font-bold tabular-nums ${
-              isPos ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              isBalancePos
+                ? 'text-violet-700 dark:text-violet-400'
+                : 'text-rose-600 dark:text-rose-400'
             }`}
           >
-            {isPos ? '+ ' : ''}
             {money(data.balance)}
           </span>
         </div>
@@ -125,7 +145,7 @@ export function CashflowTrendChart({ buckets, height = 220 }: CashflowTrendChart
         </span>
         <span className="inline-flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-400">
           <span className="inline-block h-0.5 w-3.5 bg-violet-500 rounded-full" />
-          {t('analytics.chart.netBalance')}
+          {t('analytics.chart.walletBalance')}
         </span>
       </div>
 
@@ -169,7 +189,7 @@ export function CashflowTrendChart({ buckets, height = 220 }: CashflowTrendChart
             <Line
               type="monotone"
               dataKey="balance"
-              name={t('analytics.chart.netBalance')}
+              name={t('analytics.chart.walletBalance')}
               stroke="#8b5cf6"
               strokeWidth={2}
               dot={{ r: 2.5, fill: '#8b5cf6' }}

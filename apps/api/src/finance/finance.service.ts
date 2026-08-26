@@ -229,7 +229,32 @@ export class FinanceService {
         ? Math.max(0, ((summary.income - summary.expense) / summary.income) * 100)
         : 0;
 
-    const trend = this.generateTrendBuckets(summary.transactions, startAt, endAt, grain);
+    let openingBalance = 0;
+    if (startAt) {
+      const startDate = new Date(startAt);
+      if (!Number.isNaN(startDate.getTime())) {
+        const priorTransactions = await this.transactionRepo
+          .createQueryBuilder('transaction')
+          .where('transaction.user_id = :userId', { userId: userId.toString() })
+          .andWhere('transaction.occurred_at < :startAt', { startAt: startDate })
+          .getMany();
+        const priorIncome = priorTransactions
+          .filter((tx) => tx.type === 'income')
+          .reduce((sum, tx) => sum + tx.amount, 0);
+        const priorExpense = priorTransactions
+          .filter((tx) => tx.type === 'expense')
+          .reduce((sum, tx) => sum + tx.amount, 0);
+        openingBalance = priorIncome - priorExpense;
+      }
+    }
+
+    const trend = this.generateTrendBuckets(
+      summary.transactions,
+      startAt,
+      endAt,
+      grain,
+      openingBalance,
+    );
 
     const categoryMap = new Map<
       string,
@@ -301,17 +326,21 @@ export class FinanceService {
     startAt?: string,
     endAt?: string,
     grain: AnalyticsGrain = 'month',
+    openingBalance = 0,
   ): IAnalyticsTrendBucket[] {
     const startDate = startAt ? new Date(startAt) : new Date(0);
     const endDate = endAt ? new Date(endAt) : new Date();
 
+    let buckets: IAnalyticsTrendBucket[] = [];
+
     if (grain === 'week') {
       const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-      const buckets: IAnalyticsTrendBucket[] = dayLabels.map((label, idx) => ({
+      buckets = dayLabels.map((label, idx) => ({
         key: `day-${idx}`,
         label,
         income: 0,
         expense: 0,
+        netCashflow: 0,
         balance: 0,
         startAt: '',
         endAt: '',
@@ -327,14 +356,7 @@ export class FinanceService {
           buckets[dayIdx].expense += tx.amount;
         }
       }
-
-      buckets.forEach((b) => {
-        b.balance = b.income - b.expense;
-      });
-      return buckets;
-    }
-
-    if (grain === 'month') {
+    } else if (grain === 'month') {
       const lastDay = endDate.getDate() || 30;
       const intervals = [
         { key: 'p1', label: '1-5', start: 1, end: 5 },
@@ -345,11 +367,12 @@ export class FinanceService {
         { key: 'p6', label: `26-${lastDay}`, start: 26, end: lastDay },
       ];
 
-      const buckets: IAnalyticsTrendBucket[] = intervals.map((iv) => ({
+      buckets = intervals.map((iv) => ({
         key: iv.key,
         label: iv.label,
         income: 0,
         expense: 0,
+        netCashflow: 0,
         balance: 0,
         startAt: '',
         endAt: '',
@@ -368,21 +391,15 @@ export class FinanceService {
           }
         }
       }
-
-      buckets.forEach((b) => {
-        b.balance = b.income - b.expense;
-      });
-      return buckets;
-    }
-
-    if (grain === 'quarter') {
+    } else if (grain === 'quarter') {
       const month = startDate.getMonth();
       const startMonth = Math.floor(month / 3) * 3;
-      const buckets: IAnalyticsTrendBucket[] = [0, 1, 2].map((idx) => ({
+      buckets = [0, 1, 2].map((idx) => ({
         key: `m-${startMonth + idx}`,
         label: `Tháng ${String(startMonth + idx + 1).padStart(2, '0')}`,
         income: 0,
         expense: 0,
+        netCashflow: 0,
         balance: 0,
         startAt: '',
         endAt: '',
@@ -401,40 +418,40 @@ export class FinanceService {
           }
         }
       }
+    } else {
+      // Default: 12 months for year or all
+      buckets = Array.from({ length: 12 }, (_, i) => ({
+        key: `m-${i}`,
+        label: `T${String(i + 1).padStart(2, '0')}`,
+        income: 0,
+        expense: 0,
+        netCashflow: 0,
+        balance: 0,
+        startAt: '',
+        endAt: '',
+      }));
 
-      buckets.forEach((b) => {
-        b.balance = b.income - b.expense;
-      });
-      return buckets;
-    }
-
-    // Default: 12 months for year or all
-    const buckets: IAnalyticsTrendBucket[] = Array.from({ length: 12 }, (_, i) => ({
-      key: `m-${i}`,
-      label: `T${String(i + 1).padStart(2, '0')}`,
-      income: 0,
-      expense: 0,
-      balance: 0,
-      startAt: '',
-      endAt: '',
-    }));
-
-    for (const tx of transactions) {
-      const d = new Date(tx.occurredAt);
-      if (Number.isNaN(d.getTime())) continue;
-      const m = d.getMonth();
-      if (m >= 0 && m < 12) {
-        if (tx.type === 'income') {
-          buckets[m].income += tx.amount;
-        } else {
-          buckets[m].expense += tx.amount;
+      for (const tx of transactions) {
+        const d = new Date(tx.occurredAt);
+        if (Number.isNaN(d.getTime())) continue;
+        const m = d.getMonth();
+        if (m >= 0 && m < 12) {
+          if (tx.type === 'income') {
+            buckets[m].income += tx.amount;
+          } else {
+            buckets[m].expense += tx.amount;
+          }
         }
       }
     }
 
-    buckets.forEach((b) => {
-      b.balance = b.income - b.expense;
-    });
+    let runningBalance = openingBalance;
+    for (const b of buckets) {
+      b.netCashflow = b.income - b.expense;
+      runningBalance += b.netCashflow;
+      b.balance = runningBalance;
+    }
+
     return buckets;
   }
 

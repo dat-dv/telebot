@@ -199,3 +199,142 @@ void test('FinanceService.resolvePlaces finds places matching normalized name', 
   const empty = await service.resolvePlaces(42, '   ');
   assert.equal(empty.length, 0);
 });
+
+void test('FinanceService.getAnalyticsReport computes cumulative balance and opening balance', async () => {
+  const transactions: FinanceTransactionEntity[] = [
+    {
+      id: 'tx-1',
+      userId: '42',
+      type: 'income',
+      amount: 10_000_000,
+      currency: 'VND',
+      category: 'Lương',
+      note: 'Lương tháng 7',
+      occurredAt: new Date('2026-07-25T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-2',
+      userId: '42',
+      type: 'expense',
+      amount: 2_000_000,
+      currency: 'VND',
+      category: 'Mua sắm',
+      note: 'Tiền nhà tháng 7',
+      occurredAt: new Date('2026-07-28T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-3',
+      userId: '42',
+      type: 'income',
+      amount: 5_000_000,
+      currency: 'VND',
+      category: 'Thưởng',
+      note: 'Thưởng tháng 8',
+      occurredAt: new Date('2026-08-02T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-4',
+      userId: '42',
+      type: 'expense',
+      amount: 1_000_000,
+      currency: 'VND',
+      category: 'Ăn uống',
+      note: 'Ăn uống',
+      occurredAt: new Date('2026-08-08T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const transactionRepository = {
+    createQueryBuilder: () => {
+      let filterStart: Date | undefined;
+      let filterEnd: Date | undefined;
+      let filterPrior: Date | undefined;
+
+      const builder = {
+        where: () => builder,
+        andWhere: (clause: string, params: { startAt?: Date; endAt?: Date }) => {
+          if (clause.includes('< :startAt')) {
+            filterPrior = params.startAt;
+          } else if (clause.includes('>= :startAt')) {
+            filterStart = params.startAt;
+          } else if (clause.includes('<= :endAt')) {
+            filterEnd = params.endAt;
+          }
+          return builder;
+        },
+        leftJoinAndSelect: () => builder,
+        orderBy: () => builder,
+        getMany: () => {
+          let list = [...transactions];
+          const prior = filterPrior;
+          const start = filterStart;
+          const end = filterEnd;
+          if (prior) {
+            list = list.filter((t) => t.occurredAt < prior);
+          }
+          if (start) {
+            list = list.filter((t) => t.occurredAt >= start);
+          }
+          if (end) {
+            list = list.filter((t) => t.occurredAt <= end);
+          }
+          return Promise.resolve(list);
+        },
+      };
+      return builder;
+    },
+  };
+
+  const debtRepository = {
+    createQueryBuilder: () => {
+      const debtQuery = {
+        leftJoinAndSelect: () => debtQuery,
+        where: () => debtQuery,
+        andWhere: () => debtQuery,
+        orderBy: () => debtQuery,
+        addOrderBy: () => debtQuery,
+        getMany: () => Promise.resolve([]),
+      };
+      return debtQuery;
+    },
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    debtRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const report = await service.getAnalyticsReport(
+    42,
+    '2026-08-01T00:00:00.000Z',
+    '2026-08-31T23:59:59.999Z',
+    'month',
+  );
+
+  // Opening balance before Aug 1 = 10tr - 2tr = 8tr
+  // Bucket p1 (1-5): income = 5tr, expense = 0 -> netCashflow = +5tr -> balance = 8tr + 5tr = 13tr
+  // Bucket p2 (6-10): income = 0, expense = 1tr -> netCashflow = -1tr -> balance = 13tr - 1tr = 12tr
+  assert.equal(report.trend[0]?.label, '1-5');
+  assert.equal(report.trend[0]?.income, 5_000_000);
+  assert.equal(report.trend[0]?.expense, 0);
+  assert.equal(report.trend[0]?.netCashflow, 5_000_000);
+  assert.equal(report.trend[0]?.balance, 13_000_000);
+
+  assert.equal(report.trend[1]?.label, '6-10');
+  assert.equal(report.trend[1]?.income, 0);
+  assert.equal(report.trend[1]?.expense, 1_000_000);
+  assert.equal(report.trend[1]?.netCashflow, -1_000_000);
+  assert.equal(report.trend[1]?.balance, 12_000_000);
+});

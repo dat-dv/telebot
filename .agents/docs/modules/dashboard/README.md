@@ -16,7 +16,7 @@ metadata:
 - Trang Báo cáo & Phân tích trực quan (`/analytics` - `AnalyticsScreen`):
   - Tinh gọn thành **1 màn hình Single-Page Dashboard phân tích liền mạch** từ trên xuống dưới, loại bỏ các sub-tabs rời rạc và các bảng CRUD dư thừa:
     - **Dải thẻ KPI tổng quan**: 5 thẻ chỉ số tài chính (Tổng thu, Tổng chi, Tiết kiệm ròng, % Tích lũy, Vị thế nợ ròng).
-    - **Khu vực Xu hướng dòng tiền (Full-width)**: Biểu đồ `CashflowTrendChart` (Composed Bar/Line Chart Recharts) trực quan hóa Thu vào, Chi ra và Đường số dư ròng; có nút chuyển đổi linh hoạt trên toolbar giữa xem Biểu đồ (`chart`) và Bảng số liệu chi tiết theo kỳ (`table` qua `DataTable`).
+    - **Khu vực Xu hướng dòng tiền (Full-width)**: Biểu đồ `CashflowTrendChart` (Composed Bar/Line Chart Recharts) trực quan hóa Thu vào, Chi ra và Đường Biến động số dư ví tích lũy theo thời gian; có nút chuyển đổi linh hoạt trên toolbar giữa xem Biểu đồ (`chart`) và Bảng số liệu chi tiết theo kỳ (`table` qua `DataTable` với các cột Thu vào, Chi ra, Dòng tiền thuần và Số dư tích lũy).
     - **Lưới phân rã 2 cột**:
       - Cột trái: `CategoryDonutChart` (Donut Pie Chart Recharts) phân bổ tỷ trọng chi tiêu từng danh mục (Top 5 danh mục + nhóm Khác) kèm thanh tiến độ tỷ lệ % và số tiền.
       - Cột phải: `DebtStructureChart` hiển thị thanh tỷ lệ đối sánh Phải thu vs Phải trả và danh sách Top đối tác nợ lớn nhất.

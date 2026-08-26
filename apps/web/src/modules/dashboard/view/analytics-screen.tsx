@@ -72,17 +72,39 @@ export function AnalyticsScreen() {
     };
   }, [periodTransactions, periodFilter]);
 
+  // Aggregate opening balance before selected period
+  const openingBalance = useMemo(() => {
+    let bal = 0;
+    const startRange = periodFilter.startDate ? periodFilter.startDate.getTime() : 0;
+    if (startRange > 0 && periodFilter.grain !== 'all') {
+      for (const item of rawTransactions) {
+        const itemDate = new Date(item.occurredAt).getTime();
+        if (itemDate < startRange) {
+          if (item.type === 'income') bal += item.amount;
+          else bal -= item.amount;
+        }
+      }
+    }
+    return bal;
+  }, [rawTransactions, periodFilter.startDate, periodFilter.grain]);
+
   const fallbackTrendBuckets = useMemo<IAnalyticsTrendBucket[]>(() => {
-    return periodBuckets.map((b) => ({
-      key: b.key,
-      label: b.label,
-      income: b.income,
-      expense: b.expense,
-      balance: b.income - b.expense,
-      startAt: '',
-      endAt: '',
-    }));
-  }, [periodBuckets]);
+    let running = openingBalance;
+    return periodBuckets.map((b) => {
+      const net = b.income - b.expense;
+      running += net;
+      return {
+        key: b.key,
+        label: b.label,
+        income: b.income,
+        expense: b.expense,
+        netCashflow: net,
+        balance: running,
+        startAt: '',
+        endAt: '',
+      };
+    });
+  }, [periodBuckets, openingBalance]);
 
   const totalIncome = analyticsQuery.data?.summary.income ?? periodIncome;
   const totalExpense = analyticsQuery.data?.summary.expense ?? periodExpense;
@@ -112,7 +134,7 @@ export function AnalyticsScreen() {
       {
         id: 'period',
         header: t('analytics.cashflow.column.period'),
-        width: '28%',
+        width: '22%',
         cell: (item) => (
           <span className="font-semibold text-slate-900 dark:text-slate-100">{item.label}</span>
         ),
@@ -121,7 +143,7 @@ export function AnalyticsScreen() {
         id: 'income',
         header: t('analytics.cashflow.column.income'),
         align: 'right',
-        width: '24%',
+        width: '19%',
         cell: (item) => (
           <span className="tabular-nums font-medium text-sky-700 dark:text-sky-400">
             + {money(item.income)}
@@ -132,7 +154,7 @@ export function AnalyticsScreen() {
         id: 'expense',
         header: t('analytics.cashflow.column.expense'),
         align: 'right',
-        width: '24%',
+        width: '19%',
         cell: (item) => (
           <span className="tabular-nums font-medium text-amber-700 dark:text-amber-400">
             - {money(item.expense)}
@@ -140,21 +162,41 @@ export function AnalyticsScreen() {
         ),
       },
       {
-        id: 'balance',
-        header: t('analytics.cashflow.column.balance'),
+        id: 'netCashflow',
+        header: t('analytics.cashflow.column.netCashflow'),
         align: 'right',
-        width: '24%',
+        width: '20%',
         cell: (item) => {
-          const isPos = item.balance >= 0;
+          const net =
+            typeof item.netCashflow === 'number' ? item.netCashflow : item.income - item.expense;
+          const isPos = net >= 0;
           return (
             <span
-              className={`tabular-nums font-bold ${
+              className={`tabular-nums font-medium ${
                 isPos
                   ? 'text-emerald-700 dark:text-emerald-400'
                   : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {isPos ? '+ ' : ''}
+              {money(net)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'balance',
+        header: t('analytics.cashflow.column.balance'),
+        align: 'right',
+        width: '20%',
+        cell: (item) => {
+          const isPos = item.balance >= 0;
+          return (
+            <span
+              className={`tabular-nums font-bold ${
+                isPos ? 'text-violet-700 dark:text-violet-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
               {money(item.balance)}
             </span>
           );
