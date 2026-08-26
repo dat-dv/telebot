@@ -13,6 +13,7 @@ import { DashboardExchangeTokenEntity } from './entities/dashboard-exchange-toke
 import { UserCategoryEntity } from './entities/user-category.entity';
 import { FinancePlaceEntity } from './entities/finance-place.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
+import { InitSchema1724650000000 } from './migrations/1724650000000-InitSchema';
 
 @Module({
   imports: [
@@ -42,6 +43,9 @@ import { AuditLogSubscriber } from './audit-log.subscriber';
           ssl: databaseSsl ? { rejectUnauthorized: false } : false,
           entities,
           subscribers: [AuditLogSubscriber],
+          migrations: [InitSchema1724650000000],
+          migrationsRun: true,
+          migrationsTableName: 'typeorm_migrations',
           synchronize,
           logging: false,
         };

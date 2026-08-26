@@ -27,13 +27,14 @@
 - The frontend stores only the 15-minute dashboard access token. A rotated seven-day refresh token remains in an `HttpOnly` cookie and Axios uses it after a 401.
 - The browser routes `/`, `/transactions`, `/debts`, `/analytics`, `/calendar`, `/tasks`, `/reminders`, and `/contacts` are exported as static files inside route group `app/(private)/`. UI ownership is split into `modules/auth`, `modules/dashboard`, `modules/debts`, `modules/contacts`, and reusable `shared/api` and `shared/ui` components.
 
-## Commands and Docker Build
+## Database Migrations
 
-- `npm run dev` runs both API and Web concurrently. `npm run dev:api` and `npm run dev:web` run them individually; the Next dev server uses port 5173.
-- `npm run build` is the root build entrypoint.
-- `npm run lint` and `npm run format:check` are non-mutating quality checks. Use `npm run lint:fix` and `npm run format` only when edits are intended.
-- API and static web images use `apps/api/Dockerfile` and `apps/web/Dockerfile` with monorepo root as Docker build context.
-- Docker builds utilize BuildKit (`# syntax=docker/dockerfile:1`) with `--mount=type=cache,target=/root/.npm` to eliminate redundant package downloads.
-- `apps/api/Dockerfile` employs isolated multi-stage builds: C++ compilation (`whisper-server` pinned at `v1.7.4`) and Tesseract OCR model downloads (`tessdata-downloader`) are decoupled from TypeScript compilation, ensuring instant warm builds on Coolify when modifying application code.
-- Root `.dockerignore` excludes `.git`, `node_modules`, `.next`, `dist`, logs, test artifacts, and `.env*` files to guarantee fast context transfer and prevent accidental cache invalidation.
+- PostgreSQL database schema is managed via TypeORM Migrations (`apps/api/src/database/migrations/`).
+- `migrationsRun: true` is enabled in `database.module.ts` to automatically execute pending migrations on API startup with zero data loss.
+- CLI DataSource is configured in `apps/api/src/database/data-source.ts`.
+- Manage migrations with:
+  - `npm run migration:run --workspace @telebot/api`: Run pending migrations.
+  - `npm run migration:revert --workspace @telebot/api`: Rollback latest migration.
+  - `npm run migration:generate --workspace @telebot/api`: Auto-generate migration from entity diffs.
+  - `npm run migration:create --workspace @telebot/api`: Create empty migration file.
 

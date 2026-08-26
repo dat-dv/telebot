@@ -65,3 +65,17 @@ Dùng `docker compose up --build` tại root. Compose build API và static web q
    - `builder`: Cài đặt dependencies và build TypeScript.
    - 👉 Khi deploy thay đổi code TypeScript trên Coolify, Docker chỉ cần build lại stage `builder` (~10-15 giây) thay vì phải clone, biên dịch C++ và tải lại model (~5-8 phút).
 3. **BuildKit Cache Mounts**: Sử dụng `# syntax=docker/dockerfile:1` cùng `RUN --mount=type=cache,target=/root/.npm npm ci` để chia sẻ cache npm giữa các build.
+
+## Quản Lý Cơ Sở Dữ Liệu & TypeORM Migrations
+
+Dự án sử dụng cơ chế **TypeORM Migrations tự động** để đồng bộ cơ sở dữ liệu PostgreSQL an toàn mà không làm mất dữ liệu:
+
+1. **Tự động thực thi khi khởi động (`migrationsRun: true`)**:
+   - Khi container API khởi động, NestJS tự động quét các file trong `apps/api/src/database/migrations/` và thực thi những migration chưa được áp dụng vào database.
+   - Trạng thái đã chạy được lưu trong bảng `typeorm_migrations`.
+2. **Các lệnh quản lý Migration (CLI)**:
+   - `npm run migration:run --workspace @telebot/api`: Chạy thủ công tất cả migration mới.
+   - `npm run migration:revert --workspace @telebot/api`: Rollback migration gần nhất.
+   - `npm run migration:generate --workspace @telebot/api -- src/database/migrations/<TenMigration>`: Tự động so sánh Entity và sinh file migration mới.
+   - `npm run migration:create --workspace @telebot/api -- src/database/migrations/<TenMigration>`: Tạo file migration trống.
+
