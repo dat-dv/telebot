@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import {
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_EXPENSE_CATEGORIES,
@@ -763,16 +763,11 @@ export class FinanceService {
   }
 
   public async getActiveDebts(userId: number): Promise<DebtEntity[]> {
-    return this.debtRepo
-      .createQueryBuilder('debt')
-      .leftJoinAndSelect('debt.contact', 'contact')
-      .leftJoinAndSelect('debt.payments', 'payments')
-      .where('debt.user_id = :userId', { userId: userId.toString() })
-      .andWhere('debt.status = :status', { status: 'active' })
-      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
-      .addOrderBy('debt.created_at', 'DESC')
-      .addOrderBy('debt.id', 'DESC')
-      .getMany();
+    return this.debtRepo.find({
+      where: { userId: userId.toString(), status: 'active' },
+      relations: { contact: true, payments: true },
+      order: { occurredAt: 'DESC', createdAt: 'DESC', id: 'DESC' },
+    });
   }
 
   public async listDebts(userId: number, status?: 'active' | 'settled'): Promise<DebtEntity[]> {
@@ -1198,20 +1193,19 @@ export class FinanceService {
       allocatedMap.set(alloc.debtId, (allocatedMap.get(alloc.debtId) || 0) + alloc.amount);
     }
 
-    const query = this.debtRepo
-      .createQueryBuilder('debt')
-      .leftJoinAndSelect('debt.contact', 'contact')
-      .where('debt.user_id = :userId', { userId: uid })
-      .andWhere('debt.direction = :direction', { direction: targetDirection });
-
+    const where: FindOptionsWhere<DebtEntity> = {
+      userId: uid,
+      direction: targetDirection,
+    };
     if (transaction.contactId) {
-      query.andWhere('debt.contact_id = :contactId', { contactId: transaction.contactId });
+      where.contactId = transaction.contactId;
     }
 
-    const debts = await query
-      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
-      .addOrderBy('debt.created_at', 'DESC')
-      .getMany();
+    const debts = await this.debtRepo.find({
+      where,
+      relations: { contact: true },
+      order: { occurredAt: 'DESC', createdAt: 'DESC' },
+    });
 
     const candidates: ICandidateDebtItem[] = [];
     for (const debt of debts) {
