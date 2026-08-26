@@ -2,14 +2,16 @@
 
 # Stage 1: Tesseract OCR language data downloader (cached independently)
 FROM alpine:3.21 AS tessdata-downloader
-RUN apk add --no-cache curl && \
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add curl && \
     mkdir -p /tessdata && \
     curl -fsSL https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata -o /tessdata/vie.traineddata && \
     curl -fsSL https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/eng.traineddata -o /tessdata/eng.traineddata
 
 # Stage 2: Whisper C++ server builder (pinned version for deterministic caching)
 FROM alpine:3.21 AS whisper-builder
-RUN apk add --no-cache cmake curl g++ git make wget
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add cmake curl g++ git make wget
 WORKDIR /opt
 ARG WHISPER_CPP_VERSION=v1.7.4
 RUN git clone --depth 1 --branch ${WHISPER_CPP_VERSION} https://github.com/ggml-org/whisper.cpp.git && \
@@ -20,7 +22,6 @@ RUN git clone --depth 1 --branch ${WHISPER_CPP_VERSION} https://github.com/ggml-
 # Stage 3: Node.js API builder
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -36,7 +37,8 @@ RUN npm run build --workspace @telebot/contracts && npm run build --workspace @t
 # Stage 4: Production runner
 FROM node:22-alpine AS runner
 WORKDIR /app
-RUN apk add --no-cache curl ffmpeg libgomp libstdc++
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add curl ffmpeg libgomp libstdc++
 
 ENV NODE_ENV=production
 EXPOSE 3000
