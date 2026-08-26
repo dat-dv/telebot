@@ -1,6 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import type { IAnalyticsTrendBucket } from '@telebot/contracts';
@@ -10,10 +19,73 @@ interface CashflowTrendChartProps {
   height?: number;
 }
 
-export function CashflowTrendChart({ buckets, height = 180 }: CashflowTrendChartProps) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    dataKey?: string | number;
+    name?: string;
+    value?: number;
+    payload?: IAnalyticsTrendBucket;
+  }>;
+  label?: string;
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const { t } = useLocale();
   const money = useMoneyFormatter();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (!active || !payload || !payload.length) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  const isPos = data.balance >= 0;
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-[4px] border border-slate-200 bg-white/95 p-2.5 text-xs shadow-lg backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
+      <div className="border-b border-slate-100 pb-1 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-200">
+        {data.label}
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400">
+            <span className="size-2 rounded-xs bg-sky-500" />
+            {t('chart.income')}:
+          </span>
+          <span className="font-medium tabular-nums text-sky-700 dark:text-sky-400">
+            + {money(data.income)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+            <span className="size-2 rounded-xs bg-amber-500" />
+            {t('chart.expense')}:
+          </span>
+          <span className="font-medium tabular-nums text-amber-700 dark:text-amber-400">
+            - {money(data.expense)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-1 dark:border-slate-800">
+          <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-400">
+            <span className="size-2 rounded-xs bg-violet-500" />
+            {t('analytics.chart.netBalance')}:
+          </span>
+          <span
+            className={`font-bold tabular-nums ${
+              isPos ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {isPos ? '+ ' : ''}
+            {money(data.balance)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CashflowTrendChart({ buckets, height = 220 }: CashflowTrendChartProps) {
+  const { t } = useLocale();
 
   if (!buckets.length) {
     return (
@@ -26,150 +98,86 @@ export function CashflowTrendChart({ buckets, height = 180 }: CashflowTrendChart
     );
   }
 
-  const maxVal = Math.max(
-    ...buckets.map((b) => Math.max(b.income, b.expense, Math.abs(b.balance))),
-    1,
-  );
-  const svgWidth = 600;
-  const labelH = 20;
-  const chartH = height - labelH;
-  const bucketWidth = svgWidth / buckets.length;
-  const barWidth = Math.max(Math.min((bucketWidth - 8) / 2, 18), 3);
-  const halfChart = chartH / 2;
-
-  const hoveredBucket = hoveredIndex !== null ? buckets[hoveredIndex] : null;
+  // Format short axis currency (e.g. 1M, 500k)
+  const formatYAxis = (val: number) => {
+    if (val === 0) return '0';
+    const abs = Math.abs(val);
+    if (abs >= 1_000_000) {
+      return `${(val / 1_000_000).toFixed(abs % 1_000_000 === 0 ? 0 : 1)}M`;
+    }
+    if (abs >= 1_000) {
+      return `${(val / 1_000).toFixed(0)}k`;
+    }
+    return String(val);
+  };
 
   return (
-    <div className="relative w-full" style={{ height: height + 28 }}>
-      {/* Legend */}
-      <div className="mb-1 flex items-center gap-3">
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 dark:text-sky-400">
-          <span className="size-2 rounded-sm bg-sky-600 dark:bg-sky-500" />
+    <div className="flex w-full flex-col gap-2">
+      {/* Legend header */}
+      <div className="flex flex-wrap items-center gap-3 text-[11px]">
+        <span className="inline-flex items-center gap-1.5 font-medium text-sky-700 dark:text-sky-400">
+          <span className="size-2 rounded-xs bg-sky-500" />
           {t('chart.income')}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-          <span className="size-2 rounded-sm bg-amber-500 dark:bg-amber-400" />
+        <span className="inline-flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
+          <span className="size-2 rounded-xs bg-amber-500" />
           {t('chart.expense')}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-700 dark:text-violet-400">
-          <span className="inline-block h-0.5 w-4 bg-violet-500 dark:bg-violet-400" />
+        <span className="inline-flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-400">
+          <span className="inline-block h-0.5 w-3.5 bg-violet-500 rounded-full" />
           {t('analytics.chart.netBalance')}
         </span>
       </div>
 
-      {/* Tooltip */}
-      {hoveredBucket && (
-        <div className="pointer-events-none absolute top-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[3px] bg-slate-900 px-2 py-1 text-[11px] whitespace-nowrap text-slate-50 shadow-md dark:bg-slate-700">
-          <span className="font-semibold text-slate-300">{hoveredBucket.label}</span>
-          <span className="text-sky-400">+ {money(hoveredBucket.income)}</span>
-          <span className="text-amber-400">- {money(hoveredBucket.expense)}</span>
-          <span className={hoveredBucket.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-            = {money(hoveredBucket.balance)}
-          </span>
-        </div>
-      )}
-
-      <svg
-        viewBox={`0 0 ${svgWidth} ${height}`}
-        className="w-full overflow-visible"
-        style={{ height }}
-        preserveAspectRatio="none"
-      >
-        {/* Zero line */}
-        <line
-          x1="0"
-          y1={halfChart}
-          x2={svgWidth}
-          y2={halfChart}
-          strokeDasharray="3 3"
-          strokeWidth="1"
-          className="stroke-slate-200 dark:stroke-slate-700"
-        />
-        {/* Baseline */}
-        <line
-          x1="0"
-          y1={chartH}
-          x2={svgWidth}
-          y2={chartH}
-          strokeWidth="1"
-          className="stroke-slate-200 dark:stroke-slate-700"
-        />
-
-        {/* Net balance polyline */}
-        {buckets.length > 1 && (
-          <polyline
-            points={buckets
-              .map((b, i) => {
-                const cx = i * bucketWidth + bucketWidth / 2;
-                const cy = chartH - ((b.balance / maxVal) * (chartH - 8) + 0);
-                return `${cx},${cy}`;
-              })
-              .join(' ')}
-            fill="none"
-            strokeWidth="1.5"
-            className="stroke-violet-500 dark:stroke-violet-400"
-          />
-        )}
-
-        {buckets.map((bucket, i) => {
-          const centerX = i * bucketWidth + bucketWidth / 2;
-          const incomeH = (bucket.income / maxVal) * (chartH - 8);
-          const expenseH = (bucket.expense / maxVal) * (chartH - 8);
-          const incomeX = centerX - barWidth - 1;
-          const expenseX = centerX + 1;
-          const incomeY = chartH - incomeH;
-          const expenseY = chartH - expenseH;
-          const isHovered = hoveredIndex === i;
-
-          return (
-            <g
-              key={bucket.key}
-              className="group cursor-pointer"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-            >
-              <rect
-                x={i * bucketWidth}
-                y="0"
-                width={bucketWidth}
-                height={height}
-                fill="transparent"
-              />
-
-              {bucket.income > 0 && (
-                <rect
-                  x={incomeX}
-                  y={incomeY}
-                  width={barWidth}
-                  height={Math.max(incomeH, 2)}
-                  rx="1"
-                  className={`fill-sky-500 transition-opacity dark:fill-sky-500 ${isHovered ? 'opacity-100' : 'opacity-75'}`}
-                />
-              )}
-
-              {bucket.expense > 0 && (
-                <rect
-                  x={expenseX}
-                  y={expenseY}
-                  width={barWidth}
-                  height={Math.max(expenseH, 2)}
-                  rx="1"
-                  className={`fill-amber-500 transition-opacity dark:fill-amber-400 ${isHovered ? 'opacity-100' : 'opacity-75'}`}
-                />
-              )}
-
-              <text
-                x={centerX}
-                y={chartH + labelH - 4}
-                textAnchor="middle"
-                className="fill-slate-400 text-[9px] font-medium dark:fill-slate-500"
-              >
-                {bucket.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      <div className="w-full" style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={buckets} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              className="stroke-slate-200/70 dark:stroke-slate-800/70"
+            />
+            <XAxis
+              dataKey="label"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 10 }}
+              className="fill-slate-500 dark:fill-slate-400"
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 10 }}
+              tickFormatter={formatYAxis}
+              className="fill-slate-500 dark:fill-slate-400"
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
+            <Bar
+              dataKey="income"
+              name={t('chart.income')}
+              fill="#0284c7"
+              radius={[3, 3, 0, 0]}
+              maxBarSize={24}
+            />
+            <Bar
+              dataKey="expense"
+              name={t('chart.expense')}
+              fill="#f59e0b"
+              radius={[3, 3, 0, 0]}
+              maxBarSize={24}
+            />
+            <Line
+              type="monotone"
+              dataKey="balance"
+              name={t('analytics.chart.netBalance')}
+              stroke="#8b5cf6"
+              strokeWidth={2}
+              dot={{ r: 2.5, fill: '#8b5cf6' }}
+              activeDot={{ r: 4.5 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

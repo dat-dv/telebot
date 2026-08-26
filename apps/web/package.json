@@ -21,7 +21,8 @@
     "next": "^16.3.2",
     "next-intl": "^4.13.7",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

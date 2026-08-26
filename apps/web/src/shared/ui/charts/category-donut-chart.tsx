@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import type { IAnalyticsCategoryBreakdown } from '@telebot/contracts';
@@ -21,6 +22,42 @@ const PALETTE = [
   '#06b6d4', // cyan-500
   '#64748b', // slate-500
 ];
+
+interface SliceItem {
+  label: string;
+  amount: number;
+  percentage: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload?: SliceItem;
+  }>;
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  const money = useMoneyFormatter();
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  return (
+    <div className="flex flex-col gap-1 rounded-[4px] border border-slate-200 bg-white/95 px-2.5 py-1.5 text-xs shadow-lg backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
+      <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+        <span className="size-2 rounded-xs" style={{ backgroundColor: data.color }} />
+        {data.label}
+      </div>
+      <div className="flex items-center justify-between gap-3 text-slate-600 dark:text-slate-400">
+        <span className="font-bold tabular-nums text-amber-700 dark:text-amber-400">
+          {money(data.amount)}
+        </span>
+        <span className="text-[10px] text-slate-400">({data.percentage.toFixed(1)}%)</span>
+      </div>
+    </div>
+  );
+}
 
 export function CategoryDonutChart({
   categories,
@@ -50,7 +87,7 @@ export function CategoryDonutChart({
   const remaining = expenseCategories.slice(5);
   const remainingAmount = remaining.reduce((acc, c) => acc + c.amount, 0);
 
-  const slices: Array<{ label: string; amount: number; percentage: number; color: string }> = [
+  const slices: SliceItem[] = [
     ...top5.map((c, i) => ({
       label: c.category,
       amount: c.amount,
@@ -68,70 +105,46 @@ export function CategoryDonutChart({
     });
   }
 
-  // Calculate SVG donut segments (using stroke-dasharray on circle)
-  const size = 110;
-  const strokeWidth = 16;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  let cumulativeOffset = 0;
-  const donutSegments = slices.map((slice) => {
-    const dashLength = (slice.percentage / 100) * circumference;
-    const strokeDasharray = `${dashLength} ${circumference - dashLength}`;
-    const strokeDashoffset = -cumulativeOffset;
-    cumulativeOffset += dashLength;
-    return {
-      ...slice,
-      strokeDasharray,
-      strokeDashoffset,
-    };
-  });
-
   const activeSlice = hoveredIdx !== null ? slices[hoveredIdx] : null;
 
   return (
-    <div className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-3 max-[480px]:grid-cols-1">
-      {/* Donut SVG */}
-      <div className="relative flex size-[110px] items-center justify-center self-center max-[480px]:mx-auto">
-        <svg
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
-          className="size-[110px] -rotate-90"
-        >
-          {/* Background circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="transparent"
-            strokeWidth={strokeWidth}
-            className="stroke-slate-100 dark:stroke-slate-800"
-          />
-          {donutSegments.map((segment, idx) => (
-            <circle
-              key={segment.label}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="transparent"
-              stroke={segment.color}
-              strokeWidth={hoveredIdx === idx ? strokeWidth + 2 : strokeWidth}
-              strokeDasharray={segment.strokeDasharray}
-              strokeDashoffset={segment.strokeDashoffset}
-              className="cursor-pointer transition-all duration-200"
-              onMouseEnter={() => setHoveredIdx(idx)}
+    <div className="grid grid-cols-[130px_minmax(0,1fr)] items-center gap-3 max-[480px]:grid-cols-1">
+      {/* Recharts Donut Pie */}
+      <div className="relative flex size-[130px] items-center justify-center self-center max-[480px]:mx-auto">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Tooltip content={<CustomTooltip />} />
+            <Pie
+              data={slices}
+              dataKey="amount"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius={36}
+              outerRadius={54}
+              paddingAngle={2}
+              onMouseEnter={(_, index) => setHoveredIdx(index)}
               onMouseLeave={() => setHoveredIdx(null)}
-            />
-          ))}
-        </svg>
+            >
+              {slices.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  stroke="transparent"
+                  className="cursor-pointer transition-opacity"
+                  opacity={hoveredIdx === null || hoveredIdx === index ? 1 : 0.6}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
 
-        {/* Center label */}
+        {/* Center Text */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-[9px] font-semibold text-slate-400 uppercase">
+          <span className="max-w-[70px] truncate text-[9px] font-semibold text-slate-400 uppercase">
             {activeSlice ? activeSlice.label : t('dashboard.columns.category')}
           </span>
-          <strong className="text-[10.5px] font-bold text-slate-900 tabular-nums dark:text-slate-100">
+          <strong className="text-[11px] font-bold text-slate-900 tabular-nums dark:text-slate-100">
             {activeSlice ? `${activeSlice.percentage.toFixed(1)}%` : `${slices.length}`}
           </strong>
         </div>
@@ -141,12 +154,12 @@ export function CategoryDonutChart({
       <div className="flex flex-col justify-center gap-1.5 overflow-hidden">
         <div className="mb-0.5 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
           <span>{t('analytics.topCategories')}</span>
-          <span>{money(sum)}</span>
+          <span className="tabular-nums">{money(sum)}</span>
         </div>
         {slices.map((slice, idx) => (
           <div
             key={slice.label}
-            className={`group flex cursor-pointer flex-col gap-0.5 rounded px-1 py-0.5 text-xs transition-colors ${
+            className={`group flex cursor-pointer flex-col gap-0.5 rounded px-1.5 py-0.5 text-xs transition-colors ${
               hoveredIdx === idx
                 ? 'bg-slate-100 dark:bg-slate-800'
                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
