@@ -298,6 +298,11 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
   };
 
   const debtRepository = {
+    find: () =>
+      Promise.resolve([
+        { direction: 'receivable', remainingAmount: 500_000, counterparty: 'Trí' },
+        { direction: 'payable', remainingAmount: 13_000_000, counterparty: 'Hằng' },
+      ]),
     createQueryBuilder: () => {
       const debtQuery = {
         leftJoinAndSelect: () => debtQuery,
