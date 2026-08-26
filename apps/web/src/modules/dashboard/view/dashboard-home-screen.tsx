@@ -431,7 +431,7 @@ function DashboardHomeSkeleton() {
   const { t } = useLocale();
   return (
     <div aria-busy="true">
-      <header className="workspace__header">
+      <header className="workspace__header mb-1">
         <div>
           <p className="eyebrow">Telebot</p>
           <h1>{t('common.loadingDashboard')}</h1>

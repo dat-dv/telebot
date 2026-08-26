@@ -12,6 +12,29 @@ import { RemindersService } from '../reminders/reminders.service';
 import { UsersService } from '../users/users.service';
 import { ReportsTokenService } from './reports-token.service';
 
+function toIsoDate(value: unknown, fallback?: string): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return fallback ?? new Date().toISOString();
+}
+
+function toOptionalIsoDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return undefined;
+}
+
 @ApiTags('Reports & Dashboard')
 @Controller()
 export class ReportsController {
@@ -109,15 +132,24 @@ export class ReportsController {
           amount: item.amount,
           placeId: item.placeId,
           placeName: item.place?.name,
-          occurredAt: item.occurredAt.toISOString(),
+          occurredAt: toIsoDate(item.occurredAt),
         })),
         debts: debts.map((item) => ({
           id: item.id,
           direction: item.direction,
           counterparty: item.counterparty,
+          counterpartyAlias: item.counterpartyAlias,
+          contactId: item.contactId,
+          originalAmount: item.originalAmount,
           remainingAmount: item.remainingAmount,
-          occurredAt: (item.occurredAt || item.createdAt).toISOString(),
-          dueAt: item.dueAt?.toISOString(),
+          status: item.status || (item.remainingAmount === 0 ? 'settled' : 'active'),
+          currency: item.currency,
+          note: item.note || undefined,
+          occurredAt: toIsoDate(item.occurredAt || item.createdAt),
+          dueAt: toOptionalIsoDate(item.dueAt),
+          settledAt: toOptionalIsoDate(item.settledAt),
+          createdAt: toIsoDate(item.createdAt),
+          updatedAt: toOptionalIsoDate(item.updatedAt),
         })),
         calendar: calendar.map((item) => ({
           id: item.id || item.etag || item.summary || 'event',
@@ -139,7 +171,7 @@ export class ReportsController {
         reminders: reminders.slice(0, 10).map((item) => ({
           id: item.id,
           title: item.title,
-          remindAt: item.remindAt.toISOString(),
+          remindAt: toIsoDate(item.remindAt),
           notifyType: item.notifyType,
           repeatType: item.repeatType || 'none',
           status: item.status || 'pending',
@@ -148,7 +180,7 @@ export class ReportsController {
           id: item.id,
           action: item.action,
           tableName: item.tableName,
-          createdAt: item.createdAt.toISOString(),
+          createdAt: toIsoDate(item.createdAt),
         })),
         admin: isAdmin ? await this.getAdminSummary() : undefined,
       },
@@ -167,7 +199,7 @@ export class ReportsController {
         displayName: contact.displayName,
         alias: contact.alias,
         descriptor: contact.descriptor,
-        createdAt: contact.createdAt.toISOString(),
+        createdAt: toIsoDate(contact.createdAt),
       })),
     };
   }
@@ -190,11 +222,11 @@ export class ReportsController {
         status: debt.status || (debt.remainingAmount === 0 ? 'settled' : 'active'),
         currency: debt.currency,
         note: debt.note || undefined,
-        occurredAt: (debt.occurredAt || debt.createdAt).toISOString(),
-        dueAt: debt.dueAt?.toISOString(),
-        settledAt: debt.settledAt?.toISOString(),
-        createdAt: debt.createdAt.toISOString(),
-        updatedAt: debt.updatedAt?.toISOString(),
+        occurredAt: toIsoDate(debt.occurredAt || debt.createdAt),
+        dueAt: toOptionalIsoDate(debt.dueAt),
+        settledAt: toOptionalIsoDate(debt.settledAt),
+        createdAt: toIsoDate(debt.createdAt),
+        updatedAt: toOptionalIsoDate(debt.updatedAt),
       })),
     };
   }
@@ -211,7 +243,7 @@ export class ReportsController {
         category: expense.category,
         note: expense.note,
         amount: expense.amount,
-        occurredAt: expense.occurredAt.toISOString(),
+        occurredAt: toIsoDate(expense.occurredAt),
       })),
     };
   }

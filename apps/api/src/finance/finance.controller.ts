@@ -19,6 +19,29 @@ import { FinanceService } from './finance.service';
 
 type RecordBody = Record<string, unknown>;
 
+function toIsoDate(value: unknown, fallback?: string): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return fallback ?? new Date().toISOString();
+}
+
+function toOptionalIsoDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return undefined;
+}
+
 @ApiTags('Finance & Transactions')
 @ApiBearerAuth('bearer-jwt')
 @Controller()
@@ -77,8 +100,8 @@ export class FinanceController {
         color: cat.color,
         icon: cat.icon,
         isDefault: cat.isDefault,
-        createdAt: cat.createdAt.toISOString(),
-        updatedAt: cat.updatedAt?.toISOString(),
+        createdAt: toIsoDate(cat.createdAt),
+        updatedAt: toOptionalIsoDate(cat.updatedAt),
       })),
     };
   }
@@ -107,8 +130,8 @@ export class FinanceController {
         color: cat.color,
         icon: cat.icon,
         isDefault: cat.isDefault,
-        createdAt: cat.createdAt.toISOString(),
-        updatedAt: cat.updatedAt?.toISOString(),
+        createdAt: toIsoDate(cat.createdAt),
+        updatedAt: toOptionalIsoDate(cat.updatedAt),
       },
     };
   }
@@ -133,8 +156,8 @@ export class FinanceController {
         color: cat.color,
         icon: cat.icon,
         isDefault: cat.isDefault,
-        createdAt: cat.createdAt.toISOString(),
-        updatedAt: cat.updatedAt?.toISOString(),
+        createdAt: toIsoDate(cat.createdAt),
+        updatedAt: toOptionalIsoDate(cat.updatedAt),
       },
     };
   }
@@ -258,8 +281,8 @@ export class FinanceController {
           bankCode: result.targetContact.bankCode,
           bankName: result.targetContact.bankName,
           avatarUrl: result.targetContact.avatarUrl,
-          createdAt: result.targetContact.createdAt.toISOString(),
-          updatedAt: result.targetContact.updatedAt?.toISOString(),
+          createdAt: toIsoDate(result.targetContact.createdAt),
+          updatedAt: toOptionalIsoDate(result.targetContact.updatedAt),
         },
         affectedDebtsCount: result.affectedDebtsCount,
         mergedCount: result.mergedCount,
@@ -387,8 +410,8 @@ export class FinanceController {
     return {
       id: place.id,
       name: place.name,
-      createdAt: place.createdAt.toISOString(),
-      updatedAt: place.updatedAt?.toISOString(),
+      createdAt: toIsoDate(place.createdAt),
+      updatedAt: toOptionalIsoDate(place.updatedAt),
     };
   }
   private transactionInput(body: RecordBody, partial = false) {

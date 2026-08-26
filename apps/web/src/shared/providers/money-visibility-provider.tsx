@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { localeTag } from '@telebot/contracts';
 import { useLocale } from './locale-provider';
 
@@ -11,17 +19,46 @@ export interface MoneyVisibilityContextValue {
   money: (value: number) => string;
 }
 
+const MONEY_VISIBILITY_STORAGE_KEY = 'telebot-money-visibility';
 const MoneyVisibilityContext = createContext<MoneyVisibilityContextValue | null>(null);
 
+function getInitialMoneyVisibility(): boolean {
+  try {
+    const saved = window.localStorage.getItem(MONEY_VISIBILITY_STORAGE_KEY);
+    if (saved === 'true') return true;
+    if (saved === 'false') return false;
+  } catch {
+    // Keep default when storage is unavailable.
+  }
+  return false;
+}
+
 export function MoneyVisibilityProvider({ children }: { children: ReactNode }) {
-  const [isMoneyVisible, setIsMoneyVisible] = useState(true);
+  const [isMoneyVisible, setIsMoneyVisible] = useState(false);
   const { locale, t } = useLocale();
 
+  useEffect(() => {
+    setIsMoneyVisible(getInitialMoneyVisibility());
+  }, []);
+
   const toggleMoneyVisibility = useCallback(() => {
-    setIsMoneyVisible((prev) => !prev);
+    setIsMoneyVisible((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(MONEY_VISIBILITY_STORAGE_KEY, String(next));
+      } catch {
+        // Keep in-memory preference when storage is unavailable.
+      }
+      return next;
+    });
   }, []);
 
   const setMoneyVisibility = useCallback((visible: boolean) => {
+    try {
+      window.localStorage.setItem(MONEY_VISIBILITY_STORAGE_KEY, String(visible));
+    } catch {
+      // Keep in-memory preference when storage is unavailable.
+    }
     setIsMoneyVisible(visible);
   }, []);
 

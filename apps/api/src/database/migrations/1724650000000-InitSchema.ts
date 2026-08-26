@@ -226,6 +226,13 @@ export class InitSchema1724650000000 implements MigrationInterface {
     await queryRunner.query(
       `CREATE INDEX IF NOT EXISTS "IDX_debts_occurred_at" ON "debts" ("occurred_at")`,
     );
+    await queryRunner.query(`UPDATE "debts" SET "created_at" = now() WHERE "created_at" IS NULL`);
+    await queryRunner.query(
+      `UPDATE "debts" SET "occurred_at" = "created_at" WHERE "occurred_at" IS NULL`,
+    );
+    await queryRunner.query(
+      `UPDATE "finance_transactions" SET "created_at" = now() WHERE "created_at" IS NULL`,
+    );
 
     // 10. Debt payments table
     await queryRunner.query(`

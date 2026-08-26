@@ -12,9 +12,9 @@ The module has loading skeleton, error handling via `SessionStateScreen` with re
 
 When an unauthenticated visit or session error occurs, `DashboardHomeScreen` and `AnalyticsScreen` render `SessionStateScreen` (`reason="expired"` or `reason="logged_out"`), presenting primary buttons to open the Telegram Bot, close the mini app if inside Telegram, or clear the session cache and retry.
 
-## In-session money visibility toggle
+## Global money visibility toggle and persistence
 
-A global `MoneyVisibilityProvider` manages `isMoneyVisible` in in-memory React state (defaulting to `true` on load/refresh, with zero browser storage persistence). An accessible toggle button in `WorkspaceHeader` toggles masking (`••••••`) across financial summaries, table amount cells, and chart tooltips. Editable input fields during inline editing remain unmasked so user input and adjustments proceed without disruption.
+A global `MoneyVisibilityProvider` manages `isMoneyVisible` in React context, defaulting to `false` (hidden/masked by default for privacy). An accessible toggle button in `WorkspaceHeader` toggles masking (`••••••`) across financial summaries, table amount cells, and chart tooltips. The user's preference is persisted in browser `localStorage` (`telebot-money-visibility`). Editable input fields during inline editing remain unmasked so user input and adjustments proceed without disruption.
 
 ## Transactions category combobox
 
