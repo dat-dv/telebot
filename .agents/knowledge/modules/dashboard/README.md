@@ -16,12 +16,13 @@ The Analytics screen (`AnalyticsScreen`) provides a unified, single-page visual 
 
 - **Single-Page Layout**:
   - **Multi-grain Period Filter**: `PeriodFilterToolbar` and `usePeriodFilter` supporting day, week, month, quarter, year, and all-time ranges with URL sync (`?period=...&ref=...`).
-  - **KPI Cards Strip**: 5 summary cards (Total Income, Total Expense, Net Savings, Savings Rate %, Net Debt position).
+  - **Selected-period results**: four cards (Total Income, Total Expense, Net Savings, Savings Rate) always use the active period filter.
+  - **Current financial position**: a separate, unfiltered panel exposes ledger cashflow balance (all-time income minus expense), outstanding receivables, outstanding payables, and net worth (`cashflowBalance + receivable - payable`). This is not a bank-account balance because the product does not track opening account balances.
   - **Cashflow Trend Panel**: Full-width interactive `CashflowTrendChart` built with Recharts `ComposedChart` (Income bars in sky, Expense bars in amber, and cumulative Wallet Balance trend line in violet), with a segmented toolbar toggle switching between visual chart and detailed period breakdown table (`DataTable` showing Income, Expense, Period Cashflow, and Cumulative Balance).
   - **Spending Distribution Panel** (Left Column): `CategoryDonutChart` built with Recharts `PieChart` (inner/outer radius donut) showing top spending categories by proportion plus remaining aggregated categories, paired with interactive progress tracks and percentages.
   - **Debt Structure Panel** (Right Column): `DebtStructureChart` displaying proportional ratio comparison (Receivables vs Payables) and horizontal comparative tracks for top counterparties.
 - **Dedicated CRUD Separation**: Operational tables (`TransactionsTable`, `DebtsTable`) are intentionally separated to their respective dedicated pages (`/transactions`, `/debts`), keeping Analytics lean, high-performing, and free from redundant CRUD states.
-- **Real-time Analytics Query**: `useFinanceAnalyticsQuery({ startAt, endAt, grain })` communicating with `GET /api/finance/analytics` to aggregate historical trend buckets (with `openingBalance`, period `netCashflow`, and cumulative `balance`), category spending breakdowns, and debt ratios directly from the database.
+- **Real-time Analytics Query**: `useFinanceAnalyticsQuery({ startAt, endAt, grain })` communicates with `GET /api/finance/analytics`. Its `summary` is period-scoped; `currentPosition` is all-time/current; `debts` remains the current debt breakdown for the debt chart.
 - **Modern Recharts Suite**:
   - `CashflowTrendChart`: Responsive composed chart with animated bars for period income/expense, smooth spline/line for cumulative wallet balance progression, currency axis formatting, and dark/light mode Tailwind tooltips displaying income, expense, period cashflow, and cumulative wallet balance.
   - `CategoryDonutChart`: Responsive SVG pie/donut with hover highlight and custom Tailwind tooltip.

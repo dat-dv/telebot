@@ -112,6 +112,7 @@ export function AnalyticsScreen() {
   const savingsRate =
     analyticsQuery.data?.summary.netSavingsRate ??
     (totalIncome > 0 ? Math.max(0, ((totalIncome - totalExpense) / totalIncome) * 100) : 0);
+  const currentPosition = analyticsQuery.data?.currentPosition;
   const netDebt =
     analyticsQuery.data?.debts.netDebt ??
     (rawData?.finance.receivable ?? 0) - (rawData?.finance.payable ?? 0);
@@ -307,8 +308,11 @@ export function AnalyticsScreen() {
       {/* Top Filter Toolbar */}
       <PeriodFilterToolbar filter={periodFilter} />
 
-      {/* KPI Cards Strip */}
-      <section className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+      <section aria-label={t('analytics.periodResults.title')}>
+        <h2 className="mb-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+          {t('analytics.periodResults.title')}
+        </h2>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
         <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
           <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             {t('dashboard.incomeTotal')}
@@ -359,21 +363,47 @@ export function AnalyticsScreen() {
           </strong>
         </article>
 
-        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
-          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-            {t('dashboard.netDebt')}
-          </span>
-          <strong
-            className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
-              netDebt >= 0
-                ? 'text-emerald-700 dark:text-emerald-400'
-                : 'text-rose-600 dark:text-rose-400'
-            }`}
-          >
-            {money(netDebt)}
-          </strong>
-        </article>
+        </div>
       </section>
+
+      <DataPanel title={t('analytics.currentPosition.title')}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+          <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+              {t('analytics.currentPosition.cashflowBalance')}
+            </span>
+            <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-sky-700 dark:text-sky-400">
+              {money(currentPosition?.cashflowBalance ?? 0)}
+            </strong>
+          </article>
+          <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+              {t('analytics.currentPosition.receivable')}
+            </span>
+            <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-400">
+              {money(currentPosition?.receivable ?? 0)}
+            </strong>
+          </article>
+          <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+              {t('analytics.currentPosition.payable')}
+            </span>
+            <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-rose-600 dark:text-rose-400">
+              {money(currentPosition?.payable ?? 0)}
+            </strong>
+          </article>
+          <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+              {t('analytics.currentPosition.netWorth')}
+            </span>
+            <strong
+              className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${(currentPosition?.netWorth ?? 0) >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
+            >
+              {money(currentPosition?.netWorth ?? 0)}
+            </strong>
+          </article>
+        </div>
+      </DataPanel>
 
       {/* Cashflow Trend Panel */}
       <DataPanel

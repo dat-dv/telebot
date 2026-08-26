@@ -301,7 +301,11 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
         andWhere: () => debtQuery,
         orderBy: () => debtQuery,
         addOrderBy: () => debtQuery,
-        getMany: () => Promise.resolve([]),
+        getMany: () =>
+          Promise.resolve([
+            { direction: 'receivable', remainingAmount: 500_000, counterparty: 'Trí' },
+            { direction: 'payable', remainingAmount: 13_000_000, counterparty: 'Hằng' },
+          ]),
       };
       return debtQuery;
     },
@@ -337,4 +341,18 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
   assert.equal(report.trend[1]?.expense, 1_000_000);
   assert.equal(report.trend[1]?.netCashflow, -1_000_000);
   assert.equal(report.trend[1]?.balance, 12_000_000);
+  assert.deepEqual(report.summary, {
+    income: 5_000_000,
+    expense: 1_000_000,
+    balance: 4_000_000,
+    netSavingsRate: 80,
+    receivableTotal: 500_000,
+    payableTotal: 13_000_000,
+  });
+  assert.deepEqual(report.currentPosition, {
+    cashflowBalance: 12_000_000,
+    receivable: 500_000,
+    payable: 13_000_000,
+    netWorth: -500_000,
+  });
 });

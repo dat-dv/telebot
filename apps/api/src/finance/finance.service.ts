@@ -214,6 +214,7 @@ export class FinanceService {
     grain: AnalyticsGrain = 'month',
   ): Promise<IFinanceAnalyticsResponse> {
     const summary = await this.getSummary(userId, startAt, endAt);
+    const allTimeSummary = startAt || endAt ? await this.getSummary(userId) : summary;
     const debts = await this.getActiveDebts(userId);
 
     const receivableTotal = debts
@@ -308,6 +309,12 @@ export class FinanceService {
         netSavingsRate: Number(netSavingsRate.toFixed(1)),
         receivableTotal,
         payableTotal,
+      },
+      currentPosition: {
+        cashflowBalance: allTimeSummary.balance,
+        receivable: receivableTotal,
+        payable: payableTotal,
+        netWorth: allTimeSummary.balance + receivableTotal - payableTotal,
       },
       trend,
       categories,

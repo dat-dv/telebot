@@ -333,6 +333,12 @@ const messages = {
     'analytics.subtitle': 'Trực quan hóa xu hướng dòng tiền, cơ cấu chi tiêu và công nợ',
     'analytics.kpi.netSavings': 'Tiết kiệm ròng',
     'analytics.kpi.savingsRate': 'Tỷ lệ tích lũy',
+    'analytics.periodResults.title': 'Kết quả trong kỳ',
+    'analytics.currentPosition.title': 'Tình hình tài chính hiện tại',
+    'analytics.currentPosition.cashflowBalance': 'Số dư dòng tiền theo sổ',
+    'analytics.currentPosition.receivable': 'Phải thu còn lại',
+    'analytics.currentPosition.payable': 'Phải trả còn lại',
+    'analytics.currentPosition.netWorth': 'Tài sản ròng',
     'analytics.chart.cashflowTrend': 'Xu hướng dòng tiền',
     'analytics.chart.spendingDistribution': 'Cơ cấu chi tiêu',
     'analytics.chart.debtBreakdown': 'Cơ cấu công nợ',
@@ -823,6 +829,12 @@ const messages = {
     'analytics.subtitle': 'Visualize cashflow trends, spending distribution, and debt structure',
     'analytics.kpi.netSavings': 'Net Savings',
     'analytics.kpi.savingsRate': 'Savings Rate',
+    'analytics.periodResults.title': 'Results for the selected period',
+    'analytics.currentPosition.title': 'Current financial position',
+    'analytics.currentPosition.cashflowBalance': 'Ledger cashflow balance',
+    'analytics.currentPosition.receivable': 'Outstanding receivables',
+    'analytics.currentPosition.payable': 'Outstanding payables',
+    'analytics.currentPosition.netWorth': 'Net worth',
     'analytics.chart.cashflowTrend': 'Cashflow Trend',
     'analytics.chart.spendingDistribution': 'Spending Distribution',
     'analytics.chart.debtBreakdown': 'Debt Structure',
@@ -1469,8 +1481,16 @@ export interface IAnalyticsDebtBreakdown {
   topPayables: Array<{ contactId?: string; counterparty: string; amount: number }>;
 }
 
+export interface IAnalyticsCurrentPosition {
+  cashflowBalance: number;
+  receivable: number;
+  payable: number;
+  netWorth: number;
+}
+
 export interface IFinanceAnalyticsResponse {
   summary: IFinanceAnalyticsSummary;
+  currentPosition: IAnalyticsCurrentPosition;
   trend: IAnalyticsTrendBucket[];
   categories: IAnalyticsCategoryBreakdown[];
   debts: IAnalyticsDebtBreakdown;
