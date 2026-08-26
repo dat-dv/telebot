@@ -30,7 +30,6 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: telegram-assistant-api
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
@@ -55,7 +54,6 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
-    container_name: telegram-assistant-web
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-3001}:80"
