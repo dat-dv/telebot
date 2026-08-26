@@ -157,7 +157,7 @@ export class CreateFinanceTransactionsTool implements GeminiTool {
           amount,
           category: item.category,
           note,
-          placeName: item.placeName,
+          placeName: item.placeName?.trim() || undefined,
           occurredAt: item.occurredAt,
         });
 

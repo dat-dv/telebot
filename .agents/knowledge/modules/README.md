@@ -18,8 +18,8 @@ Each module document covers:
 - [Debts](debts/README.md): Active receivables and payables reporting.
 - [Dashboard](dashboard/README.md): Personal reports, statistics, and operational data views.
 - [Expenses](expenses/README.md): Expense-only transaction history reporting.
+- [Finance](finance/README.md): User-scoped transactions, debt records, categories, and places.
 - [Reminders](reminders/README.md): Scheduled user reminders management and status updates.
 - [Settings](settings/README.md): System preferences and custom finance categories management.
 - [Tasks](tasks/README.md): Google Tasks retrieval, updates, and state synchronization.
-
 

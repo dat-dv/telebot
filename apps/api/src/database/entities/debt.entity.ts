@@ -60,6 +60,10 @@ export class DebtEntity {
   @Column({ name: 'settled_at', type: Date, nullable: true })
   settledAt?: Date;
 
+  @Index()
+  @Column({ name: 'occurred_at', type: Date, nullable: true })
+  occurredAt?: Date;
+
   @OneToMany(() => DebtPaymentEntity, (payment) => payment.debt)
   payments?: DebtPaymentEntity[];
 

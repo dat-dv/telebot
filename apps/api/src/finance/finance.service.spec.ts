@@ -3,6 +3,7 @@ import test from 'node:test';
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
+import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 import { FinanceService } from './finance.service';
 
 function createFinanceService(debt: Partial<DebtEntity>) {
@@ -40,6 +41,7 @@ function createFinanceService(debt: Partial<DebtEntity>) {
           Promise.resolve(callback(manager)),
       },
     } as never,
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -106,4 +108,58 @@ void test('recordDebtPayment records an expense when paying a payable debt', asy
     note: 'Trả nợ cho Lan',
     occurredAt: savedTransactions[0]?.occurredAt,
   });
+});
+
+void test('createTransaction reuses a user-scoped place instead of creating a debt contact', async () => {
+  let storedPlace: FinancePlaceEntity | undefined;
+  const savedTransactions: Partial<FinanceTransactionEntity>[] = [];
+  const service = new FinanceService(
+    {
+      create: (value: Partial<FinanceTransactionEntity>) => value,
+      save: (value: Partial<FinanceTransactionEntity>) => {
+        savedTransactions.push(value);
+        return Promise.resolve(value);
+      },
+    } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {
+      findOne: () => Promise.resolve(storedPlace),
+      create: (value: Partial<FinancePlaceEntity>) => value,
+      save: (value: Partial<FinancePlaceEntity>) => {
+        storedPlace = {
+          id: 'place-1',
+          userId: '42',
+          name: value.name || 'Highlands Coffee',
+          normalizedName: value.normalizedName || 'highlands coffee',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        return Promise.resolve(storedPlace);
+      },
+    } as never,
+  );
+
+  await service.createTransaction({
+    userId: 42,
+    type: 'expense',
+    amount: 45_000,
+    note: 'Cà phê sáng',
+    placeName: 'Highlands Coffee',
+  });
+  await service.createTransaction({
+    userId: 42,
+    type: 'expense',
+    amount: 30_000,
+    note: 'Trà đào',
+    placeName: 'highlands coffee',
+  });
+
+  assert.deepEqual(
+    savedTransactions.map((transaction) => transaction.placeId),
+    ['place-1', 'place-1'],
+  );
+  assert.equal(savedTransactions[0]?.contactId, undefined);
 });

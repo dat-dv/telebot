@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ITransactionItem, IUpdateTransactionRequest } from '@telebot/contracts';
 import { dashboardQueryKeys } from './dashboard-query';
+import { placesQueryKeys } from './places-query';
 import { deleteTransaction, updateTransaction } from './transactions-api';
 
 export function useUpdateTransactionMutation() {
@@ -13,6 +14,7 @@ export function useUpdateTransactionMutation() {
       void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
       void queryClient.invalidateQueries({ queryKey: ['transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      void queryClient.invalidateQueries({ queryKey: placesQueryKeys.all });
     },
   });
 }

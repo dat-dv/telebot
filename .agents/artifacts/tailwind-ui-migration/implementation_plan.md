@@ -28,7 +28,7 @@ Dùng Tailwind CSS v4 cho Next.js:
    - Shared primitives: data table, filters, autocomplete, charts và summary strip.
    - Feature screens: dashboard, expenses, debts, contacts, calendar, tasks, reminders, settings.
    - Public/legal pages và dark-mode compatibility.
-5. Xóa các CSS selector đã được thay thế từng phần. Sau khi mọi JSX đã chuyển sang utility classes, thu gọn `styles.css` chỉ còn base layer cần thiết.
+1. Xóa các CSS selector đã được thay thế từng phần. Sau khi mọi JSX đã chuyển sang utility classes, thu gọn `styles.css` chỉ còn base layer cần thiết.
 
 ## Tài liệu cần đồng bộ
 

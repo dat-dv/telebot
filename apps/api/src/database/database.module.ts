@@ -11,6 +11,7 @@ import { DebtPaymentEntity } from './entities/debt-payment.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { DashboardExchangeTokenEntity } from './entities/dashboard-exchange-token.entity';
 import { UserCategoryEntity } from './entities/user-category.entity';
+import { FinancePlaceEntity } from './entities/finance-place.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
 
 @Module({
@@ -32,6 +33,7 @@ import { AuditLogSubscriber } from './audit-log.subscriber';
           AuditLogEntity,
           DashboardExchangeTokenEntity,
           UserCategoryEntity,
+          FinancePlaceEntity,
         ];
 
         return {
@@ -57,6 +59,7 @@ import { AuditLogSubscriber } from './audit-log.subscriber';
       AuditLogEntity,
       DashboardExchangeTokenEntity,
       UserCategoryEntity,
+      FinancePlaceEntity,
     ]),
   ],
   exports: [TypeOrmModule],

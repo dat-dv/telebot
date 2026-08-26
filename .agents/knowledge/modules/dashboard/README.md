@@ -15,6 +15,10 @@ The module has loading skeleton, error with retry, empty tables, and populated s
 
 During inline transaction editing, Category is a controlled combobox rather than a native datalist. It draws type-specific defaults, configured user categories, and historical categories. Focus or click opens choices, typing filters them, Arrow keys plus Enter choose a value, and Escape closes the menu before a later Escape cancels the edit. The component permits new category text and portals its listbox above the scrollable data table.
 
+## Transaction places
+
+Transactions include an optional `placeId`/`placeName` from the Finance module. The table displays a Place column, includes it in text search, and its inline combobox loads saved places with `usePlacesQuery`. New typed names are resolved by the API; clearing the field sends `placeId: null` to detach the place without removing the transaction.
+
 ## Integration seams
 
 `getDashboard` consumes `API_ROUTES.dashboard` through the shared HTTP client. API route constants include `/api`; `NEXT_PUBLIC_API_URL` is therefore the public origin without `/api` (for example `https://telebot.datintech.site`). In local development, Next rewrites `/api/*` on port 5173 to this origin (default `http://localhost:3000`); in production Nginx routes `/api/*` to NestJS and serves the static dashboard for all other paths. The access exchange endpoint redirects valid one-time links to root `/` with `#dashboard_token=...` and returns a readable HTTP 401 page for missing, expired, or consumed links. The `/help` and `/start` dashboard control is a Telegram callback that issues a new one-time URL only after the user taps it. `useDashboardQuery` defines the cache key and supports manual invalidation. Logout calls the shared dashboard logout route, clears authentication state, clears query cache, and returns to the home page.

@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DebtContactEntity } from './debt-contact.entity';
+import { FinancePlaceEntity } from './finance-place.entity';
 
 @Entity('finance_transactions')
 export class FinanceTransactionEntity {
@@ -44,6 +45,14 @@ export class FinanceTransactionEntity {
   @ManyToOne(() => DebtContactEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'contact_id' })
   contact?: DebtContactEntity;
+
+  @Index()
+  @Column({ name: 'place_id', type: 'varchar', nullable: true })
+  placeId?: string;
+
+  @ManyToOne(() => FinancePlaceEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'place_id' })
+  place?: FinancePlaceEntity;
 
   @Column({ type: 'varchar' })
   note: string;

@@ -4,6 +4,7 @@ export const API_ROUTES = {
   dashboardRefresh: '/api/refresh',
   dashboardLogout: '/api/logout',
   categories: '/api/categories',
+  places: '/api/places',
   contacts: '/api/contacts',
   contactsCombine: '/api/contacts/combine',
   debts: '/api/debts',
@@ -166,6 +167,7 @@ const messages = {
     'dashboard.columns.original': 'Ban đầu',
     'dashboard.columns.direction': 'Loại',
     'dashboard.columns.category': 'Danh mục',
+    'dashboard.columns.place': 'Nơi chốn',
     'dashboard.columns.date': 'Thời gian',
     'dashboard.columns.name': 'Tên',
     'dashboard.columns.alias': 'Tên gọi',
@@ -253,6 +255,7 @@ const messages = {
     'transactions.delete.success': 'Đã xóa giao dịch',
     'transactions.inlineEdit.saved': 'Đã cập nhật giao dịch',
     'transactions.placeholder.category': 'Nhập danh mục...',
+    'transactions.placeholder.place': 'Nhập nơi chốn hoặc cửa hàng...',
     'transactions.placeholder.note': 'Nhập ghi chú...',
     'transactions.placeholder.amount': 'Nhập số tiền...',
     'analytics.title': 'Phân tích',
@@ -537,6 +540,7 @@ const messages = {
     'dashboard.columns.original': 'Original',
     'dashboard.columns.direction': 'Type',
     'dashboard.columns.category': 'Category',
+    'dashboard.columns.place': 'Place',
     'dashboard.columns.date': 'Time',
     'dashboard.columns.name': 'Name',
     'dashboard.columns.alias': 'Alias',
@@ -624,6 +628,7 @@ const messages = {
     'transactions.delete.success': 'Transaction deleted successfully',
     'transactions.inlineEdit.saved': 'Transaction updated successfully',
     'transactions.placeholder.category': 'Enter category...',
+    'transactions.placeholder.place': 'Enter a place or store...',
     'transactions.placeholder.note': 'Enter note...',
     'transactions.placeholder.amount': 'Enter amount...',
     'analytics.title': 'Analytics',
@@ -877,6 +882,7 @@ export interface IDebtListItem {
   status?: 'active' | 'settled';
   currency?: string;
   note?: string;
+  occurredAt: string;
   dueAt?: string;
   settledAt?: string;
   payments?: IDebtPaymentItem[];
@@ -893,6 +899,8 @@ export interface IExpenseListItem {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string;
+  placeName?: string;
   occurredAt: string;
   updatedAt?: string;
 }
@@ -914,6 +922,8 @@ export interface IDashboardData {
     amount: number;
     currency?: string;
     paymentMethod?: string;
+    placeId?: string;
+    placeName?: string;
     occurredAt: string;
   }>;
   debts: Array<{
@@ -922,6 +932,7 @@ export interface IDashboardData {
     counterparty: string;
     remainingAmount: number;
     currency?: string;
+    occurredAt: string;
     dueAt?: string;
     settledAt?: string;
   }>;
@@ -996,6 +1007,7 @@ export interface IUpdateTransactionRequest {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string | null;
   placeName?: string;
   occurredAt?: string;
 }
@@ -1008,6 +1020,7 @@ export interface IUpdateExpenseRequest {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string | null;
   placeName?: string;
   occurredAt?: string;
 }
@@ -1022,6 +1035,7 @@ export interface IUpdateDebtRequest {
   amount?: number;
   currency?: string;
   note?: string;
+  occurredAt?: string;
   dueAt?: string;
 }
 
@@ -1091,6 +1105,8 @@ export interface ITransactionItem {
   amount: number;
   currency?: string;
   paymentMethod?: string;
+  placeId?: string;
+  placeName?: string;
   occurredAt: string;
   createdAt?: string;
 }
@@ -1104,6 +1120,7 @@ export interface ICreateTransactionRequest {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string;
   placeName?: string;
   occurredAt?: string;
 }
@@ -1151,6 +1168,13 @@ export interface ICategoryItem {
   icon?: string;
   isDefault?: boolean;
   createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IFinancePlace {
+  id: string;
+  name: string;
+  createdAt: string;
   updatedAt?: string;
 }
 

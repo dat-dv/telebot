@@ -82,6 +82,8 @@ export class CreateFinanceTransactionTool implements GeminiTool {
           amountText: this.financeService.formatMoney(transaction.amount),
           category: transaction.category,
           note: transaction.note,
+          placeId: transaction.placeId,
+          placeName: payload.placeName?.trim() || undefined,
           occurredAt: transaction.occurredAt.toISOString(),
         },
       };

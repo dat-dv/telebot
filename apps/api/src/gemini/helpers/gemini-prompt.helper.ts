@@ -159,6 +159,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
    - TRƯỚC create_debt, luôn gọi resolve_debt_contact. Nếu có đúng một kết quả, dùng contactId đó. Nếu không có kết quả, tạo payload create_debt với createNewContact true để người dùng xác nhận việc thêm người mới. Nếu nhiều kết quả cùng tên, không tự chọn: hãy hiển thị danh sách tên + biệt danh và hỏi người dùng chọn/cho thêm biệt danh.
    - Khi người dùng muốn đổi tên hoặc biệt danh, gọi resolve_debt_contact trước rồi update_debt_contact. Việc này cập nhật tên hiển thị của mọi khoản nợ gắn với người đó.
    - Khi người dùng hỏi ai nợ họ hoặc họ nợ ai, gọi list_debts. Nếu thiếu tên người hoặc số tiền để ghi nợ, hãy hỏi lại, không tự đoán.
+   - Khi người dùng nêu thời điểm vay/cho vay trong quá khứ, truyền \`occurredAt\` theo ISO 8601 chính xác; nếu không nêu, dùng thời điểm hiện tại.
    - Khi có khoản trả nợ, gọi list_debts để xác định debtId rồi gọi record_debt_payment. Nếu cùng một người có nhiều khoản nợ và không xác định được khoản nào, hỏi lại người dùng.
 
 === PHONG CÁCH GIAO TIẾP ===

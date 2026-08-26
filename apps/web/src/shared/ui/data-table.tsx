@@ -30,6 +30,28 @@ type DataTableProps<T extends DataTableRow> = {
   allowColumnResize?: boolean;
 };
 
+const occurrenceTimeFields = [
+  'occurredAt',
+  'paymentDate',
+  'remindAt',
+  'startAt',
+  'dueAt',
+  'createdAt',
+] as const;
+
+const upcomingTimeFields = new Set(['remindAt', 'startAt', 'dueAt']);
+
+function getOccurrenceTime(row: DataTableRow): { timestamp: number; ascending: boolean } | null {
+  const values = row as Record<string, unknown>;
+  for (const field of occurrenceTimeFields) {
+    const value = values[field];
+    if (typeof value !== 'string' || !value) continue;
+    const timestamp = new Date(value).getTime();
+    if (!Number.isNaN(timestamp)) return { timestamp, ascending: upcomingTimeFields.has(field) };
+  }
+  return null;
+}
+
 export function DataPanel({
   title,
   description,
@@ -358,6 +380,19 @@ export function DataTable<T extends DataTableRow>({
     return filtered.length > 0 ? filtered : allColumns;
   }, [allColumns, visibleColumnIds]);
 
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, index) => ({ row, index, occurrence: getOccurrenceTime(row) }))
+      .sort((left, right) => {
+        if (!left.occurrence && !right.occurrence) return left.index - right.index;
+        if (!left.occurrence) return 1;
+        if (!right.occurrence) return -1;
+        const direction = left.occurrence.ascending ? 1 : -1;
+        return (left.occurrence.timestamp - right.occurrence.timestamp) * direction || left.index - right.index;
+      })
+      .map(({ row }) => row);
+  }, [rows]);
+
   const getColumnWidth = (column: DataTableColumn<T>) => columnWidths[column.id] ?? column.width;
 
   const getMinimumColumnWidth = (column: DataTableColumn<T>) => {
@@ -465,8 +500,8 @@ export function DataTable<T extends DataTableRow>({
                   ))}
                 </tr>
               ))
-            ) : rows.length > 0 ? (
-              rows.map((row, index) => (
+            ) : sortedRows.length > 0 ? (
+              sortedRows.map((row, index) => (
                 <tr key={getRowKey(row, index)}>
                   {visibleColumns.map((column) => (
                     <td

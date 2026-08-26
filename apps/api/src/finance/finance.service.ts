@@ -12,6 +12,7 @@ import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
 import { UserCategoryEntity } from '../database/entities/user-category.entity';
+import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 
 export interface CreateFinanceTransactionDto {
   userId: number;
@@ -22,6 +23,7 @@ export interface CreateFinanceTransactionDto {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string | null;
   placeName?: string;
   note: string;
   occurredAt?: string;
@@ -44,6 +46,7 @@ export interface CreateDebtDto {
   amount: number;
   currency?: string;
   note?: string;
+  occurredAt?: string;
   dueAt?: string;
 }
 
@@ -55,6 +58,8 @@ export interface UpdateTransactionDto {
   paymentMethod?: string;
   receiptUrl?: string;
   contactId?: string;
+  placeId?: string | null;
+  placeName?: string;
   note?: string;
   occurredAt?: string;
 }
@@ -69,6 +74,7 @@ export interface UpdateDebtDto {
   amount?: number;
   currency?: string;
   note?: string;
+  occurredAt?: string;
   dueAt?: string;
 }
 
@@ -99,19 +105,30 @@ export class FinanceService {
     private readonly debtPaymentRepo: Repository<DebtPaymentEntity>,
     @InjectRepository(UserCategoryEntity)
     private readonly userCategoryRepo: Repository<UserCategoryEntity>,
+    @InjectRepository(FinancePlaceEntity)
+    private readonly placeRepo: Repository<FinancePlaceEntity>,
   ) {}
 
-  public async resolveOrCreatePlaceContact(
+  public async resolveOrCreatePlace(
     userId: number,
     placeName: string,
-  ): Promise<DebtContactEntity | null> {
+  ): Promise<FinancePlaceEntity | null> {
     const trimmed = placeName?.trim();
     if (!trimmed) return null;
-    const existing = await this.resolveContacts(userId, trimmed);
-    if (existing.length > 0) {
-      return existing[0];
+    const normalizedName = this.normalizeIdentity(trimmed);
+    const existing = await this.placeRepo.findOne({
+      where: { userId: userId.toString(), normalizedName },
+    });
+    if (existing) {
+      return existing;
     }
-    return this.createContact(userId, trimmed, undefined, 'Địa điểm / Quán ăn');
+    return this.placeRepo.save(
+      this.placeRepo.create({
+        userId: userId.toString(),
+        name: trimmed,
+        normalizedName,
+      }),
+    );
   }
 
   public async createTransaction(
@@ -132,16 +149,7 @@ export class FinanceService {
       throw new Error('Cần có nội dung cho khoản thu hoặc chi.');
     }
 
-    let contactId = dto.contactId;
-    if (!contactId && dto.placeName) {
-      const parsedUserId = typeof dto.userId === 'number' ? dto.userId : Number(dto.userId);
-      if (!Number.isNaN(parsedUserId)) {
-        const contact = await this.resolveOrCreatePlaceContact(parsedUserId, dto.placeName);
-        if (contact) {
-          contactId = contact.id;
-        }
-      }
-    }
+    const placeId = await this.resolvePlaceId(dto.userId, dto.placeId, dto.placeName);
 
     const transaction = this.transactionRepo.create({
       userId: dto.userId.toString(),
@@ -151,7 +159,8 @@ export class FinanceService {
       category: dto.category?.trim() || 'Khác',
       paymentMethod: dto.paymentMethod?.trim() || undefined,
       receiptUrl: dto.receiptUrl?.trim() || undefined,
-      contactId: contactId || undefined,
+      contactId: dto.contactId || undefined,
+      placeId,
       note,
       occurredAt,
     });
@@ -178,7 +187,10 @@ export class FinanceService {
       query.andWhere('transaction.occurred_at <= :endAt', { endAt: endDate });
     }
 
-    const transactions = await query.orderBy('transaction.occurred_at', 'DESC').getMany();
+    const transactions = await query
+      .leftJoinAndSelect('transaction.place', 'place')
+      .orderBy('transaction.occurred_at', 'DESC')
+      .getMany();
     const income = transactions
       .filter((transaction) => transaction.type === 'income')
       .reduce((total, transaction) => total + transaction.amount, 0);
@@ -197,11 +209,18 @@ export class FinanceService {
       .createQueryBuilder('transaction')
       .where('transaction.user_id = :userId', { userId: userId.toString() });
     if (type) query.andWhere('transaction.type = :type', { type });
-    return query.orderBy('transaction.occurred_at', 'DESC').take(200).getMany();
+    return query
+      .leftJoinAndSelect('transaction.place', 'place')
+      .orderBy('transaction.occurred_at', 'DESC')
+      .take(200)
+      .getMany();
   }
 
   public getTransaction(userId: number, id: string): Promise<FinanceTransactionEntity | null> {
-    return this.transactionRepo.findOne({ where: { id, userId: userId.toString() } });
+    return this.transactionRepo.findOne({
+      where: { id, userId: userId.toString() },
+      relations: { place: true },
+    });
   }
 
   public getLatestTransaction(userId: number): Promise<FinanceTransactionEntity | null> {
@@ -231,6 +250,9 @@ export class FinanceService {
     if (input.receiptUrl !== undefined)
       transaction.receiptUrl = input.receiptUrl.trim() || undefined;
     if (input.contactId !== undefined) transaction.contactId = input.contactId || undefined;
+    if (input.placeId !== undefined || input.placeName !== undefined) {
+      transaction.placeId = await this.resolvePlaceId(userId, input.placeId, input.placeName);
+    }
     if (input.note !== undefined) {
       if (!input.note.trim()) throw new Error('Cần có nội dung cho khoản thu hoặc chi.');
       transaction.note = input.note.trim();
@@ -241,6 +263,50 @@ export class FinanceService {
       transaction.occurredAt = occurredAt;
     }
     return this.transactionRepo.save(transaction);
+  }
+
+  public listPlaces(userId: number): Promise<FinancePlaceEntity[]> {
+    return this.placeRepo.find({
+      where: { userId: userId.toString() },
+      order: { name: 'ASC', createdAt: 'ASC' },
+      take: 200,
+    });
+  }
+
+  public getPlace(userId: number, id: string): Promise<FinancePlaceEntity | null> {
+    return this.placeRepo.findOne({ where: { id, userId: userId.toString() } });
+  }
+
+  public async createPlace(userId: number, name: string): Promise<FinancePlaceEntity> {
+    const place = await this.resolveOrCreatePlace(userId, name);
+    if (!place) throw new Error('Tên nơi chốn không được để trống.');
+    return place;
+  }
+
+  public async updatePlace(
+    userId: number,
+    id: string,
+    name: string,
+  ): Promise<FinancePlaceEntity | null> {
+    const place = await this.getPlace(userId, id);
+    if (!place) return null;
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Tên nơi chốn không được để trống.');
+    const normalizedName = this.normalizeIdentity(trimmed);
+    const duplicate = await this.placeRepo.findOne({
+      where: { userId: userId.toString(), normalizedName },
+    });
+    if (duplicate && duplicate.id !== id) throw new Error('Nơi chốn này đã tồn tại.');
+    place.name = trimmed;
+    place.normalizedName = normalizedName;
+    return this.placeRepo.save(place);
+  }
+
+  public async deletePlace(userId: number, id: string): Promise<boolean> {
+    const place = await this.getPlace(userId, id);
+    if (!place) return false;
+    await this.placeRepo.remove(place);
+    return true;
   }
 
   public async deleteTransaction(userId: number, id: string): Promise<boolean> {
@@ -281,6 +347,8 @@ export class FinanceService {
     }
     const dueAt = dto.dueAt ? new Date(dto.dueAt) : undefined;
     if (dueAt && Number.isNaN(dueAt.getTime())) throw new Error('Ngày hẹn trả không hợp lệ.');
+    const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : new Date();
+    if (Number.isNaN(occurredAt.getTime())) throw new Error('Ngày phát sinh không hợp lệ.');
 
     return this.debtRepo.save(
       this.debtRepo.create({
@@ -293,6 +361,7 @@ export class FinanceService {
         remainingAmount: amount,
         currency: dto.currency?.trim() || 'VND',
         note: dto.note?.trim() || '',
+        occurredAt,
         dueAt,
         status: 'active',
       }),
@@ -376,6 +445,23 @@ export class FinanceService {
       .replace(/\s+/g, ' ');
   }
 
+  private async resolvePlaceId(
+    userId: number,
+    placeId?: string | null,
+    placeName?: string,
+  ): Promise<string | undefined> {
+    if (placeId === null) return undefined;
+    if (placeId) {
+      const place = await this.getPlace(userId, placeId);
+      if (!place) throw new Error('Không tìm thấy nơi chốn đã chọn.');
+      return place.id;
+    }
+    if (placeName?.trim()) {
+      return (await this.resolveOrCreatePlace(userId, placeName))?.id;
+    }
+    return undefined;
+  }
+
   public async getActiveDebts(userId: number): Promise<DebtEntity[]> {
     return this.debtRepo
       .createQueryBuilder('debt')
@@ -383,7 +469,8 @@ export class FinanceService {
       .leftJoinAndSelect('debt.payments', 'payments')
       .where('debt.user_id = :userId', { userId: userId.toString() })
       .andWhere('debt.status = :status', { status: 'active' })
-      .orderBy('debt.created_at', 'DESC')
+      .orderBy('COALESCE(debt.occurred_at, debt.created_at)', 'DESC')
+      .addOrderBy('debt.id', 'DESC')
       .getMany();
   }
 
@@ -394,7 +481,11 @@ export class FinanceService {
       .leftJoinAndSelect('debt.payments', 'payments')
       .where('debt.user_id = :userId', { userId: userId.toString() });
     if (status) query.andWhere('debt.status = :status', { status });
-    return query.orderBy('debt.created_at', 'DESC').take(200).getMany();
+    return query
+      .orderBy('COALESCE(debt.occurred_at, debt.created_at)', 'DESC')
+      .addOrderBy('debt.id', 'DESC')
+      .take(200)
+      .getMany();
   }
 
   public getDebt(userId: number, id: string): Promise<DebtEntity | null> {
@@ -458,6 +549,11 @@ export class FinanceService {
     }
     if (input.currency !== undefined) debt.currency = input.currency.trim() || 'VND';
     if (input.note !== undefined) debt.note = input.note.trim();
+    if (input.occurredAt !== undefined) {
+      const occurredAt = new Date(input.occurredAt);
+      if (Number.isNaN(occurredAt.getTime())) throw new Error('Ngày phát sinh không hợp lệ.');
+      debt.occurredAt = occurredAt;
+    }
     if (input.dueAt !== undefined) {
       const dueAt = new Date(input.dueAt);
       if (Number.isNaN(dueAt.getTime())) throw new Error('Ngày hẹn trả không hợp lệ.');

@@ -38,6 +38,11 @@ export class CreateDebtTool implements GeminiTool {
           type: SchemaType.STRING,
           description: 'Ngày hẹn trả ISO 8601 nếu người dùng có nói.',
         },
+        occurredAt: {
+          type: SchemaType.STRING,
+          description:
+            'Thời điểm khoản nợ phát sinh theo ISO 8601; dùng khi người dùng ghi nhận muộn.',
+        },
       },
       required: ['direction', 'counterparty', 'amount'],
     },
@@ -64,6 +69,7 @@ export class CreateDebtTool implements GeminiTool {
         createNewContact: args.createNewContact as boolean | undefined,
         amount: args.amount as number,
         note: args.note as string | undefined,
+        occurredAt: args.occurredAt as string | undefined,
         dueAt: args.dueAt as string | undefined,
       });
       return {

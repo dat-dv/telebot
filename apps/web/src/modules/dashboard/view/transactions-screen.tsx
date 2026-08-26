@@ -18,6 +18,7 @@ import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { CategoryAutocomplete } from '@/shared/ui/category-autocomplete';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 import { useCategoriesQuery } from '@/modules/settings/api/categories-query';
+import { usePlacesQuery } from '../api/places-query';
 import {
   useDeleteTransactionMutation,
   useUpdateTransactionMutation,
@@ -48,12 +49,14 @@ export function TransactionsScreen() {
     category: string;
     note: string;
     amount: string;
+    placeName: string;
     occurredAt: string;
   }>({
     type: 'expense',
     category: '',
     note: '',
     amount: '',
+    placeName: '',
     occurredAt: '',
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -61,12 +64,14 @@ export function TransactionsScreen() {
 
   const dashboard = useDashboardQuery();
   const categoriesQuery = useCategoriesQuery();
+  const placesQuery = usePlacesQuery();
   const updateMutation = useUpdateTransactionMutation();
   const deleteMutation = useDeleteTransactionMutation();
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
     void queryClient.invalidateQueries({ queryKey: ['categories'] });
+    void queryClient.invalidateQueries({ queryKey: ['places'] });
   };
 
   const setFilter = (type: FilterType) => {
@@ -82,6 +87,10 @@ export function TransactionsScreen() {
 
   const rawList = useMemo(() => dashboard.data?.transactions ?? [], [dashboard.data]);
   const configuredCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const placeSuggestions = useMemo(
+    () => (placesQuery.data ?? []).map((place) => place.name),
+    [placesQuery.data],
+  );
 
   const categorySuggestions = useMemo(() => {
     const set = new Set<string>();
@@ -129,7 +138,11 @@ export function TransactionsScreen() {
       if (activeFilter !== 'all' && item.type !== activeFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return item.category.toLowerCase().includes(q) || item.note.toLowerCase().includes(q);
+      return (
+        item.category.toLowerCase().includes(q) ||
+        item.note.toLowerCase().includes(q) ||
+        item.placeName?.toLowerCase().includes(q)
+      );
     });
   }, [periodTransactions, activeFilter, search]);
 
@@ -166,6 +179,7 @@ export function TransactionsScreen() {
       category: item.category,
       note: item.note || '',
       amount: String(item.amount),
+      placeName: item.placeName || '',
       occurredAt: item.occurredAt ? item.occurredAt.slice(0, 16) : '',
     });
   };
@@ -177,6 +191,7 @@ export function TransactionsScreen() {
       category: '',
       note: '',
       amount: '',
+      placeName: '',
       occurredAt: '',
     });
   };
@@ -198,6 +213,8 @@ export function TransactionsScreen() {
           category: trimmedCategory,
           note: trimmedNote,
           amount: parsedAmount,
+          placeId: editDraft.placeName.trim() ? undefined : null,
+          placeName: editDraft.placeName.trim() || undefined,
           occurredAt: editDraft.occurredAt
             ? new Date(editDraft.occurredAt).toISOString()
             : undefined,
@@ -314,6 +331,35 @@ export function TransactionsScreen() {
             title={item.note}
           >
             {item.note || '—'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'place',
+      header: t('dashboard.columns.place'),
+      minWidth: '170px',
+      cell: (item) => {
+        if (editingId === item.id) {
+          return (
+            <CategoryAutocomplete
+              ariaLabel={t('dashboard.columns.place')}
+              value={editDraft.placeName}
+              onChange={(placeName) => setEditDraft((prev) => ({ ...prev, placeName }))}
+              onConfirm={() => void handleSaveEdit(item.id)}
+              onCancel={handleCancelEdit}
+              options={placeSuggestions}
+              placeholder={t('transactions.placeholder.place')}
+            />
+          );
+        }
+        return (
+          <span
+            className="cell-muted"
+            onDoubleClick={() => handleStartEdit(item)}
+            title={item.placeName}
+          >
+            {item.placeName || '—'}
           </span>
         );
       },

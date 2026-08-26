@@ -9,6 +9,7 @@ interface UpdateFinanceTransactionArgs {
   amount?: number;
   category?: string;
   note?: string;
+  placeName?: string;
   occurredAt?: string;
 }
 
@@ -42,6 +43,10 @@ export class UpdateFinanceTransactionTool implements GeminiTool {
         note: {
           type: SchemaType.STRING,
           description: 'Nội dung/ghi chú mới của giao dịch.',
+        },
+        placeName: {
+          type: SchemaType.STRING,
+          description: 'Tên quán ăn, cửa hàng hoặc nơi chốn mới của giao dịch.',
         },
         occurredAt: {
           type: SchemaType.STRING,
@@ -95,6 +100,9 @@ export class UpdateFinanceTransactionTool implements GeminiTool {
     if (typeof payload.note === 'string' && payload.note.trim()) {
       updateInput.note = payload.note.trim();
     }
+    if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
+      updateInput.placeName = payload.placeName.trim();
+    }
     if (typeof payload.occurredAt === 'string' && payload.occurredAt.trim()) {
       updateInput.occurredAt = payload.occurredAt.trim();
     }
@@ -120,6 +128,8 @@ export class UpdateFinanceTransactionTool implements GeminiTool {
           amountText: this.financeService.formatMoney(updated.amount),
           category: updated.category,
           note: updated.note,
+          placeId: updated.placeId,
+          placeName: updated.place?.name || payload.placeName?.trim() || undefined,
           occurredAt: updated.occurredAt.toISOString(),
         },
       };

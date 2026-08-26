@@ -147,6 +147,44 @@ export class FinanceController {
     return { data: { deleted: true } };
   }
 
+  @Get('places')
+  @ApiOperation({ summary: 'Lấy danh sách nơi chốn/cửa hàng' })
+  async listPlaces(@Req() req: Request) {
+    const places = await this.finance.listPlaces(this.userId(req));
+    return { data: places.map((place) => this.placeResponse(place)) };
+  }
+
+  @Post('places')
+  @ApiOperation({ summary: 'Tạo nơi chốn/cửa hàng' })
+  async createPlace(@Req() req: Request, @Body() body: RecordBody) {
+    return {
+      data: this.placeResponse(
+        await this.finance.createPlace(this.userId(req), this.string(body.name, 'name')),
+      ),
+    };
+  }
+
+  @Patch('places/:id')
+  @ApiOperation({ summary: 'Cập nhật nơi chốn/cửa hàng' })
+  async updatePlace(@Req() req: Request, @Param('id') id: string, @Body() body: RecordBody) {
+    const place = await this.finance.updatePlace(
+      this.userId(req),
+      id,
+      this.string(body.name, 'name'),
+    );
+    if (!place) throw new NotFoundException('Không tìm thấy nơi chốn.');
+    return { data: this.placeResponse(place) };
+  }
+
+  @Delete('places/:id')
+  @ApiOperation({ summary: 'Xóa nơi chốn/cửa hàng' })
+  async deletePlace(@Req() req: Request, @Param('id') id: string) {
+    if (!(await this.finance.deletePlace(this.userId(req), id))) {
+      throw new NotFoundException('Không tìm thấy nơi chốn.');
+    }
+    return { data: { deleted: true } };
+  }
+
   @Get('contacts/:id')
   async getContact(@Req() req: Request, @Param('id') id: string) {
     return { data: await this.required(this.finance.getContact(this.userId(req), id)) };
@@ -254,6 +292,7 @@ export class FinanceController {
         amount: this.number(body.amount, 'amount'),
         currency: this.optionalString(body.currency),
         note: this.optionalString(body.note),
+        occurredAt: this.optionalString(body.occurredAt),
         dueAt: this.optionalString(body.dueAt),
       }),
     };
@@ -282,6 +321,7 @@ export class FinanceController {
           amount: body.amount === undefined ? undefined : this.number(body.amount, 'amount'),
           currency: this.optionalString(body.currency),
           note: this.optionalString(body.note),
+          occurredAt: this.optionalString(body.occurredAt),
           dueAt: this.optionalString(body.dueAt),
         }),
       ),
@@ -343,6 +383,14 @@ export class FinanceController {
       throw new BadRequestException(`${name} is invalid.`);
     return value;
   }
+  private placeResponse(place: { id: string; name: string; createdAt: Date; updatedAt?: Date }) {
+    return {
+      id: place.id,
+      name: place.name,
+      createdAt: place.createdAt.toISOString(),
+      updatedAt: place.updatedAt?.toISOString(),
+    };
+  }
   private transactionInput(body: RecordBody, partial = false) {
     return {
       type:
@@ -355,6 +403,13 @@ export class FinanceController {
       paymentMethod: this.optionalString(body.paymentMethod),
       receiptUrl: this.optionalString(body.receiptUrl),
       contactId: this.optionalString(body.contactId),
+      placeId:
+        body.placeId === null
+          ? null
+          : body.placeId === undefined
+            ? undefined
+            : this.string(body.placeId, 'placeId'),
+      placeName: this.optionalString(body.placeName),
       note: body.note === undefined && partial ? undefined : this.string(body.note, 'note'),
       occurredAt: this.optionalString(body.occurredAt),
     };

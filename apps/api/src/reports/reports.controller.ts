@@ -107,6 +107,8 @@ export class ReportsController {
           category: item.category,
           note: item.note,
           amount: item.amount,
+          placeId: item.placeId,
+          placeName: item.place?.name,
           occurredAt: item.occurredAt.toISOString(),
         })),
         debts: debts.map((item) => ({
@@ -114,6 +116,7 @@ export class ReportsController {
           direction: item.direction,
           counterparty: item.counterparty,
           remainingAmount: item.remainingAmount,
+          occurredAt: (item.occurredAt || item.createdAt).toISOString(),
           dueAt: item.dueAt?.toISOString(),
         })),
         calendar: calendar.map((item) => ({
@@ -187,6 +190,7 @@ export class ReportsController {
         status: debt.status || (debt.remainingAmount === 0 ? 'settled' : 'active'),
         currency: debt.currency,
         note: debt.note || undefined,
+        occurredAt: (debt.occurredAt || debt.createdAt).toISOString(),
         dueAt: debt.dueAt?.toISOString(),
         settledAt: debt.settledAt?.toISOString(),
         createdAt: debt.createdAt.toISOString(),
