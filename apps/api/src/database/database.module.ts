@@ -8,6 +8,7 @@ import { FinanceTransactionEntity } from './entities/finance-transaction.entity'
 import { DebtEntity } from './entities/debt.entity';
 import { DebtContactEntity } from './entities/debt-contact.entity';
 import { DebtPaymentEntity } from './entities/debt-payment.entity';
+import { DebtPaymentAllocationEntity } from './entities/debt-payment-allocation.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { DashboardExchangeTokenEntity } from './entities/dashboard-exchange-token.entity';
 import { UserCategoryEntity } from './entities/user-category.entity';
@@ -15,6 +16,8 @@ import { FinancePlaceEntity } from './entities/finance-place.entity';
 import { AuditLogSubscriber } from './audit-log.subscriber';
 import { InitSchema1724650000000 } from './migrations/1724650000000-InitSchema';
 import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000000-MigrateLegacyPlaceContacts';
+import { CreateDebtPaymentAllocations1724670000000 } from './migrations/1724670000000-CreateDebtPaymentAllocations';
+import { AddParentDebtHierarchy1724680000000 } from './migrations/1724680000000-AddParentDebtHierarchy';
 
 @Module({
   imports: [
@@ -32,6 +35,7 @@ import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000
           DebtEntity,
           DebtContactEntity,
           DebtPaymentEntity,
+          DebtPaymentAllocationEntity,
           AuditLogEntity,
           DashboardExchangeTokenEntity,
           UserCategoryEntity,
@@ -44,7 +48,12 @@ import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000
           ssl: databaseSsl ? { rejectUnauthorized: false } : false,
           entities,
           subscribers: [AuditLogSubscriber],
-          migrations: [InitSchema1724650000000, MigrateLegacyPlaceContacts1724660000000],
+          migrations: [
+            InitSchema1724650000000,
+            MigrateLegacyPlaceContacts1724660000000,
+            CreateDebtPaymentAllocations1724670000000,
+            AddParentDebtHierarchy1724680000000,
+          ],
           migrationsRun: true,
           migrationsTableName: 'typeorm_migrations',
           synchronize,
@@ -61,6 +70,7 @@ import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000
       DebtEntity,
       DebtContactEntity,
       DebtPaymentEntity,
+      DebtPaymentAllocationEntity,
       AuditLogEntity,
       DashboardExchangeTokenEntity,
       UserCategoryEntity,

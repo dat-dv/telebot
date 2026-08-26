@@ -10,6 +10,7 @@ import { GoogleCalendarService } from '../google/google-calendar.service';
 import { GoogleTasksService } from '../google/google-tasks.service';
 import { RemindersService } from '../reminders/reminders.service';
 import { UsersService } from '../users/users.service';
+import { DebtEntity } from '../database/entities/debt.entity';
 import { ReportsTokenService } from './reports-token.service';
 
 function toIsoDate(value: unknown, fallback?: string): string {
@@ -134,23 +135,7 @@ export class ReportsController {
           placeName: item.place?.name,
           occurredAt: toIsoDate(item.occurredAt),
         })),
-        debts: debts.map((item) => ({
-          id: item.id,
-          direction: item.direction,
-          counterparty: item.counterparty,
-          counterpartyAlias: item.counterpartyAlias,
-          contactId: item.contactId,
-          originalAmount: item.originalAmount,
-          remainingAmount: item.remainingAmount,
-          status: item.status || (item.remainingAmount === 0 ? 'settled' : 'active'),
-          currency: item.currency,
-          note: item.note || undefined,
-          occurredAt: toIsoDate(item.occurredAt || item.createdAt),
-          dueAt: toOptionalIsoDate(item.dueAt),
-          settledAt: toOptionalIsoDate(item.settledAt),
-          createdAt: toIsoDate(item.createdAt),
-          updatedAt: toOptionalIsoDate(item.updatedAt),
-        })),
+        debts: debts.map((item) => this.mapDebt(item)),
         calendar: calendar.map((item) => ({
           id: item.id || item.etag || item.summary || 'event',
           title: item.summary || 'Không có tiêu đề',
@@ -211,23 +196,30 @@ export class ReportsController {
     const userId = this.getAccessUserId(req);
     const debts = await this.finance.listDebts(userId, status);
     return {
-      data: debts.map((debt) => ({
-        id: debt.id,
-        direction: debt.direction,
-        counterparty: debt.counterparty,
-        counterpartyAlias: debt.counterpartyAlias,
-        contactId: debt.contactId,
-        originalAmount: debt.originalAmount,
-        remainingAmount: debt.remainingAmount,
-        status: debt.status || (debt.remainingAmount === 0 ? 'settled' : 'active'),
-        currency: debt.currency,
-        note: debt.note || undefined,
-        occurredAt: toIsoDate(debt.occurredAt || debt.createdAt),
-        dueAt: toOptionalIsoDate(debt.dueAt),
-        settledAt: toOptionalIsoDate(debt.settledAt),
-        createdAt: toIsoDate(debt.createdAt),
-        updatedAt: toOptionalIsoDate(debt.updatedAt),
-      })),
+      data: debts.map((debt) => this.mapDebt(debt)),
+    };
+  }
+
+  private mapDebt(debt: DebtEntity): Record<string, unknown> {
+    return {
+      id: debt.id,
+      direction: debt.direction,
+      counterparty: debt.counterparty,
+      counterpartyAlias: debt.counterpartyAlias,
+      contactId: debt.contactId,
+      parentDebtId: debt.parentDebtId,
+      originalAmount: debt.originalAmount,
+      remainingAmount: debt.remainingAmount,
+      status: debt.status || (debt.remainingAmount === 0 ? 'settled' : 'active'),
+      currency: debt.currency,
+      note: debt.note || undefined,
+      occurredAt: toIsoDate(debt.occurredAt || debt.createdAt),
+      dueAt: toOptionalIsoDate(debt.dueAt),
+      settledAt: toOptionalIsoDate(debt.settledAt),
+      createdAt: toIsoDate(debt.createdAt),
+      updatedAt: toOptionalIsoDate(debt.updatedAt),
+      childCount: debt.children?.length || 0,
+      children: debt.children?.map((child: DebtEntity) => this.mapDebt(child)),
     };
   }
 

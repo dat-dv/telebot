@@ -17,6 +17,12 @@ export type TransactionTableItem = {
   placeId?: string | null;
   placeName?: string | null;
   occurredAt: string;
+  allocations?: Array<{
+    id: string;
+    amount: number;
+    debtId: string;
+    note?: string;
+  }>;
 };
 
 export type TransactionEditDraft = {
@@ -43,6 +49,7 @@ export type TransactionsTableProps = {
   onCancelEdit?: () => void;
   onSaveEdit?: (id: string) => void | Promise<void>;
   onDelete?: (id: string) => void | Promise<void>;
+  onOpenAllocate?: (item: TransactionTableItem) => void;
   onChangeEditDraft?: React.Dispatch<React.SetStateAction<TransactionEditDraft>>;
   isPending?: boolean;
 };
@@ -62,6 +69,7 @@ export function TransactionsTable({
   onCancelEdit,
   onSaveEdit,
   onDelete,
+  onOpenAllocate,
   onChangeEditDraft,
   isPending = false,
 }: TransactionsTableProps) {
@@ -74,7 +82,7 @@ export function TransactionsTable({
   }, [maxAmount, transactions]);
 
   const columns = useMemo<DataTableColumn<TransactionTableItem>[]>(() => {
-    const hasActions = Boolean(onStartEdit || onSaveEdit || onDelete);
+    const hasActions = Boolean(onStartEdit || onSaveEdit || onDelete || onOpenAllocate);
     const date = (value: string) =>
       new Intl.DateTimeFormat(localeTag(locale), {
         dateStyle: 'short',
@@ -367,7 +375,7 @@ export function TransactionsTable({
         id: 'actions',
         header: t('dashboard.columns.action'),
         align: 'right',
-        minWidth: '130px',
+        minWidth: onOpenAllocate ? '210px' : '130px',
         hideable: false,
         cell: (item) => {
           const isEditing = editingId === item.id;
@@ -400,8 +408,25 @@ export function TransactionsTable({
               </div>
             );
           }
+          const allocationCount = item.allocations?.length || 0;
           return (
             <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+              {onOpenAllocate && (
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center gap-1 rounded-[2px] border border-sky-200 bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700 whitespace-nowrap transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-400 dark:hover:bg-sky-950/70"
+                  onClick={() => onOpenAllocate(item)}
+                  title={t('transactions.actions.allocateDebts')}
+                >
+                  <span>🔗</span>
+                  {allocationCount > 0 && (
+                    <span className="inline-flex items-center justify-center rounded-full bg-sky-600 px-1 text-[9px] font-bold text-white leading-none">
+                      {allocationCount}
+                    </span>
+                  )}
+                  <span>{t('transactions.actions.allocateDebts')}</span>
+                </button>
+              )}
               {onStartEdit && (
                 <button
                   type="button"
@@ -439,6 +464,7 @@ export function TransactionsTable({
     onCancelEdit,
     onChangeEditDraft,
     onDelete,
+    onOpenAllocate,
     onSaveEdit,
     onStartEdit,
     categorySuggestions,

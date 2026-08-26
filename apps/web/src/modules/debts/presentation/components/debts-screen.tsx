@@ -7,6 +7,7 @@ import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel } from '@/shared/ui/data-table';
 import { DebtsTable, type DebtEditDraft, getDebtStatus } from './debts-table';
+import { CombineDebtsDialog } from './combine-debts-dialog';
 
 import { useContactsQuery } from '@/modules/contacts/api/contacts-query';
 import {
@@ -25,6 +26,8 @@ export function DebtsScreen() {
   const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isCombineOpen, setIsCombineOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<DebtEditDraft>({
     direction: 'receivable',
@@ -212,6 +215,30 @@ export function DebtsScreen() {
     }
   };
 
+  const selectedDebts = useMemo(
+    () => rawList.filter((d) => selectedIds.has(d.id)),
+    [rawList, selectedIds],
+  );
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === filteredDebts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredDebts.map((d) => d.id)));
+    }
+  };
+
+  const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < filteredDebts.length;
+
   return (
     <div className="flex flex-col gap-3">
       {toastMessage && (
@@ -221,6 +248,19 @@ export function DebtsScreen() {
         >
           {toastMessage}
         </div>
+      )}
+
+      {isCombineOpen && (
+        <CombineDebtsDialog
+          isOpen={isCombineOpen}
+          selectedDebts={selectedDebts}
+          onClose={() => setIsCombineOpen(false)}
+          onSuccess={(count) => {
+            setSelectedIds(new Set());
+            showToast(t('debts.combine.success', { count }));
+            refresh();
+          }}
+        />
       )}
 
       {contactsList.length > 0 && (
@@ -294,6 +334,41 @@ export function DebtsScreen() {
             counter={t('table.rowsCount', { count: filteredDebts.length })}
             toolbar={
               <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
+                {selectedIds.size >= 2 && (
+                  <button
+                    type="button"
+                    className="inline-flex h-6 min-h-6 items-center justify-center rounded-[3px] border border-slate-900 bg-slate-900 px-2 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+                    onClick={() => setIsCombineOpen(true)}
+                  >
+                    {t('debts.actions.combine', { count: selectedIds.size })}
+                  </button>
+                )}
+                {filteredDebts.length > 0 && (
+                  <button
+                    type="button"
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      selectedIds.size === filteredDebts.length
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
+                    onClick={handleToggleSelectAll}
+                  >
+                    {selectedIds.size === filteredDebts.length
+                      ? t('debts.deselectAll')
+                      : t('debts.selectAll')}
+                  </button>
+                )}
+                {isPartiallySelected && (
+                  <button
+                    type="button"
+                    className="inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border border-sky-500 bg-sky-50 px-2 text-[11px] font-medium text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                    onClick={() => setSelectedIds(new Set())}
+                    title={t('debts.deselectAll')}
+                  >
+                    {t('debts.selectedCount', { count: selectedIds.size })} ✕
+                  </button>
+                )}
+
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -382,6 +457,9 @@ export function DebtsScreen() {
               debts={filteredDebts}
               loading={debts.isLoading}
               emptyMessage={t('dashboard.noDebts')}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleSelectAll={handleToggleSelectAll}
               editingId={editingId}
               editDraft={editDraft}
               onChangeEditDraft={setEditDraft}

@@ -539,3 +539,36 @@ void test('formats update_debt_contact confirmation and result box', () => {
   assert.match(result, /Đã cập nhật danh bạ/);
   assert.match(result, /Trí Nguyễn \(Trí Đen\)/);
 });
+
+void test('formats allocate_transaction_to_debts confirmation and result box', () => {
+  const service = new TelegramUiService();
+
+  const confirmation = service.formatConfirmationBox(
+    'allocate_transaction_to_debts',
+    {
+      transactionId: 'tx-1',
+      allocations: [
+        { debtId: 'debt-1', amount: 2000000 },
+        { debtId: 'debt-2', amount: 1000000 },
+      ],
+    },
+    'REQ-ALLOC001',
+  );
+
+  assert.match(confirmation, /XÁC NHẬN PHÂN BỔ CÔNG NỢ/);
+  assert.match(confirmation, /Số khoản nợ: <b>2<\/b>/);
+  assert.match(confirmation, /3\.000\.000đ/);
+
+  const result = service.formatResultBox(
+    'allocate_transaction_to_debts',
+    {
+      success: true,
+      allocatedCount: 2,
+      remainingUnallocatedText: '500.000đ',
+    },
+    'REQ-ALLOC001',
+  );
+
+  assert.match(result, /Đã phân bổ 2 khoản nợ/);
+  assert.match(result, /Chưa phân bổ: 500\.000đ/);
+});

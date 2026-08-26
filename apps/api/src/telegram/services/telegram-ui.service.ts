@@ -454,6 +454,18 @@ export class TelegramUiService {
         typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
       return `⚠️ <b>XÁC NHẬN TRẢ NỢ</b>\n\n💵 Số tiền trả: <b>${this.escapeHtml(amount)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi nhận trả nợ.`;
     }
+    if (name === 'allocate_transaction_to_debts') {
+      const rawAllocs = Array.isArray(payload.allocations)
+        ? (payload.allocations as Array<{ amount?: number }>)
+        : [];
+      const totalAmount = rawAllocs.reduce(
+        (sum, item) => sum + (typeof item?.amount === 'number' ? item.amount : 0),
+        0,
+      );
+      const totalText = this.formatMoney(totalAmount);
+      const count = rawAllocs.length;
+      return `⚠️ <b>XÁC NHẬN PHÂN BỔ CÔNG NỢ</b>\n\n🔗 Số khoản nợ: <b>${count}</b>\n💵 Tổng tiền phân bổ: <b>${this.escapeHtml(totalText)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thực hiện phân bổ.`;
+    }
     if (name === 'update_debt_contact') {
       const contactName = typeof payload.name === 'string' ? payload.name : 'Chưa rõ';
       const alias =
@@ -672,6 +684,15 @@ export class TelegramUiService {
       const settled = result.settled === true;
       const statusText = settled ? ' (Đã tất toán)' : ` (Còn lại: ${remainingText})`;
       return `✅ <b>Đã ghi nhận trả nợ</b> · ${this.escapeHtml(counterparty)}${this.escapeHtml(statusText)}`;
+    }
+    if (name === 'allocate_transaction_to_debts') {
+      const allocatedCount = typeof result.allocatedCount === 'number' ? result.allocatedCount : 0;
+      const remainingUnallocatedText =
+        typeof result.remainingUnallocatedText === 'string' ? result.remainingUnallocatedText : '';
+      const remText = remainingUnallocatedText
+        ? ` · Chưa phân bổ: ${remainingUnallocatedText}`
+        : '';
+      return `✅ <b>Đã phân bổ ${allocatedCount} khoản nợ</b>${this.escapeHtml(remText)}`;
     }
     if (name === 'update_debt_contact') {
       const contact = result.contact as Record<string, unknown> | undefined;

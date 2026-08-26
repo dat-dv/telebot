@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { DebtContactEntity } from './debt-contact.entity';
 import { DebtPaymentEntity } from './debt-payment.entity';
+import { DebtPaymentAllocationEntity } from './debt-payment-allocation.entity';
 
 @Entity('debts')
 export class DebtEntity {
@@ -28,6 +29,17 @@ export class DebtEntity {
   @ManyToOne(() => DebtContactEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'contact_id' })
   contact?: DebtContactEntity;
+
+  @Index()
+  @Column({ name: 'parent_debt_id', type: 'varchar', nullable: true })
+  parentDebtId?: string;
+
+  @ManyToOne(() => DebtEntity, (debt) => debt.children, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'parent_debt_id' })
+  parentDebt?: DebtEntity;
+
+  @OneToMany(() => DebtEntity, (debt) => debt.parentDebt)
+  children?: DebtEntity[];
 
   @Column({ type: 'varchar' })
   direction: 'receivable' | 'payable';
@@ -66,6 +78,9 @@ export class DebtEntity {
 
   @OneToMany(() => DebtPaymentEntity, (payment) => payment.debt)
   payments?: DebtPaymentEntity[];
+
+  @OneToMany(() => DebtPaymentAllocationEntity, (alloc) => alloc.debt)
+  allocations?: DebtPaymentAllocationEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

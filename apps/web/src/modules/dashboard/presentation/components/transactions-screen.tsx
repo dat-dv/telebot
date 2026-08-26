@@ -14,6 +14,7 @@ import {
   type TransactionEditDraft,
   type TransactionTableItem,
 } from './transactions-table';
+import { DebtAllocationModal } from './debt-allocation-modal';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
@@ -42,6 +43,9 @@ export function TransactionsScreen() {
 
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [allocatingTransaction, setAllocatingTransaction] = useState<TransactionTableItem | null>(
+    null,
+  );
   const [editDraft, setEditDraft] = useState<TransactionEditDraft>({
     type: 'expense',
     category: '',
@@ -314,12 +318,22 @@ export function TransactionsScreen() {
             onCancelEdit={handleCancelEdit}
             onSaveEdit={handleSaveEdit}
             onDelete={handleDelete}
+            onOpenAllocate={setAllocatingTransaction}
             categorySuggestions={categorySuggestions}
             placeSuggestions={placeSuggestions}
             isPending={updateMutation.isPending}
           />
         </DataPanel>
       </section>
+
+      <DebtAllocationModal
+        isOpen={Boolean(allocatingTransaction)}
+        transaction={allocatingTransaction}
+        onClose={() => setAllocatingTransaction(null)}
+        onSuccess={() => {
+          setToastMessage(t('transactions.allocation.success'));
+        }}
+      />
     </>
   );
 }

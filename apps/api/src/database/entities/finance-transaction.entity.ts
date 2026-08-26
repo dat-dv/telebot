@@ -5,11 +5,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { DebtContactEntity } from './debt-contact.entity';
 import { FinancePlaceEntity } from './finance-place.entity';
+import { DebtPaymentAllocationEntity } from './debt-payment-allocation.entity';
+import { DebtPaymentEntity } from './debt-payment.entity';
 
 @Entity('finance_transactions')
 export class FinanceTransactionEntity {
@@ -60,6 +63,12 @@ export class FinanceTransactionEntity {
   @Index()
   @Column({ name: 'occurred_at', type: Date })
   occurredAt: Date;
+
+  @OneToMany(() => DebtPaymentAllocationEntity, (alloc) => alloc.financeTransaction)
+  allocations?: DebtPaymentAllocationEntity[];
+
+  @OneToMany(() => DebtPaymentEntity, (payment) => payment.financeTransaction)
+  debtPayments?: DebtPaymentEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -8,6 +8,7 @@ export const API_ROUTES = {
   contacts: '/api/contacts',
   contactsCombine: '/api/contacts/combine',
   debts: '/api/debts',
+  debtsCombine: '/api/debts/combine',
   debtPayments: '/api/debts/payments',
   expenses: '/api/expenses',
   transactions: '/api/transactions',
@@ -19,6 +20,10 @@ export const API_ROUTES = {
   tasks: '/api/tasks',
   googleAuthCallback: '/api/oauth2callback',
   swaggerDocs: '/api/docs',
+  transactionCandidateDebts: (id: string) => `/api/transactions/${id}/candidate-debts`,
+  transactionAllocations: (id: string) => `/api/transactions/${id}/allocations`,
+  transactionAllocationDetail: (txId: string, allocId: string) =>
+    `/api/transactions/${txId}/allocations/${allocId}`,
 } as const;
 
 export const APP_ROUTES = {
@@ -307,6 +312,27 @@ const messages = {
     'debts.actions.save': 'Lưu',
     'debts.actions.cancel': 'Hủy',
     'debts.actions.repay': 'Trả nợ',
+    'debts.actions.combine': 'Gộp khoản nợ ({count})',
+    'debts.combineModal.title': 'Gộp các khoản công nợ',
+    'debts.combineModal.desc': 'Gom các khoản nợ đã chọn thành một khoản nợ cha tổng hợp.',
+    'debts.combineModal.parentNote': 'Ghi chú khoản nợ gộp',
+    'debts.combineModal.parentDueDate': 'Hạn hẹn trả của khoản nợ gộp',
+    'debts.combineModal.warning':
+      'Các khoản nợ đã chọn sẽ trở thành các khoản con thuộc khoản nợ tổng hợp này. Lịch sử thanh toán được bảo lưu toàn vẹn.',
+    'debts.combineModal.mismatchedDirection':
+      'Chỉ có thể gộp các khoản nợ cùng chiều (cùng Phải thu hoặc cùng Phải trả).',
+    'debts.combineModal.mismatchedCurrency': 'Chỉ có thể gộp các khoản nợ có cùng loại tiền tệ.',
+    'debts.combineModal.confirm': 'Xác nhận gộp',
+    'debts.combine.success': 'Đã gộp thành công {count} khoản nợ',
+    'debts.badge.parent': 'Khoản gộp ({count})',
+    'debts.badge.child': 'Khoản con',
+    'debts.expandChildren': 'Mở rộng khoản con',
+    'debts.collapseChildren': 'Thu gọn khoản con',
+    'debts.selectedCount': 'Đã chọn {count}',
+    'debts.selectAll': 'Chọn tất cả',
+    'debts.deselectAll': 'Bỏ chọn',
+    'contacts.combineModal.consolidateDebts':
+      'Tự động gộp các khoản nợ cùng chiều thành 1 khoản tổng',
     'debts.inlineEdit.saved': 'Đã cập nhật khoản vay nợ',
     'debts.placeholder.counterparty': 'Nhập hoặc chọn người liên quan...',
     'debts.placeholder.originalAmount': 'Số tiền ban đầu...',
@@ -322,6 +348,7 @@ const messages = {
     'transactions.actions.save': 'Lưu',
     'transactions.actions.cancel': 'Hủy',
     'transactions.actions.delete': 'Xóa',
+    'transactions.actions.allocateDebts': 'Phân bổ công nợ',
     'transactions.delete.confirm': 'Bạn có chắc chắn muốn xóa giao dịch này không?',
     'transactions.delete.success': 'Đã xóa giao dịch',
     'transactions.inlineEdit.saved': 'Đã cập nhật giao dịch',
@@ -329,6 +356,19 @@ const messages = {
     'transactions.placeholder.place': 'Nhập nơi chốn hoặc cửa hàng...',
     'transactions.placeholder.note': 'Nhập ghi chú...',
     'transactions.placeholder.amount': 'Nhập số tiền...',
+    'transactions.allocation.title': 'Phân bổ giao dịch vào công nợ',
+    'transactions.allocation.allocated': 'Đã phân bổ',
+    'transactions.allocation.unallocated': 'Chưa phân bổ',
+    'transactions.allocation.totalAmount': 'Số tiền giao dịch',
+    'transactions.allocation.submit': 'Lưu phân bổ',
+    'transactions.allocation.success': 'Đã cập nhật phân bổ công nợ thành công',
+    'transactions.allocation.exceededAmount':
+      'Tổng tiền phân bổ không được vượt quá số tiền giao dịch',
+    'transactions.allocation.exceededDebtRemaining': 'Số tiền phân bổ vượt quá số nợ còn lại',
+    'transactions.allocation.noCandidates': 'Không có khoản công nợ phù hợp để phân bổ',
+    'debts.payments.linkedTransaction': 'Giao dịch liên kết',
+    'category.debtRecovery': 'Thu hồi công nợ',
+    'category.debtPayment': 'Trả công nợ',
     'analytics.title': 'Báo cáo & Phân tích',
     'analytics.subtitle': 'Trực quan hóa xu hướng dòng tiền, cơ cấu chi tiêu và công nợ',
     'analytics.kpi.netSavings': 'Tiết kiệm ròng',
@@ -803,6 +843,27 @@ const messages = {
     'debts.actions.save': 'Save',
     'debts.actions.cancel': 'Cancel',
     'debts.actions.repay': 'Repay',
+    'debts.actions.combine': 'Combine Debts ({count})',
+    'debts.combineModal.title': 'Combine Debt Records',
+    'debts.combineModal.desc': 'Consolidate selected debts into a single parent debt.',
+    'debts.combineModal.parentNote': 'Consolidated debt note',
+    'debts.combineModal.parentDueDate': 'Consolidated due date',
+    'debts.combineModal.warning':
+      'Selected debts will become child items under this consolidated debt. Historical payments are fully preserved.',
+    'debts.combineModal.mismatchedDirection':
+      'Can only combine debts of the same direction (all receivables or all payables).',
+    'debts.combineModal.mismatchedCurrency': 'Can only combine debts with the same currency.',
+    'debts.combineModal.confirm': 'Confirm Combine',
+    'debts.combine.success': 'Successfully combined {count} debts',
+    'debts.badge.parent': 'Consolidated ({count})',
+    'debts.badge.child': 'Sub-debt',
+    'debts.expandChildren': 'Expand sub-debts',
+    'debts.collapseChildren': 'Collapse sub-debts',
+    'debts.selectedCount': '{count} selected',
+    'debts.selectAll': 'Select all',
+    'debts.deselectAll': 'Deselect all',
+    'contacts.combineModal.consolidateDebts':
+      'Automatically consolidate debts of the same direction into parent debts',
     'debts.inlineEdit.saved': 'Debt updated successfully',
     'debts.placeholder.counterparty': 'Enter or select person...',
     'debts.placeholder.originalAmount': 'Original amount...',
@@ -818,6 +879,7 @@ const messages = {
     'transactions.actions.save': 'Save',
     'transactions.actions.cancel': 'Cancel',
     'transactions.actions.delete': 'Delete',
+    'transactions.actions.allocateDebts': 'Allocate to Debts',
     'transactions.delete.confirm': 'Are you sure you want to delete this transaction?',
     'transactions.delete.success': 'Transaction deleted successfully',
     'transactions.inlineEdit.saved': 'Transaction updated successfully',
@@ -825,6 +887,19 @@ const messages = {
     'transactions.placeholder.place': 'Enter a place or store...',
     'transactions.placeholder.note': 'Enter note...',
     'transactions.placeholder.amount': 'Enter amount...',
+    'transactions.allocation.title': 'Allocate Transaction to Debts',
+    'transactions.allocation.allocated': 'Allocated',
+    'transactions.allocation.unallocated': 'Unallocated',
+    'transactions.allocation.totalAmount': 'Transaction Amount',
+    'transactions.allocation.submit': 'Save Allocations',
+    'transactions.allocation.success': 'Debt allocations updated successfully',
+    'transactions.allocation.exceededAmount':
+      'Total allocated amount cannot exceed transaction amount',
+    'transactions.allocation.exceededDebtRemaining': 'Allocated amount exceeds remaining debt',
+    'transactions.allocation.noCandidates': 'No matching open debts available for allocation',
+    'debts.payments.linkedTransaction': 'Linked Transaction',
+    'category.debtRecovery': 'Debt Recovery',
+    'category.debtPayment': 'Debt Repayment',
     'analytics.title': 'Reports & Analytics',
     'analytics.subtitle': 'Visualize cashflow trends, spending distribution, and debt structure',
     'analytics.kpi.netSavings': 'Net Savings',
@@ -1106,10 +1181,57 @@ export interface IDebtPaymentItem {
   id: string;
   debtId: string;
   userId: string;
+  financeTransactionId?: string;
   amount: number;
   paymentDate: string;
   note?: string;
   createdAt: string;
+}
+
+export interface IDebtAllocationItem {
+  id: string;
+  userId: string;
+  financeTransactionId: string;
+  debtId: string;
+  amount: number;
+  allocatedAt: string;
+  note?: string;
+  createdAt: string;
+  debt?: {
+    counterparty: string;
+    counterpartyAlias?: string;
+    direction: DebtDirection;
+    remainingAmount: number;
+    originalAmount: number;
+  };
+}
+
+export interface ICandidateDebtItem {
+  id: string;
+  direction: DebtDirection;
+  counterparty: string;
+  counterpartyAlias?: string;
+  contactId?: string;
+  originalAmount: number;
+  remainingAmount: number;
+  currentAllocatedAmount: number;
+  note?: string;
+  occurredAt: string;
+  dueAt?: string;
+  status: 'active' | 'settled';
+}
+
+export interface IAllocateTransactionRequest {
+  allocations: Array<{
+    debtId: string;
+    amount: number;
+    note?: string;
+  }>;
+}
+
+export interface IAllocateTransactionResponse {
+  allocations: IDebtAllocationItem[];
+  remainingUnallocated: number;
 }
 
 export interface ICreateDebtPaymentRequest {
@@ -1125,6 +1247,7 @@ export interface IDebtListItem {
   counterparty: string;
   counterpartyAlias?: string;
   contactId?: string;
+  parentDebtId?: string | null;
   originalAmount: number;
   remainingAmount: number;
   status?: 'active' | 'settled';
@@ -1134,6 +1257,8 @@ export interface IDebtListItem {
   dueAt?: string;
   settledAt?: string;
   payments?: IDebtPaymentItem[];
+  children?: IDebtListItem[];
+  childCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -1391,12 +1516,27 @@ export interface ICombineContactsRequest {
   displayName?: string;
   alias?: string;
   descriptor?: string;
+  consolidateDebts?: boolean;
 }
 
 export interface ICombineContactsResponse {
   targetContact: IContactListItem;
   affectedDebtsCount: number;
   mergedCount: number;
+}
+
+export interface ICombineDebtsRequest {
+  debtIds: string[];
+  counterparty?: string;
+  counterpartyAlias?: string;
+  contactId?: string;
+  note?: string;
+  dueAt?: string;
+}
+
+export interface ICombineDebtsResponse {
+  parentDebt: IDebtListItem;
+  mergedDebtsCount: number;
 }
 
 export interface ICategoryItem {

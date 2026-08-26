@@ -23,8 +23,15 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
 ## Dashboard và Gemini
 
 - Trang **Báo cáo & Phân tích** (`/analytics`) gọi `GET /api/finance/analytics` để trực quan hóa biểu đồ dòng tiền (Cashflow trend), cơ cấu chi tiêu (Category donut), và phân bổ công nợ (Debt structure).
-- Bảng **Thu chi** có cột **Nơi chốn**. Khi sửa nhanh, có thể chọn từ gợi ý hoặc gõ tên mới; xóa nội dung rồi lưu sẽ bỏ nơi chốn của giao dịch.
+- Bảng **Thu chi** có cột **Nơi chốn** và nút **🔗 Phân bổ công nợ** trên từng dòng.
+- **Tính năng Phân bổ Giao dịch vào Công nợ**:
+  * Cho phép người dùng gắn trực tiếp số tiền của một giao dịch thu/chi có sẵn vào một hoặc nhiều khoản công nợ đang mở (Thu phân bổ cho Phải thu, Chi phân bổ cho Phải trả).
+  * Modal `DebtAllocationModal` hiển thị thông tin giao dịch nguồn, tính toán số dư chưa phân bổ real-time, danh sách khoản nợ ứng viên, hỗ trợ nút "Phân bổ tối đa" và kiểm soát chặt chẽ giới hạn số tiền.
+  * API hỗ trợ: `GET /api/transactions/:id/candidate-debts`, `GET /api/transactions/:id/allocations`, `POST /api/transactions/:id/allocations`, `DELETE /api/transactions/:id/allocations/:allocationId`.
 - Tìm kiếm giao dịch áp dụng cho danh mục, ghi chú và nơi chốn.
+- **Tra cứu và phân bổ công nợ qua Gemini & Telegram**:
+  * Khi người dùng yêu cầu gắn giao dịch vào nợ, Gemini gọi `list_candidate_debts` để tra cứu các khoản nợ phù hợp.
+  * Gemini gọi `allocate_transaction_to_debts` để tạo xác nhận phân bổ công nợ hiển thị đầy đủ chi tiết số tiền và danh sách các khoản nợ được phân bổ.
 - **Tra cứu và tạo nơi chốn của Gemini**:
   * Khi người dùng nhắc đến tên quán ăn/địa điểm, Gemini gọi công cụ `resolve_finance_place` để tra cứu danh sách nơi chốn đã có của người dùng, tránh tạo trùng lặp nơi chốn đã tồn tại.
   * Nếu nơi chốn đã có: Gemini truyền `placeId` vào payload cập nhật/ghi sổ giao dịch.

@@ -38,6 +38,9 @@ metadata:
   - Bảng dữ liệu sử dụng `DataTable` (`id="places"`), tự động tích hợp 2 cột hệ thống bắt buộc `STT` và `ID`, đi cùng các cột nghiệp vụ: `Tên nơi chốn / Địa điểm` (hỗ trợ double-click inline edit, phím tắt `Enter`/`Escape`), `Thời gian tạo`, `Hoạt động` (Sửa, Xóa).
   - Hỗ trợ thêm nhanh nơi chốn mới qua nút `+ Thêm nơi chốn` trên toolbar, tìm kiếm theo thời gian thực và xác nhận xóa an toàn 2 bước inline.
   - Tích hợp vào thanh điều hướng Sidebar dưới mục **DỮ LIỆU** (`nav.section.data`) với icon định vị chuẩn.
+- **Phân bổ Giao dịch vào Công nợ (`DebtAllocationModal`)**:
+  - Trên bảng giao dịch thu chi, nút phân bổ mở cửa sổ `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
+  - Tải danh sách các khoản nợ khả dụng của liên hệ tương ứng qua `useDebtAllocationCandidatesQuery`, cho phép phân bổ số tiền giao dịch vào một hoặc nhiều khoản nợ, gọi `POST /api/debts/allocations` qua `useAllocateTransactionMutation`.
 - **Cơ chế Migration chuyển đổi dữ liệu cũ**:
   - Script migration TypeORM `1724660000000-MigrateLegacyPlaceContacts.ts` tự động chạy khi khởi động backend (`migrationsRun: true`).
   - Tự động backfill các địa điểm cũ từ `debt_contacts` sang `finance_places` (xử lý trùng lặp bằng `DISTINCT ON` và `UNIQUE INDEX`), chuyển đổi `place_id` cho `finance_transactions` và dọn dẹp các bản ghi địa điểm thừa khỏi `debt_contacts` để trả lại danh bạ cá nhân sạch sẽ.

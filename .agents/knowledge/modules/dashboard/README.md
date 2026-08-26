@@ -49,6 +49,10 @@ During inline transaction editing, Category is a controlled combobox rather than
   - Data table utilizes `DataTable` (`id="places"`), which automatically prepends non-hideable `stt` and `id` system columns, paired with domain columns: `name` (inline edit on double-click with `Enter`/`Escape`), `createdAt`, and `actions` (Edit, 2-step safe inline deletion).
   - Search toolbar and quick Add Place form (`+ Add place`).
   - Integrated into navigation drawer and sidebar under `DATA` (`nav.section.data`) with a dedicated location pin icon.
+- **Debt Transaction Allocation (`DebtAllocationModal`)**:
+  - On the transactions table, transactions can be linked to candidate active debts via an Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
+  - Fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).
+  - Preserves traceability between cashflow events and debt payments.
 - **Legacy Place Migration**:
   - TypeORM migration `1724660000000-MigrateLegacyPlaceContacts.ts` automatically executes on server boot (`migrationsRun: true`).
   - Backfills historical place contacts from `debt_contacts` into `finance_places` (with deduplication via `DISTINCT ON` and unique indexing), links `finance_transactions.place_id`, and removes legacy place entries from `debt_contacts` while preserving all transaction history.

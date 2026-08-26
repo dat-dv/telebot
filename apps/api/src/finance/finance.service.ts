@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import {
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_EXPENSE_CATEGORIES,
@@ -10,11 +10,14 @@ import {
   type IFinanceAnalyticsResponse,
   type IAnalyticsTrendBucket,
   type IAnalyticsCategoryBreakdown,
+  type ICandidateDebtItem,
+  type IDebtAllocationItem,
 } from '@telebot/contracts';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
+import { DebtPaymentAllocationEntity } from '../database/entities/debt-payment-allocation.entity';
 import { UserCategoryEntity } from '../database/entities/user-category.entity';
 import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 
@@ -90,12 +93,27 @@ export interface CombineContactsDto {
   displayName?: string;
   alias?: string;
   descriptor?: string;
+  consolidateDebts?: boolean;
 }
 
 export interface CombineContactsResult {
   targetContact: DebtContactEntity;
   affectedDebtsCount: number;
   mergedCount: number;
+}
+
+export interface CombineDebtsDto {
+  debtIds: string[];
+  counterparty?: string;
+  counterpartyAlias?: string;
+  contactId?: string;
+  note?: string;
+  dueAt?: string;
+}
+
+export interface CombineDebtsResult {
+  parentDebt: DebtEntity;
+  mergedDebtsCount: number;
 }
 
 @Injectable()
@@ -109,6 +127,8 @@ export class FinanceService {
     private readonly contactRepo: Repository<DebtContactEntity>,
     @InjectRepository(DebtPaymentEntity)
     private readonly debtPaymentRepo: Repository<DebtPaymentEntity>,
+    @InjectRepository(DebtPaymentAllocationEntity)
+    private readonly allocationRepo: Repository<DebtPaymentAllocationEntity>,
     @InjectRepository(UserCategoryEntity)
     private readonly userCategoryRepo: Repository<UserCategoryEntity>,
     @InjectRepository(FinancePlaceEntity)
@@ -472,6 +492,9 @@ export class FinanceService {
     if (type) query.andWhere('transaction.type = :type', { type });
     return query
       .leftJoinAndSelect('transaction.place', 'place')
+      .leftJoinAndSelect('transaction.contact', 'contact')
+      .leftJoinAndSelect('transaction.allocations', 'allocations')
+      .leftJoinAndSelect('allocations.debt', 'debt')
       .orderBy('transaction.occurred_at', 'DESC')
       .take(200)
       .getMany();
@@ -480,7 +503,7 @@ export class FinanceService {
   public getTransaction(userId: number, id: string): Promise<FinanceTransactionEntity | null> {
     return this.transactionRepo.findOne({
       where: { id, userId: userId.toString() },
-      relations: { place: true },
+      relations: { place: true, contact: true, allocations: { debt: true } },
     });
   }
 
@@ -757,6 +780,10 @@ export class FinanceService {
       .createQueryBuilder('debt')
       .leftJoinAndSelect('debt.contact', 'contact')
       .leftJoinAndSelect('debt.payments', 'payments')
+      .leftJoinAndSelect('debt.children', 'children')
+      .leftJoinAndSelect('children.contact', 'childContact')
+      .leftJoinAndSelect('children.payments', 'childPayments')
+      .leftJoinAndSelect('debt.parentDebt', 'parentDebt')
       .where('debt.user_id = :userId', { userId: userId.toString() });
     if (status) query.andWhere('debt.status = :status', { status });
     return query
@@ -770,7 +797,13 @@ export class FinanceService {
   public getDebt(userId: number, id: string): Promise<DebtEntity | null> {
     return this.debtRepo.findOne({
       where: { id, userId: userId.toString() },
-      relations: { contact: true, payments: true },
+      relations: {
+        contact: true,
+        payments: { financeTransaction: true },
+        allocations: true,
+        children: { contact: true, payments: { financeTransaction: true } },
+        parentDebt: true,
+      },
     });
   }
 
@@ -940,11 +973,140 @@ export class FinanceService {
       await this.contactRepo.remove(sourceContacts);
     }
 
+    if (input.consolidateDebts) {
+      const allContactDebts = await this.debtRepo.find({
+        where: { contactId: targetContact.id, userId: uid, parentDebtId: IsNull() },
+      });
+      for (const dir of ['receivable', 'payable'] as const) {
+        const dirDebts = allContactDebts.filter((d) => d.direction === dir);
+        // Group by currency to avoid mismatched currency merging
+        const byCurrency = new Map<string, DebtEntity[]>();
+        for (const d of dirDebts) {
+          const curr = (d.currency || 'VND').toUpperCase();
+          const group = byCurrency.get(curr) || [];
+          group.push(d);
+          byCurrency.set(curr, group);
+        }
+        for (const [curr, group] of byCurrency) {
+          if (group.length >= 2) {
+            await this.combineDebts(userId, {
+              debtIds: group.map((d) => d.id),
+              contactId: targetContact.id,
+              counterparty: targetContact.displayName,
+              counterpartyAlias: targetContact.alias,
+              note: `Gộp nợ ${dir === 'receivable' ? 'cho vay' : 'đi vay'} (${curr}) sau khi gộp liên hệ: ${targetContact.displayName}`,
+            });
+          }
+        }
+      }
+    }
+
     return {
       targetContact,
       affectedDebtsCount,
       mergedCount: sourceContacts.length,
     };
+  }
+
+  public async combineDebts(userId: number, input: CombineDebtsDto): Promise<CombineDebtsResult> {
+    const uid = userId.toString();
+    const uniqueIds = Array.from(new Set((input.debtIds || []).filter(Boolean)));
+    if (uniqueIds.length < 2) {
+      throw new Error('Cần chọn ít nhất 2 khoản nợ để gộp.');
+    }
+
+    const debts = await this.debtRepo.find({
+      where: { id: In(uniqueIds), userId: uid },
+      relations: { contact: true, payments: true, children: true },
+    });
+
+    if (debts.length < uniqueIds.length) {
+      throw new Error(
+        'Một hoặc nhiều khoản nợ không tồn tại hoặc không thuộc quyền sở hữu của bạn.',
+      );
+    }
+
+    const direction = debts[0].direction;
+    if (debts.some((d) => d.direction !== direction)) {
+      throw new Error('Chỉ có thể gộp các khoản nợ cùng chiều (cùng Phải thu hoặc cùng Phải trả).');
+    }
+
+    const currency = (debts[0].currency || 'VND').toUpperCase();
+    if (debts.some((d) => (d.currency || 'VND').toUpperCase() !== currency)) {
+      throw new Error('Chỉ có thể gộp các khoản nợ có cùng đơn vị tiền tệ.');
+    }
+
+    const contactId = input.contactId || debts[0].contactId;
+    const counterparty = input.counterparty?.trim() || debts[0].counterparty;
+    const counterpartyAlias = input.counterpartyAlias?.trim() || debts[0].counterpartyAlias;
+
+    const originalAmount = debts.reduce((sum, d) => sum + Number(d.originalAmount || 0), 0);
+    const remainingAmount = debts.reduce((sum, d) => sum + Number(d.remainingAmount || 0), 0);
+    const status = remainingAmount === 0 ? 'settled' : 'active';
+    const settledAt = status === 'settled' ? debts[0].settledAt || new Date() : undefined;
+
+    let dueAt: Date | undefined;
+    if (input.dueAt) {
+      const parsedDue = new Date(input.dueAt);
+      if (!Number.isNaN(parsedDue.getTime())) {
+        dueAt = parsedDue;
+      }
+    }
+    if (!dueAt) {
+      dueAt = debts.find((d) => d.dueAt)?.dueAt;
+    }
+
+    const occurredAt =
+      debts.reduce(
+        (latest, d) => (d.occurredAt && (!latest || d.occurredAt > latest) ? d.occurredAt : latest),
+        debts[0].occurredAt,
+      ) || new Date();
+    const note = input.note?.trim() || `Gộp từ ${debts.length} khoản nợ`;
+
+    return this.debtRepo.manager.transaction(async (manager) => {
+      const parentDebt = manager.create(DebtEntity, {
+        userId: uid,
+        contactId,
+        direction,
+        counterparty,
+        counterpartyAlias,
+        originalAmount,
+        remainingAmount,
+        currency,
+        note,
+        status,
+        settledAt,
+        dueAt,
+        occurredAt,
+      });
+      const savedParent = await manager.save(DebtEntity, parentDebt);
+
+      for (const child of debts) {
+        // If child was already a parent, re-parent its existing children to the new consolidated parent
+        if (child.children && child.children.length > 0) {
+          for (const subChild of child.children) {
+            subChild.parentDebtId = savedParent.id;
+            await manager.save(DebtEntity, subChild);
+          }
+        }
+        child.parentDebtId = savedParent.id;
+        await manager.save(DebtEntity, child);
+      }
+
+      const fullParent = await manager.findOne(DebtEntity, {
+        where: { id: savedParent.id },
+        relations: {
+          contact: true,
+          children: { contact: true, payments: true },
+          payments: true,
+        },
+      });
+
+      return {
+        parentDebt: fullParent || savedParent,
+        mergedDebtsCount: debts.length,
+      };
+    });
   }
 
   public async recordDebtPayment(
@@ -1009,7 +1171,307 @@ export class FinanceService {
   public async getDebtPayments(userId: number, debtId: string): Promise<DebtPaymentEntity[]> {
     return this.debtPaymentRepo.find({
       where: { debtId, userId: userId.toString() },
+      relations: { financeTransaction: true },
       order: { paymentDate: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  public async listCandidateDebts(
+    userId: number,
+    transactionId: string,
+  ): Promise<ICandidateDebtItem[]> {
+    const uid = userId.toString();
+    const transaction = await this.transactionRepo.findOne({
+      where: { id: transactionId, userId: uid },
+      relations: { contact: true },
+    });
+    if (!transaction) {
+      throw new Error('Không tìm thấy giao dịch.');
+    }
+
+    const targetDirection = transaction.type === 'income' ? 'receivable' : 'payable';
+
+    const existingAllocations = await this.allocationRepo.find({
+      where: { financeTransactionId: transactionId, userId: uid },
+    });
+    const allocatedMap = new Map<string, number>();
+    for (const alloc of existingAllocations) {
+      allocatedMap.set(alloc.debtId, (allocatedMap.get(alloc.debtId) || 0) + alloc.amount);
+    }
+
+    const query = this.debtRepo
+      .createQueryBuilder('debt')
+      .leftJoinAndSelect('debt.contact', 'contact')
+      .where('debt.user_id = :userId', { userId: uid })
+      .andWhere('debt.direction = :direction', { direction: targetDirection });
+
+    if (transaction.contactId) {
+      query.andWhere('debt.contact_id = :contactId', { contactId: transaction.contactId });
+    }
+
+    const debts = await query
+      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
+      .addOrderBy('debt.created_at', 'DESC')
+      .getMany();
+
+    const candidates: ICandidateDebtItem[] = [];
+    for (const debt of debts) {
+      const currentAllocated = allocatedMap.get(debt.id) || 0;
+      const availableRemaining = debt.remainingAmount + currentAllocated;
+
+      if (availableRemaining <= 0 && currentAllocated === 0) {
+        continue;
+      }
+
+      candidates.push({
+        id: debt.id,
+        direction: debt.direction,
+        counterparty: debt.contact?.displayName || debt.counterparty,
+        counterpartyAlias: debt.contact?.alias || debt.counterpartyAlias,
+        contactId: debt.contactId,
+        originalAmount: debt.originalAmount,
+        remainingAmount: availableRemaining,
+        currentAllocatedAmount: currentAllocated,
+        note: debt.note,
+        occurredAt: debt.occurredAt?.toISOString() || debt.createdAt.toISOString(),
+        dueAt: debt.dueAt?.toISOString(),
+        status: debt.status,
+      });
+    }
+
+    return candidates;
+  }
+
+  public async getTransactionAllocations(
+    userId: number,
+    transactionId: string,
+  ): Promise<IDebtAllocationItem[]> {
+    const uid = userId.toString();
+    const allocations = await this.allocationRepo.find({
+      where: { financeTransactionId: transactionId, userId: uid },
+      relations: { debt: { contact: true } },
+      order: { createdAt: 'ASC' },
+    });
+
+    return allocations.map((alloc) => ({
+      id: alloc.id,
+      userId: alloc.userId,
+      financeTransactionId: alloc.financeTransactionId,
+      debtId: alloc.debtId,
+      amount: alloc.amount,
+      allocatedAt: (alloc.allocatedAt || new Date()).toISOString(),
+      note: alloc.note,
+      createdAt: (alloc.createdAt || new Date()).toISOString(),
+      debt: alloc.debt
+        ? {
+            counterparty: alloc.debt.contact?.displayName || alloc.debt.counterparty,
+            counterpartyAlias: alloc.debt.contact?.alias || alloc.debt.counterpartyAlias,
+            direction: alloc.debt.direction,
+            remainingAmount: alloc.debt.remainingAmount,
+            originalAmount: alloc.debt.originalAmount,
+          }
+        : undefined,
+    }));
+  }
+
+  public async allocateTransactionToDebts(
+    userId: number,
+    transactionId: string,
+    allocations: Array<{ debtId: string; amount: number; note?: string }>,
+  ): Promise<{ allocations: IDebtAllocationItem[]; remainingUnallocated: number }> {
+    const uid = userId.toString();
+    return this.transactionRepo.manager.transaction(async (manager) => {
+      const txRepo = manager.getRepository(FinanceTransactionEntity);
+      const debtRepo = manager.getRepository(DebtEntity);
+      const allocRepo = manager.getRepository(DebtPaymentAllocationEntity);
+      const debtPaymentRepo = manager.getRepository(DebtPaymentEntity);
+
+      const tx = await txRepo.findOne({
+        where: { id: transactionId, userId: uid },
+      });
+      if (!tx) {
+        throw new Error('Không tìm thấy giao dịch thu/chi.');
+      }
+
+      const validItems = allocations
+        .filter((item) => Number(item.amount) > 0)
+        .map((item) => ({
+          debtId: item.debtId.trim(),
+          amount: Math.round(Number(item.amount)),
+          note: item.note?.trim() || undefined,
+        }));
+
+      const seenDebtIds = new Set<string>();
+      for (const item of validItems) {
+        if (seenDebtIds.has(item.debtId)) {
+          throw new Error('Không được phân bổ trùng lặp vào cùng một khoản nợ.');
+        }
+        seenDebtIds.add(item.debtId);
+      }
+
+      const totalRequested = validItems.reduce((sum, item) => sum + item.amount, 0);
+      if (totalRequested > tx.amount) {
+        throw new Error(
+          `Tổng tiền phân bổ (${this.formatMoney(totalRequested)}) vượt quá số tiền giao dịch (${this.formatMoney(tx.amount)}).`,
+        );
+      }
+
+      const existingAllocs = await allocRepo.find({
+        where: { financeTransactionId: transactionId, userId: uid },
+      });
+
+      const allDebtIds = Array.from(
+        new Set([...existingAllocs.map((a) => a.debtId), ...validItems.map((v) => v.debtId)]),
+      );
+
+      const debts =
+        allDebtIds.length > 0
+          ? await debtRepo.find({
+              where: { id: In(allDebtIds), userId: uid },
+              relations: { contact: true },
+            })
+          : [];
+      const debtMap = new Map(debts.map((d) => [d.id, d]));
+
+      // 1. Revert previous allocations on debts
+      for (const existing of existingAllocs) {
+        const debt = debtMap.get(existing.debtId);
+        if (debt) {
+          debt.remainingAmount += existing.amount;
+        }
+      }
+
+      // 2. Clear previous allocations and linked payments
+      await allocRepo.delete({ financeTransactionId: transactionId, userId: uid });
+      await debtPaymentRepo.delete({ financeTransactionId: transactionId, userId: uid });
+
+      // 3. Apply new allocations
+      const expectedDirection = tx.type === 'income' ? 'receivable' : 'payable';
+      const savedAllocations: DebtPaymentAllocationEntity[] = [];
+
+      for (const item of validItems) {
+        const debt = debtMap.get(item.debtId);
+        if (!debt) {
+          throw new Error(`Không tìm thấy khoản nợ: ${item.debtId}`);
+        }
+        if (debt.direction !== expectedDirection) {
+          throw new Error(
+            `Khoản nợ của ${debt.counterparty} (${debt.direction}) không khớp với chiều giao dịch (${tx.type}).`,
+          );
+        }
+        if (item.amount > debt.remainingAmount) {
+          throw new Error(
+            `Số tiền phân bổ (${this.formatMoney(item.amount)}) vượt quá số nợ còn lại (${this.formatMoney(debt.remainingAmount)}) của ${debt.counterparty}.`,
+          );
+        }
+
+        debt.remainingAmount -= item.amount;
+        if (debt.remainingAmount === 0) {
+          debt.status = 'settled';
+          debt.settledAt = new Date();
+        } else {
+          debt.status = 'active';
+          debt.settledAt = undefined;
+        }
+
+        const allocEntity = await allocRepo.save(
+          allocRepo.create({
+            userId: uid,
+            financeTransactionId: tx.id,
+            debtId: debt.id,
+            amount: item.amount,
+            allocatedAt: tx.occurredAt || new Date(),
+            note: item.note,
+          }),
+        );
+        allocEntity.debt = debt;
+        savedAllocations.push(allocEntity);
+
+        await debtPaymentRepo.save(
+          debtPaymentRepo.create({
+            debtId: debt.id,
+            userId: uid,
+            financeTransactionId: tx.id,
+            amount: item.amount,
+            paymentDate: tx.occurredAt || new Date(),
+            note: item.note || tx.note || undefined,
+          }),
+        );
+      }
+
+      for (const d of debtMap.values()) {
+        if (d.remainingAmount === 0) {
+          d.status = 'settled';
+          if (!d.settledAt) d.settledAt = new Date();
+        } else {
+          d.status = 'active';
+          d.settledAt = undefined;
+        }
+        await debtRepo.save(d);
+      }
+
+      return {
+        allocations: savedAllocations.map((alloc) => ({
+          id: alloc.id,
+          userId: alloc.userId,
+          financeTransactionId: alloc.financeTransactionId,
+          debtId: alloc.debtId,
+          amount: alloc.amount,
+          allocatedAt: (alloc.allocatedAt || new Date()).toISOString(),
+          note: alloc.note,
+          createdAt: (alloc.createdAt || new Date()).toISOString(),
+          debt: alloc.debt
+            ? {
+                counterparty: alloc.debt.contact?.displayName || alloc.debt.counterparty,
+                counterpartyAlias: alloc.debt.contact?.alias || alloc.debt.counterpartyAlias,
+                direction: alloc.debt.direction,
+                remainingAmount: alloc.debt.remainingAmount,
+                originalAmount: alloc.debt.originalAmount,
+              }
+            : undefined,
+        })),
+        remainingUnallocated: tx.amount - totalRequested,
+      };
+    });
+  }
+
+  public async deleteDebtAllocation(
+    userId: number,
+    transactionId: string,
+    allocationId: string,
+  ): Promise<boolean> {
+    const uid = userId.toString();
+    return this.transactionRepo.manager.transaction(async (manager) => {
+      const allocRepo = manager.getRepository(DebtPaymentAllocationEntity);
+      const debtRepo = manager.getRepository(DebtEntity);
+      const debtPaymentRepo = manager.getRepository(DebtPaymentEntity);
+
+      const alloc = await allocRepo.findOne({
+        where: { id: allocationId, financeTransactionId: transactionId, userId: uid },
+      });
+      if (!alloc) return false;
+
+      const debt = await debtRepo.findOne({
+        where: { id: alloc.debtId, userId: uid },
+      });
+      if (debt) {
+        debt.remainingAmount += alloc.amount;
+        if (debt.remainingAmount > 0) {
+          debt.status = 'active';
+          debt.settledAt = undefined;
+        }
+        await debtRepo.save(debt);
+      }
+
+      await debtPaymentRepo.delete({
+        financeTransactionId: transactionId,
+        debtId: alloc.debtId,
+        userId: uid,
+        amount: alloc.amount,
+      });
+
+      await allocRepo.remove(alloc);
+      return true;
     });
   }
 

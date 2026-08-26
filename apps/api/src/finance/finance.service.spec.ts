@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
+import { DebtPaymentAllocationEntity } from '../database/entities/debt-payment-allocation.entity';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
 import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 import { FinanceService } from './finance.service';
@@ -41,6 +42,7 @@ function createFinanceService(debt: Partial<DebtEntity>) {
           Promise.resolve(callback(manager)),
       },
     } as never,
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -125,6 +127,7 @@ void test('createTransaction reuses a user-scoped place instead of creating a de
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
     {
       findOne: () => Promise.resolve(storedPlace),
       create: (value: Partial<FinancePlaceEntity>) => value,
@@ -177,6 +180,7 @@ void test('FinanceService.resolvePlaces finds places matching normalized name', 
   ];
 
   const service = new FinanceService(
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -318,6 +322,7 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
   );
 
   const report = await service.getAnalyticsReport(
@@ -355,4 +360,315 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
     payable: 13_000_000,
     netWorth: -500_000,
   });
+});
+
+void test('allocateTransactionToDebts allocates funds to multiple debts atomically', async () => {
+  const mockTransaction: Partial<FinanceTransactionEntity> = {
+    id: 'tx-1',
+    userId: '42',
+    type: 'income',
+    amount: 5_000_000,
+    currency: 'VND',
+    occurredAt: new Date('2026-08-20T10:00:00Z'),
+  };
+
+  const debt1: Partial<DebtEntity> = {
+    id: 'debt-1',
+    userId: '42',
+    direction: 'receivable',
+    counterparty: 'Trí',
+    originalAmount: 3_000_000,
+    remainingAmount: 3_000_000,
+    status: 'active',
+    currency: 'VND',
+  };
+
+  const debt2: Partial<DebtEntity> = {
+    id: 'debt-2',
+    userId: '42',
+    direction: 'receivable',
+    counterparty: 'Trí',
+    originalAmount: 4_000_000,
+    remainingAmount: 4_000_000,
+    status: 'active',
+    currency: 'VND',
+  };
+
+  const savedAllocs: Partial<DebtPaymentAllocationEntity>[] = [];
+  const savedPayments: Partial<DebtPaymentEntity>[] = [];
+  const existingAllocs: Partial<DebtPaymentAllocationEntity>[] = [];
+
+  const manager = {
+    getRepository: (entity: unknown) => {
+      if (entity === FinanceTransactionEntity) {
+        return {
+          findOne: () => Promise.resolve(mockTransaction),
+        };
+      }
+      if (entity === DebtEntity) {
+        return {
+          find: () => Promise.resolve([debt1, debt2]),
+          save: (d: Partial<DebtEntity>) => Promise.resolve(d),
+        };
+      }
+      if (entity === DebtPaymentAllocationEntity) {
+        return {
+          find: () => Promise.resolve(existingAllocs),
+          delete: () => Promise.resolve(),
+          create: (v: Partial<DebtPaymentAllocationEntity>) => ({ id: 'alloc-1', ...v }),
+          save: (v: Partial<DebtPaymentAllocationEntity>) => {
+            savedAllocs.push(v);
+            return Promise.resolve(v);
+          },
+        };
+      }
+      if (entity === DebtPaymentEntity) {
+        return {
+          delete: () => Promise.resolve(),
+          create: (v: Partial<DebtPaymentEntity>) => ({ id: 'payment-1', ...v }),
+          save: (v: Partial<DebtPaymentEntity>) => {
+            savedPayments.push(v);
+            return Promise.resolve(v);
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const service = new FinanceService(
+    {
+      manager: {
+        transaction: (cb: (m: typeof manager) => unknown) => Promise.resolve(cb(manager)),
+      },
+      findOne: () => Promise.resolve(mockTransaction),
+    } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const result = await service.allocateTransactionToDebts(42, 'tx-1', [
+    { debtId: 'debt-1', amount: 3_000_000 },
+    { debtId: 'debt-2', amount: 2_000_000 },
+  ]);
+
+  assert.equal(result.allocations.length, 2);
+  assert.equal(result.remainingUnallocated, 0);
+  assert.equal(debt1.remainingAmount, 0);
+  assert.equal(debt1.status, 'settled');
+  assert.equal(debt2.remainingAmount, 2_000_000);
+  assert.equal(debt2.status, 'active');
+  assert.equal(savedAllocs.length, 2);
+  assert.equal(savedPayments.length, 2);
+});
+
+void test('allocateTransactionToDebts rejects when allocated sum exceeds transaction amount', async () => {
+  const mockTransaction: Partial<FinanceTransactionEntity> = {
+    id: 'tx-2',
+    userId: '42',
+    type: 'income',
+    amount: 1_000_000,
+  };
+
+  const manager = {
+    getRepository: (entity: unknown) => {
+      if (entity === FinanceTransactionEntity) {
+        return { findOne: () => Promise.resolve(mockTransaction) };
+      }
+      return {};
+    },
+  };
+
+  const service = new FinanceService(
+    {
+      manager: {
+        transaction: (cb: (m: typeof manager) => unknown) => Promise.resolve(cb(manager)),
+      },
+    } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  await assert.rejects(
+    () => service.allocateTransactionToDebts(42, 'tx-2', [{ debtId: 'debt-1', amount: 2_000_000 }]),
+    /vượt quá số tiền giao dịch/,
+  );
+});
+
+void test('FinanceService.combineDebts combines debts into a parent debt hierarchy', async () => {
+  const child1: Partial<DebtEntity> = {
+    id: 'debt-a',
+    userId: '42',
+    direction: 'receivable',
+    counterparty: 'Nguyễn Văn A',
+    originalAmount: 500_000,
+    remainingAmount: 500_000,
+    currency: 'VND',
+    status: 'active',
+  };
+  const child2: Partial<DebtEntity> = {
+    id: 'debt-b',
+    userId: '42',
+    direction: 'receivable',
+    counterparty: 'Nguyễn Văn A',
+    originalAmount: 300_000,
+    remainingAmount: 300_000,
+    currency: 'VND',
+    status: 'active',
+  };
+
+  const savedChildren: DebtEntity[] = [];
+  let savedParent: Partial<DebtEntity> | null = null;
+
+  const debtRepo = {
+    find: () => Promise.resolve([child1 as DebtEntity, child2 as DebtEntity]),
+    manager: {
+      transaction: async (cb: (manager: unknown) => Promise<unknown>) => {
+        const mockManager = {
+          create: (_entity: unknown, data: Partial<DebtEntity>) => ({
+            id: 'parent-c',
+            ...data,
+          }),
+          save: (_entity: unknown, target: Partial<DebtEntity>) => {
+            if (target.id === 'parent-c') {
+              savedParent = target;
+              return Promise.resolve(target);
+            }
+            savedChildren.push(target as DebtEntity);
+            return Promise.resolve(target);
+          },
+          findOne: (_entity: unknown, opts: { where: { id: string } }) => {
+            return Promise.resolve({
+              ...savedParent,
+              id: opts.where.id,
+              children: [child1, child2],
+            });
+          },
+        };
+        return cb(mockManager);
+      },
+    },
+  };
+
+  const service = new FinanceService(
+    {} as never,
+    debtRepo as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const result = await service.combineDebts(42, {
+    debtIds: ['debt-a', 'debt-b'],
+    note: 'Gộp nợ anh A',
+  });
+
+  assert.equal(result.mergedDebtsCount, 2);
+  assert.equal(result.parentDebt.id, 'parent-c');
+  assert.equal(result.parentDebt.originalAmount, 800_000);
+  assert.equal(result.parentDebt.remainingAmount, 800_000);
+  assert.equal(result.parentDebt.direction, 'receivable');
+  assert.equal(child1.parentDebtId, 'parent-c');
+  assert.equal(child2.parentDebtId, 'parent-c');
+});
+
+void test('FinanceService.combineDebts rejects debts with mismatched directions', async () => {
+  const debt1: Partial<DebtEntity> = {
+    id: 'debt-1',
+    userId: '42',
+    direction: 'receivable',
+    originalAmount: 500_000,
+    remainingAmount: 500_000,
+  };
+  const debt2: Partial<DebtEntity> = {
+    id: 'debt-2',
+    userId: '42',
+    direction: 'payable',
+    originalAmount: 300_000,
+    remainingAmount: 300_000,
+  };
+
+  const debtRepo = {
+    find: () => Promise.resolve([debt1 as DebtEntity, debt2 as DebtEntity]),
+  };
+
+  const service = new FinanceService(
+    {} as never,
+    debtRepo as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  await assert.rejects(
+    () => service.combineDebts(42, { debtIds: ['debt-1', 'debt-2'] }),
+    /Chỉ có thể gộp các khoản nợ cùng chiều/,
+  );
+});
+
+void test('FinanceService.combineDebts rejects when fewer than 2 debts provided', async () => {
+  const service = new FinanceService(
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  await assert.rejects(
+    () => service.combineDebts(42, { debtIds: ['debt-1'] }),
+    /Cần chọn ít nhất 2 khoản nợ để gộp/,
+  );
+});
+
+void test('FinanceService.combineDebts rejects debts with mismatched currencies', async () => {
+  const debt1: Partial<DebtEntity> = {
+    id: 'debt-1',
+    userId: '42',
+    direction: 'receivable',
+    currency: 'VND',
+    originalAmount: 500_000,
+    remainingAmount: 500_000,
+  };
+  const debt2: Partial<DebtEntity> = {
+    id: 'debt-2',
+    userId: '42',
+    direction: 'receivable',
+    currency: 'USD',
+    originalAmount: 100,
+    remainingAmount: 100,
+  };
+
+  const debtRepo = {
+    find: () => Promise.resolve([debt1 as DebtEntity, debt2 as DebtEntity]),
+  };
+
+  const service = new FinanceService(
+    {} as never,
+    debtRepo as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  await assert.rejects(
+    () => service.combineDebts(42, { debtIds: ['debt-1', 'debt-2'] }),
+    /Chỉ có thể gộp các khoản nợ có cùng đơn vị tiền tệ/,
+  );
 });

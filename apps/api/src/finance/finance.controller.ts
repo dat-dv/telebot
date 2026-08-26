@@ -122,6 +122,52 @@ export class FinanceController {
     return { data: { deleted: true } };
   }
 
+  @Get('transactions/:id/candidate-debts')
+  @ApiOperation({ summary: 'Lấy danh sách công nợ ứng viên cho giao dịch' })
+  async listCandidateDebts(@Req() req: Request, @Param('id') id: string) {
+    return { data: await this.finance.listCandidateDebts(this.userId(req), id) };
+  }
+
+  @Get('transactions/:id/allocations')
+  @ApiOperation({ summary: 'Lấy danh sách phân bổ công nợ của giao dịch' })
+  async getTransactionAllocations(@Req() req: Request, @Param('id') id: string) {
+    return { data: await this.finance.getTransactionAllocations(this.userId(req), id) };
+  }
+
+  @Post('transactions/:id/allocations')
+  @ApiOperation({ summary: 'Lưu phân bổ giao dịch vào các khoản công nợ' })
+  async allocateTransactionToDebts(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: RecordBody,
+  ) {
+    const rawAllocations = Array.isArray(body.allocations) ? body.allocations : [];
+    const allocations = rawAllocations.map((item) => {
+      const rec = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+      return {
+        debtId: this.string(rec.debtId, 'debtId'),
+        amount: this.number(rec.amount, 'amount'),
+        note: this.optionalString(rec.note),
+      };
+    });
+    return {
+      data: await this.finance.allocateTransactionToDebts(this.userId(req), id, allocations),
+    };
+  }
+
+  @Delete('transactions/:id/allocations/:allocationId')
+  @ApiOperation({ summary: 'Xóa một phân bổ công nợ của giao dịch' })
+  async deleteDebtAllocation(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('allocationId') allocationId: string,
+  ) {
+    if (!(await this.finance.deleteDebtAllocation(this.userId(req), id, allocationId))) {
+      throw new NotFoundException();
+    }
+    return { data: { deleted: true } };
+  }
+
   @Get('categories')
   @ApiOperation({ summary: 'Lấy danh sách danh mục thu/chi' })
   async listCategories(@Req() req: Request, @Query('type') type?: 'income' | 'expense') {
@@ -301,6 +347,7 @@ export class FinanceController {
       displayName: this.optionalString(body.displayName),
       alias: this.optionalString(body.alias),
       descriptor: this.optionalString(body.descriptor),
+      consolidateDebts: body.consolidateDebts === true,
     });
 
     return {
@@ -320,6 +367,72 @@ export class FinanceController {
         },
         affectedDebtsCount: result.affectedDebtsCount,
         mergedCount: result.mergedCount,
+      },
+    };
+  }
+
+  @Post('debts/combine')
+  @ApiOperation({ summary: 'Gộp nhiều khoản nợ thành một khoản nợ cha' })
+  async combineDebts(@Req() req: Request, @Body() body: RecordBody) {
+    const debtIds = Array.isArray(body.debtIds)
+      ? body.debtIds.filter(
+          (item): item is string => typeof item === 'string' && Boolean(item.trim()),
+        )
+      : [];
+    if (debtIds.length < 2) {
+      throw new BadRequestException('debtIds must contain at least 2 debt IDs to combine.');
+    }
+
+    const result = await this.finance.combineDebts(this.userId(req), {
+      debtIds,
+      counterparty: this.optionalString(body.counterparty),
+      counterpartyAlias: this.optionalString(body.counterpartyAlias),
+      contactId: this.optionalString(body.contactId),
+      note: this.optionalString(body.note),
+      dueAt: this.optionalString(body.dueAt),
+    });
+
+    const parent = result.parentDebt;
+    return {
+      data: {
+        parentDebt: {
+          id: parent.id,
+          direction: parent.direction,
+          counterparty: parent.counterparty,
+          counterpartyAlias: parent.counterpartyAlias,
+          contactId: parent.contactId,
+          parentDebtId: parent.parentDebtId,
+          originalAmount: parent.originalAmount,
+          remainingAmount: parent.remainingAmount,
+          status: parent.status || (parent.remainingAmount === 0 ? 'settled' : 'active'),
+          currency: parent.currency,
+          note: parent.note || undefined,
+          occurredAt: toIsoDate(parent.occurredAt || parent.createdAt),
+          dueAt: toOptionalIsoDate(parent.dueAt),
+          settledAt: toOptionalIsoDate(parent.settledAt),
+          createdAt: toIsoDate(parent.createdAt),
+          updatedAt: toOptionalIsoDate(parent.updatedAt),
+          childCount: parent.children?.length || result.mergedDebtsCount,
+          children: parent.children?.map((child) => ({
+            id: child.id,
+            direction: child.direction,
+            counterparty: child.counterparty,
+            counterpartyAlias: child.counterpartyAlias,
+            contactId: child.contactId,
+            parentDebtId: child.parentDebtId,
+            originalAmount: child.originalAmount,
+            remainingAmount: child.remainingAmount,
+            status: child.status || (child.remainingAmount === 0 ? 'settled' : 'active'),
+            currency: child.currency,
+            note: child.note || undefined,
+            occurredAt: toIsoDate(child.occurredAt || child.createdAt),
+            dueAt: toOptionalIsoDate(child.dueAt),
+            settledAt: toOptionalIsoDate(child.settledAt),
+            createdAt: toIsoDate(child.createdAt),
+            updatedAt: toOptionalIsoDate(child.updatedAt),
+          })),
+        },
+        mergedDebtsCount: result.mergedDebtsCount,
       },
     };
   }

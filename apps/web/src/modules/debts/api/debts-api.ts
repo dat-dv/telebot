@@ -39,3 +39,13 @@ export async function createDebtPayment(
   );
   return response.data.data;
 }
+
+export async function combineDebts(
+  data: import('@telebot/contracts').ICombineDebtsRequest,
+  signal?: AbortSignal,
+): Promise<import('@telebot/contracts').ICombineDebtsResponse> {
+  const response = await httpClient.post<
+    IApiResponse<import('@telebot/contracts').ICombineDebtsResponse>
+  >(API_ROUTES.debtsCombine, data, { signal });
+  return response.data.data;
+}

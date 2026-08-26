@@ -28,6 +28,8 @@ import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
 import { ResolveFinancePlaceTool } from './tools/resolve-finance-place.tool';
 import { CreateFinancePlaceTool } from './tools/create-finance-place.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
+import { ListCandidateDebtsTool } from './tools/list-candidate-debts.tool';
+import { AllocateTransactionToDebtsTool } from './tools/allocate-transaction-to-debts.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 import { randomUUID } from 'crypto';
 import { GoogleTasksService } from '../google/google-tasks.service';
@@ -159,6 +161,7 @@ export class GeminiService {
     'record_debt_payment',
     'update_debt_contact',
     'update_reminder',
+    'allocate_transaction_to_debts',
   ]);
 
   private readonly taskCreationTools = new Set(['create_task', 'create_tasks']);
@@ -191,6 +194,8 @@ export class GeminiService {
     private readonly resolveFinancePlaceTool: ResolveFinancePlaceTool,
     private readonly createFinancePlaceTool: CreateFinancePlaceTool,
     private readonly updateReminderTool: UpdateReminderTool,
+    private readonly listCandidateDebtsTool: ListCandidateDebtsTool,
+    private readonly allocateTransactionToDebtsTool: AllocateTransactionToDebtsTool,
     private readonly tasksService: GoogleTasksService,
   ) {
     const apiKey = this.configService.getOrThrow<string>('gemini.apiKey');
@@ -227,6 +232,8 @@ export class GeminiService {
       this.resolveFinancePlaceTool,
       this.createFinancePlaceTool,
       this.updateReminderTool,
+      this.listCandidateDebtsTool,
+      this.allocateTransactionToDebtsTool,
     ];
 
     for (const tool of tools) {

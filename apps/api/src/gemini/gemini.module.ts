@@ -30,6 +30,8 @@ import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
 import { ResolveFinancePlaceTool } from './tools/resolve-finance-place.tool';
 import { CreateFinancePlaceTool } from './tools/create-finance-place.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
+import { ListCandidateDebtsTool } from './tools/list-candidate-debts.tool';
+import { AllocateTransactionToDebtsTool } from './tools/allocate-transaction-to-debts.tool';
 import { ConversationHistoryService } from './services/conversation-history.service';
 
 @Module({
@@ -63,6 +65,8 @@ import { ConversationHistoryService } from './services/conversation-history.serv
     ResolveFinancePlaceTool,
     CreateFinancePlaceTool,
     UpdateReminderTool,
+    ListCandidateDebtsTool,
+    AllocateTransactionToDebtsTool,
   ],
   exports: [GeminiService, ConversationHistoryService],
 })

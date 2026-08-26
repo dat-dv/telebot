@@ -4,6 +4,7 @@ import { FinanceTransactionEntity } from '../database/entities/finance-transacti
 import { DebtEntity } from '../database/entities/debt.entity';
 import { DebtContactEntity } from '../database/entities/debt-contact.entity';
 import { DebtPaymentEntity } from '../database/entities/debt-payment.entity';
+import { DebtPaymentAllocationEntity } from '../database/entities/debt-payment-allocation.entity';
 import { UserCategoryEntity } from '../database/entities/user-category.entity';
 import { FinancePlaceEntity } from '../database/entities/finance-place.entity';
 import { FinanceService } from './finance.service';
@@ -18,6 +19,7 @@ import { ReceiptStorageModule } from '../receipt-storage/receipt-storage.module'
       DebtEntity,
       DebtContactEntity,
       DebtPaymentEntity,
+      DebtPaymentAllocationEntity,
       UserCategoryEntity,
       FinancePlaceEntity,
     ]),

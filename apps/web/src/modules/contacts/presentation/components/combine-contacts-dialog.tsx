@@ -28,6 +28,7 @@ export function CombineContactsDialog({
   const [displayName, setDisplayName] = useState<string>('');
   const [alias, setAlias] = useState<string>('');
   const [descriptor, setDescriptor] = useState<string>('');
+  const [consolidateDebts, setConsolidateDebts] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize or reset form whenever dialog opens or selected contacts change
@@ -48,6 +49,7 @@ export function CombineContactsDialog({
     ).join(' | ');
 
     setDescriptor(combinedDescriptors || first.descriptor || '');
+    setConsolidateDebts(true);
     setErrorMessage(null);
   }, [isOpen, selectedContacts]);
 
@@ -94,6 +96,7 @@ export function CombineContactsDialog({
         displayName: trimmedName,
         alias: alias.trim() || undefined,
         descriptor: descriptor.trim() || undefined,
+        consolidateDebts,
       });
       onSuccess(selectedContacts.length);
       onClose();
@@ -225,6 +228,23 @@ export function CombineContactsDialog({
                 placeholder={t('contacts.placeholder.descriptor')}
                 disabled={combineMutation.isPending}
               />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                id="combine-consolidate-debts"
+                type="checkbox"
+                className="size-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
+                checked={consolidateDebts}
+                onChange={(e) => setConsolidateDebts(e.target.checked)}
+                disabled={combineMutation.isPending}
+              />
+              <label
+                htmlFor="combine-consolidate-debts"
+                className="cursor-pointer text-xs text-slate-700 dark:text-slate-300"
+              >
+                {t('contacts.combineModal.consolidateDebts')}
+              </label>
             </div>
 
             <div className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">

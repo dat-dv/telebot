@@ -95,6 +95,8 @@ void test('GeminiService queues, attaches message, and cancels pending actions f
     dummyTool as never,
     dummyTool as never,
     dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
     {} as never,
   );
 

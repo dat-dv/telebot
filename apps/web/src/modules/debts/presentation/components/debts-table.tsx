@@ -1,6 +1,4 @@
-'use client';
-
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { localeTag, type IDebtListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
@@ -25,6 +23,9 @@ export type DebtsTableProps = {
   loading?: boolean;
   editingId?: string | null;
   editDraft?: DebtEditDraft;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: () => void;
   onStartEdit?: (item: IDebtListItem) => void;
   onCancelEdit?: () => void;
   onSaveEdit?: (id: string) => void | Promise<void>;
@@ -48,6 +49,9 @@ export function DebtsTable({
   loading = false,
   editingId,
   editDraft,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -59,6 +63,24 @@ export function DebtsTable({
 }: DebtsTableProps) {
   const { locale, t } = useLocale();
   const money = useMoneyFormatter();
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const flattenedRows = useMemo(() => {
+    // Top level items (either roots without parentDebtId, or standalone items)
+    const roots = debts.filter((d) => !d.parentDebtId);
+    const baseList = roots.length > 0 ? roots : debts;
+
+    const result: IDebtListItem[] = [];
+    for (const item of baseList) {
+      result.push(item);
+      if (item.children && item.children.length > 0 && expandedIds.has(item.id)) {
+        for (const child of item.children) {
+          result.push(child);
+        }
+      }
+    }
+    return result;
+  }, [debts, expandedIds]);
 
   const columns = useMemo<DataTableColumn<IDebtListItem>[]>(() => {
     const hasActions = Boolean(onStartEdit || onSaveEdit || onQuickSettle || onDelete);
@@ -67,7 +89,39 @@ export function DebtsTable({
         ? new Intl.DateTimeFormat(localeTag(locale), { dateStyle: 'short' }).format(new Date(value))
         : t('common.notSet');
 
-    const list: DataTableColumn<IDebtListItem>[] = [
+    const list: DataTableColumn<IDebtListItem>[] = [];
+
+    if (onToggleSelect) {
+      const isAllSelected = debts.length > 0 && debts.every((d) => selectedIds?.has(d.id));
+      list.push({
+        id: 'select',
+        header: onToggleSelectAll ? (
+          <input
+            type="checkbox"
+            className="size-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
+            checked={isAllSelected}
+            onChange={onToggleSelectAll}
+            aria-label={t('debts.selectAll')}
+          />
+        ) : (
+          ''
+        ),
+        minWidth: '40px',
+        width: '40px',
+        hideable: false,
+        cell: (item) => (
+          <input
+            type="checkbox"
+            className="size-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
+            checked={selectedIds?.has(item.id) ?? false}
+            onChange={() => onToggleSelect(item.id)}
+            aria-label={`Select ${item.counterparty}`}
+          />
+        ),
+      });
+    }
+
+    list.push(
       {
         id: 'status',
         header: t('debts.columns.status'),
@@ -133,7 +187,7 @@ export function DebtsTable({
       {
         id: 'counterparty',
         header: t('dashboard.columns.counterparty'),
-        minWidth: '180px',
+        minWidth: '200px',
         hideable: false,
         cell: (item) => {
           if (
@@ -161,17 +215,61 @@ export function DebtsTable({
               />
             );
           }
+
+          const hasChildren =
+            Boolean(item.childCount && item.childCount > 0) ||
+            Boolean(item.children && item.children.length > 0);
+          const isChild = Boolean(item.parentDebtId);
+          const isExpanded = expandedIds.has(item.id);
+
           return (
-            <span
-              className={`font-semibold text-slate-900 select-none dark:text-slate-100 ${
-                onStartEdit ? 'cursor-pointer' : ''
-              }`}
-              onDoubleClick={() => onStartEdit?.(item)}
-              title={item.counterparty}
-            >
-              {item.counterparty}
-              {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
-            </span>
+            <div className={`flex items-center gap-1.5 ${isChild ? 'pl-4' : ''}`}>
+              {hasChildren && (
+                <button
+                  type="button"
+                  className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[10px] text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(item.id)) next.delete(item.id);
+                      else next.add(item.id);
+                      return next;
+                    });
+                  }}
+                  title={isExpanded ? t('debts.collapseChildren') : t('debts.expandChildren')}
+                >
+                  {isExpanded ? '▼' : '▶'}
+                </button>
+              )}
+              {isChild && (
+                <span className="text-slate-400 select-none text-xs" aria-hidden="true">
+                  ↳
+                </span>
+              )}
+              <span
+                className={`font-semibold text-slate-900 select-none dark:text-slate-100 ${
+                  onStartEdit ? 'cursor-pointer' : ''
+                }`}
+                onDoubleClick={() => onStartEdit?.(item)}
+                title={item.counterparty}
+              >
+                {item.counterparty}
+                {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
+              </span>
+              {hasChildren && (
+                <span className="inline-flex items-center rounded-[2px] border border-sky-200 bg-sky-50 px-1 py-0.2 text-[9.5px] font-medium text-sky-700 select-none dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                  {t('debts.badge.parent', {
+                    count: item.childCount || item.children?.length || 0,
+                  })}
+                </span>
+              )}
+              {isChild && (
+                <span className="inline-flex items-center rounded-[2px] border border-slate-200 bg-slate-100 px-1 py-0.2 text-[9.5px] font-medium text-slate-600 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                  {t('debts.badge.child')}
+                </span>
+              )}
+            </div>
           );
         },
       },
@@ -366,7 +464,7 @@ export function DebtsTable({
           );
         },
       },
-    ];
+    );
 
     if (hasActions) {
       list.push({
@@ -449,8 +547,10 @@ export function DebtsTable({
 
     return list;
   }, [
+    debts,
     editDraft,
     editingId,
+    expandedIds,
     isPending,
     locale,
     money,
@@ -461,6 +561,9 @@ export function DebtsTable({
     onQuickSettle,
     onSaveEdit,
     onStartEdit,
+    onToggleSelect,
+    onToggleSelectAll,
+    selectedIds,
     t,
   ]);
 
@@ -468,7 +571,7 @@ export function DebtsTable({
     <DataTable
       id={id}
       ariaLabel={ariaLabel ?? t('dashboard.openDebts')}
-      rows={debts}
+      rows={flattenedRows}
       emptyMessage={emptyMessage ?? t('dashboard.noDebts')}
       columns={columns}
       getRowKey={(item) => item.id}
