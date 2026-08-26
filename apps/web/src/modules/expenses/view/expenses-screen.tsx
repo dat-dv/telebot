@@ -6,7 +6,7 @@ import { localeTag, DEFAULT_EXPENSE_CATEGORIES, type IExpenseListItem } from '@t
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
@@ -428,12 +428,6 @@ export function ExpensesScreen() {
 
   return (
     <>
-      <WorkspaceHeader
-        title={t('expenses.title')}
-        subtitle={t('expenses.subtitle')}
-        onRefresh={refresh}
-      />
-
       <datalist id="expense-categories-autocomplete">
         {categorySuggestions.map((cat) => (
           <option key={cat} value={cat} />

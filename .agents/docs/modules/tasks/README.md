@@ -41,7 +41,7 @@ Bảng dữ liệu công việc (`TasksScreen`) được xây dựng 100% bằng
   - `Escape`: Hủy bỏ chỉnh sửa và khôi phục dữ liệu ban đầu.
 - **Bộ lọc & Tìm kiếm**:
   - Thanh công cụ lọc kỳ thời gian đa cấp độ (`PeriodFilterToolbar` & `usePeriodFilter`): Ngày (`day`), Tuần (`week`), Tháng (`month`), Quý (`quarter`), Năm (`year`), Tất cả (`all`).
-  - Dải nút lọc trạng thái kèm số đếm thời gian thực: Tất cả (`all`), Cần làm (`needsAction`), Đã xong (`completed`).
+  - Dải nút lọc trạng thái kèm số đếm thời gian thực: Tất cả (`all`), Cần làm (`needsAction` - mặc định), Đã xong (`completed`).
   - Ô tìm kiếm tức thì theo tiêu đề và nội dung ghi chú.
 - **Thông báo phản hồi**: Toast notification xuất hiện khi lưu hoặc xóa công việc thành công.
 

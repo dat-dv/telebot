@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import type { AnalyticsGrain } from '@telebot/contracts';
 import { getDashboardUserId } from '../dashboard-auth/dashboard-user';
 import { ReportsTokenService } from '../reports/reports-token.service';
 import { FinanceService } from './finance.service';
@@ -50,6 +51,18 @@ export class FinanceController {
     private readonly finance: FinanceService,
     private readonly tokens: ReportsTokenService,
   ) {}
+
+  @Get('finance/analytics')
+  @ApiOperation({ summary: 'Lấy dữ liệu phân tích báo cáo tài chính trực quan' })
+  async getAnalytics(
+    @Req() req: Request,
+    @Query('startAt') startAt?: string,
+    @Query('endAt') endAt?: string,
+    @Query('grain') grain?: AnalyticsGrain,
+  ) {
+    const data = await this.finance.getAnalyticsReport(this.userId(req), startAt, endAt, grain);
+    return { data };
+  }
 
   @Get('transactions')
   @ApiOperation({ summary: 'Lấy danh sách giao dịch thu/chi' })

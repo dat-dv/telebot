@@ -6,6 +6,10 @@ import {
   DEFAULT_EXPENSE_CATEGORIES,
   type ICreateCategoryRequest,
   type IUpdateCategoryRequest,
+  type AnalyticsGrain,
+  type IFinanceAnalyticsResponse,
+  type IAnalyticsTrendBucket,
+  type IAnalyticsCategoryBreakdown,
 } from '@telebot/contracts';
 import { FinanceTransactionEntity } from '../database/entities/finance-transaction.entity';
 import { DebtEntity } from '../database/entities/debt.entity';
@@ -199,6 +203,237 @@ export class FinanceService {
       .reduce((total, transaction) => total + transaction.amount, 0);
 
     return { income, expense, balance: income - expense, transactions };
+  }
+
+  public async getAnalyticsReport(
+    userId: number,
+    startAt?: string,
+    endAt?: string,
+    grain: AnalyticsGrain = 'month',
+  ): Promise<IFinanceAnalyticsResponse> {
+    const summary = await this.getSummary(userId, startAt, endAt);
+    const debts = await this.getActiveDebts(userId);
+
+    const receivableTotal = debts
+      .filter((d) => d.direction === 'receivable')
+      .reduce((sum, d) => sum + d.remainingAmount, 0);
+
+    const payableTotal = debts
+      .filter((d) => d.direction === 'payable')
+      .reduce((sum, d) => sum + d.remainingAmount, 0);
+
+    const netSavingsRate =
+      summary.income > 0
+        ? Math.max(0, ((summary.income - summary.expense) / summary.income) * 100)
+        : 0;
+
+    const trend = this.generateTrendBuckets(summary.transactions, startAt, endAt, grain);
+
+    const categoryMap = new Map<
+      string,
+      { amount: number; count: number; type: 'income' | 'expense' }
+    >();
+    for (const tx of summary.transactions) {
+      const cat = tx.category || 'Khác';
+      const existing = categoryMap.get(cat) || { amount: 0, count: 0, type: tx.type };
+      existing.amount += tx.amount;
+      existing.count += 1;
+      categoryMap.set(cat, existing);
+    }
+
+    const categories: IAnalyticsCategoryBreakdown[] = Array.from(categoryMap.entries())
+      .map(([category, data]) => {
+        const totalForType = data.type === 'income' ? summary.income : summary.expense;
+        const percentage = totalForType > 0 ? (data.amount / totalForType) * 100 : 0;
+        return {
+          category,
+          type: data.type,
+          amount: data.amount,
+          count: data.count,
+          percentage: Number(percentage.toFixed(1)),
+        };
+      })
+      .sort((a, b) => b.amount - a.amount);
+
+    const topReceivables = debts
+      .filter((d) => d.direction === 'receivable' && d.remainingAmount > 0)
+      .map((d) => ({
+        contactId: d.contactId,
+        counterparty: d.counterparty,
+        amount: d.remainingAmount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const topPayables = debts
+      .filter((d) => d.direction === 'payable' && d.remainingAmount > 0)
+      .map((d) => ({
+        contactId: d.contactId,
+        counterparty: d.counterparty,
+        amount: d.remainingAmount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      summary: {
+        income: summary.income,
+        expense: summary.expense,
+        balance: summary.balance,
+        netSavingsRate: Number(netSavingsRate.toFixed(1)),
+        receivableTotal,
+        payableTotal,
+      },
+      trend,
+      categories,
+      debts: {
+        receivable: receivableTotal,
+        payable: payableTotal,
+        netDebt: receivableTotal - payableTotal,
+        topReceivables,
+        topPayables,
+      },
+    };
+  }
+
+  private generateTrendBuckets(
+    transactions: FinanceTransactionEntity[],
+    startAt?: string,
+    endAt?: string,
+    grain: AnalyticsGrain = 'month',
+  ): IAnalyticsTrendBucket[] {
+    const startDate = startAt ? new Date(startAt) : new Date(0);
+    const endDate = endAt ? new Date(endAt) : new Date();
+
+    if (grain === 'week') {
+      const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+      const buckets: IAnalyticsTrendBucket[] = dayLabels.map((label, idx) => ({
+        key: `day-${idx}`,
+        label,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        startAt: '',
+        endAt: '',
+      }));
+
+      for (const tx of transactions) {
+        const d = new Date(tx.occurredAt);
+        if (Number.isNaN(d.getTime())) continue;
+        const dayIdx = (d.getDay() + 6) % 7;
+        if (tx.type === 'income') {
+          buckets[dayIdx].income += tx.amount;
+        } else {
+          buckets[dayIdx].expense += tx.amount;
+        }
+      }
+
+      buckets.forEach((b) => {
+        b.balance = b.income - b.expense;
+      });
+      return buckets;
+    }
+
+    if (grain === 'month') {
+      const lastDay = endDate.getDate() || 30;
+      const intervals = [
+        { key: 'p1', label: '1-5', start: 1, end: 5 },
+        { key: 'p2', label: '6-10', start: 6, end: 10 },
+        { key: 'p3', label: '11-15', start: 11, end: 15 },
+        { key: 'p4', label: '16-20', start: 16, end: 20 },
+        { key: 'p5', label: '21-25', start: 21, end: 25 },
+        { key: 'p6', label: `26-${lastDay}`, start: 26, end: lastDay },
+      ];
+
+      const buckets: IAnalyticsTrendBucket[] = intervals.map((iv) => ({
+        key: iv.key,
+        label: iv.label,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        startAt: '',
+        endAt: '',
+      }));
+
+      for (const tx of transactions) {
+        const d = new Date(tx.occurredAt);
+        if (Number.isNaN(d.getTime())) continue;
+        const day = d.getDate();
+        const bucketIndex = intervals.findIndex((iv) => day >= iv.start && day <= iv.end);
+        if (bucketIndex >= 0) {
+          if (tx.type === 'income') {
+            buckets[bucketIndex].income += tx.amount;
+          } else {
+            buckets[bucketIndex].expense += tx.amount;
+          }
+        }
+      }
+
+      buckets.forEach((b) => {
+        b.balance = b.income - b.expense;
+      });
+      return buckets;
+    }
+
+    if (grain === 'quarter') {
+      const month = startDate.getMonth();
+      const startMonth = Math.floor(month / 3) * 3;
+      const buckets: IAnalyticsTrendBucket[] = [0, 1, 2].map((idx) => ({
+        key: `m-${startMonth + idx}`,
+        label: `Tháng ${String(startMonth + idx + 1).padStart(2, '0')}`,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        startAt: '',
+        endAt: '',
+      }));
+
+      for (const tx of transactions) {
+        const d = new Date(tx.occurredAt);
+        if (Number.isNaN(d.getTime())) continue;
+        const m = d.getMonth();
+        const bucketIndex = m - startMonth;
+        if (bucketIndex >= 0 && bucketIndex < 3) {
+          if (tx.type === 'income') {
+            buckets[bucketIndex].income += tx.amount;
+          } else {
+            buckets[bucketIndex].expense += tx.amount;
+          }
+        }
+      }
+
+      buckets.forEach((b) => {
+        b.balance = b.income - b.expense;
+      });
+      return buckets;
+    }
+
+    // Default: 12 months for year or all
+    const buckets: IAnalyticsTrendBucket[] = Array.from({ length: 12 }, (_, i) => ({
+      key: `m-${i}`,
+      label: `T${String(i + 1).padStart(2, '0')}`,
+      income: 0,
+      expense: 0,
+      balance: 0,
+      startAt: '',
+      endAt: '',
+    }));
+
+    for (const tx of transactions) {
+      const d = new Date(tx.occurredAt);
+      if (Number.isNaN(d.getTime())) continue;
+      const m = d.getMonth();
+      if (m >= 0 && m < 12) {
+        if (tx.type === 'income') {
+          buckets[m].income += tx.amount;
+        } else {
+          buckets[m].expense += tx.amount;
+        }
+      }
+    }
+
+    buckets.forEach((b) => {
+      b.balance = b.income - b.expense;
+    });
+    return buckets;
   }
 
   public async listTransactions(

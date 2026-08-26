@@ -18,7 +18,7 @@
   - `actions`: Inline Save/Cancel buttons when editing; Edit and Delete buttons in view mode.
 - **Controls & Filters**:
   - Multi-grain period filter toolbar (`day`, `week`, `month`, `quarter`, `year`, `all`) with bidirectional period navigation.
-  - Quick status filter tabs (`all`, `needsAction`, `completed`) with real-time count badges.
+  - Quick status filter tabs (`all`, `needsAction`, `completed`) with real-time count badges (defaults to `needsAction`).
   - Instant client search by title and notes.
   - Toast notifications confirming saved edits and deletions.
 

@@ -16,6 +16,7 @@ export type NavigationPage =
   | 'tasks'
   | 'reminders'
   | 'contacts'
+  | 'places'
   | 'settings';
 
 type NavigationIcon =
@@ -27,6 +28,7 @@ type NavigationIcon =
   | 'tasks'
   | 'reminders'
   | 'contacts'
+  | 'places'
   | 'settings';
 
 interface NavItem {
@@ -90,6 +92,12 @@ const navSections: readonly NavSection[] = [
         href: APP_ROUTES.contacts,
         labelKey: 'nav.contacts',
         icon: 'contacts',
+      },
+      {
+        page: 'places',
+        href: APP_ROUTES.places,
+        labelKey: 'nav.places',
+        icon: 'places',
       },
     ],
   },
@@ -363,6 +371,14 @@ function NavigationItemIcon({ icon }: { icon: NavigationIcon }) {
       <svg {...sharedProps}>
         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+      </svg>
+    );
+  }
+  if (icon === 'places') {
+    return (
+      <svg {...sharedProps}>
+        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+        <circle cx="12" cy="10" r="3" />
       </svg>
     );
   }

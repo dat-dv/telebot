@@ -10,7 +10,7 @@ import {
 } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+
 import {
   remindersQueryKeys,
   useDeleteReminderMutation,
@@ -356,12 +356,6 @@ export function RemindersScreen() {
 
   return (
     <>
-      <WorkspaceHeader
-        title={t('reminders.title')}
-        subtitle={t('reminders.subtitle')}
-        onRefresh={refresh}
-      />
-
       {toastMessage && (
         <div
           className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"

@@ -6,7 +6,7 @@ import { localeTag, type IDebtListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { WorkspaceHeader } from '@/shared/ui/workspace-header';
+
 import { useContactsQuery } from '@/modules/contacts/api/contacts-query';
 import {
   debtsQueryKeys,
@@ -555,12 +555,6 @@ export function DebtsScreen() {
 
   return (
     <div className="flex flex-col gap-3">
-      <WorkspaceHeader
-        title={t('debts.title')}
-        subtitle={t('debts.subtitle')}
-        onRefresh={refresh}
-      />
-
       <datalist id="debt-contacts-autocomplete">
         {contactsList.map((contact) => (
           <option key={contact.id} value={contact.displayName}>

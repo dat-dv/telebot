@@ -11,6 +11,7 @@ export const API_ROUTES = {
   debtPayments: '/api/debts/payments',
   expenses: '/api/expenses',
   transactions: '/api/transactions',
+  financeAnalytics: '/api/finance/analytics',
   reminders: '/api/reminders',
   users: '/api/users',
   invites: '/api/invites',
@@ -42,6 +43,7 @@ export const APP_ROUTES = {
   reminders: '/reminders',
 
   contacts: '/contacts',
+  places: '/places',
   settings: '/settings',
 } as const;
 
@@ -79,6 +81,7 @@ const messages = {
     'nav.home': 'Tổng quan',
     'nav.statistics': 'Phân tích',
     'nav.contacts': 'Người liên quan',
+    'nav.places': 'Nơi chốn',
     'nav.debts': 'Vay & cho vay',
     'nav.expenses': 'Chi tiêu',
     'nav.income': 'Thu nhập',
@@ -221,6 +224,21 @@ const messages = {
     'contacts.columns.phone': 'Số điện thoại',
     'contacts.columns.bankAccount': 'Tài khoản ngân hàng',
     'contacts.columns.bankName': 'Ngân hàng',
+    'places.title': 'Nơi chốn & Địa điểm',
+    'places.subtitle': 'Danh sách cửa hàng, quán ăn, bệnh viện và địa điểm thu chi của bạn',
+    'places.actions.create': 'Thêm nơi chốn',
+    'places.actions.edit': 'Sửa',
+    'places.actions.save': 'Lưu',
+    'places.actions.cancel': 'Hủy',
+    'places.actions.delete': 'Xóa',
+    'places.columns.name': 'Tên nơi chốn / Địa điểm',
+    'places.placeholder.name': 'Nhập tên nơi chốn...',
+    'places.inlineEdit.saved': 'Đã cập nhật nơi chốn',
+    'places.create.success': 'Đã tạo nơi chốn thành công',
+    'places.delete.confirm':
+      'Bạn có chắc chắn muốn xóa nơi chốn này không? Các giao dịch cũ vẫn sẽ được giữ nguyên.',
+    'places.delete.success': 'Đã xóa nơi chốn thành công',
+    'places.noData': 'Chưa có nơi chốn nào',
     'debts.columns.status': 'Trạng thái',
     'debts.columns.settledAt': 'Ngày tất toán',
     'debts.columns.currency': 'Tiền tệ',
@@ -272,8 +290,20 @@ const messages = {
     'transactions.placeholder.place': 'Nhập nơi chốn hoặc cửa hàng...',
     'transactions.placeholder.note': 'Nhập ghi chú...',
     'transactions.placeholder.amount': 'Nhập số tiền...',
-    'analytics.title': 'Phân tích',
-    'analytics.subtitle': 'Tổng quan xu hướng tài chính và phân bổ chi tiêu',
+    'analytics.title': 'Báo cáo & Phân tích',
+    'analytics.subtitle': 'Trực quan hóa xu hướng dòng tiền, cơ cấu chi tiêu và công nợ',
+    'analytics.kpi.netSavings': 'Tiết kiệm ròng',
+    'analytics.kpi.savingsRate': 'Tỷ lệ tích lũy',
+    'analytics.chart.cashflowTrend': 'Xu hướng dòng tiền',
+    'analytics.chart.spendingDistribution': 'Cơ cấu chi tiêu',
+    'analytics.chart.debtBreakdown': 'Cơ cấu công nợ',
+    'analytics.chart.netBalance': 'Số dư ròng',
+    'analytics.chart.receivables': 'Phải thu (Cho vay)',
+    'analytics.chart.payables': 'Phải trả (Đi vay)',
+    'analytics.emptyChartData': 'Không có dữ liệu trong khoảng thời gian này',
+    'analytics.topCategories': 'Top danh mục chi tiêu',
+    'analytics.topDebtors': 'Top người vay / nợ',
+    'analytics.drilldownTitle': 'Chi tiết giao dịch & công nợ trong kỳ',
     'calendar.title': 'Lịch',
     'calendar.subtitle': 'Lịch trình sự kiện 7 ngày tới',
     'calendar.columns.description': 'Mô tả',
@@ -486,6 +516,7 @@ const messages = {
     'nav.home': 'Overview',
     'nav.statistics': 'Analytics',
     'nav.contacts': 'People',
+    'nav.places': 'Places',
     'nav.debts': 'Loans & Debts',
     'nav.expenses': 'Expenses',
     'nav.income': 'Income',
@@ -628,6 +659,21 @@ const messages = {
     'contacts.columns.phone': 'Phone number',
     'contacts.columns.bankAccount': 'Bank account',
     'contacts.columns.bankName': 'Bank name',
+    'places.title': 'Places & Locations',
+    'places.subtitle': 'Stores, restaurants, hospitals and locations used in your transactions',
+    'places.actions.create': 'Add place',
+    'places.actions.edit': 'Edit',
+    'places.actions.save': 'Save',
+    'places.actions.cancel': 'Cancel',
+    'places.actions.delete': 'Delete',
+    'places.columns.name': 'Place / Location name',
+    'places.placeholder.name': 'Enter place name...',
+    'places.inlineEdit.saved': 'Place updated successfully',
+    'places.create.success': 'Place created successfully',
+    'places.delete.confirm':
+      'Are you sure you want to delete this place? Historical transactions will be preserved.',
+    'places.delete.success': 'Place deleted successfully',
+    'places.noData': 'No places found',
     'debts.columns.status': 'Status',
     'debts.columns.settledAt': 'Settled date',
     'debts.columns.currency': 'Currency',
@@ -679,8 +725,20 @@ const messages = {
     'transactions.placeholder.place': 'Enter a place or store...',
     'transactions.placeholder.note': 'Enter note...',
     'transactions.placeholder.amount': 'Enter amount...',
-    'analytics.title': 'Analytics',
-    'analytics.subtitle': 'Financial trends and spending breakdown',
+    'analytics.title': 'Reports & Analytics',
+    'analytics.subtitle': 'Visualize cashflow trends, spending distribution, and debt structure',
+    'analytics.kpi.netSavings': 'Net Savings',
+    'analytics.kpi.savingsRate': 'Savings Rate',
+    'analytics.chart.cashflowTrend': 'Cashflow Trend',
+    'analytics.chart.spendingDistribution': 'Spending Distribution',
+    'analytics.chart.debtBreakdown': 'Debt Structure',
+    'analytics.chart.netBalance': 'Net Balance',
+    'analytics.chart.receivables': 'Receivables (Lent)',
+    'analytics.chart.payables': 'Payables (Borrowed)',
+    'analytics.emptyChartData': 'No data for the selected period',
+    'analytics.topCategories': 'Top Spending Categories',
+    'analytics.topDebtors': 'Top Debtors / Creditors',
+    'analytics.drilldownTitle': 'Detailed Transactions & Debts',
     'calendar.title': 'Calendar',
     'calendar.subtitle': 'Upcoming 7-day schedule and events',
     'calendar.columns.description': 'Description',
@@ -1246,6 +1304,14 @@ export interface IFinancePlace {
   updatedAt?: string;
 }
 
+export interface ICreatePlaceRequest {
+  name: string;
+}
+
+export interface IUpdatePlaceRequest {
+  name: string;
+}
+
 export interface ICreateCategoryRequest {
   type: 'income' | 'expense';
   name: string;
@@ -1261,4 +1327,49 @@ export interface IUpdateCategoryRequest {
 
 export interface ICategoryListResponse {
   categories: ICategoryItem[];
+}
+
+export type AnalyticsGrain = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'all';
+
+export interface IFinanceAnalyticsSummary {
+  income: number;
+  expense: number;
+  balance: number;
+  netSavingsRate: number;
+  receivableTotal: number;
+  payableTotal: number;
+}
+
+export interface IAnalyticsTrendBucket {
+  key: string;
+  label: string;
+  income: number;
+  expense: number;
+  balance: number;
+  startAt: string;
+  endAt: string;
+}
+
+export interface IAnalyticsCategoryBreakdown {
+  category: string;
+  type: 'expense' | 'income';
+  amount: number;
+  count: number;
+  percentage: number;
+  color?: string;
+}
+
+export interface IAnalyticsDebtBreakdown {
+  receivable: number;
+  payable: number;
+  netDebt: number;
+  topReceivables: Array<{ contactId?: string; counterparty: string; amount: number }>;
+  topPayables: Array<{ contactId?: string; counterparty: string; amount: number }>;
+}
+
+export interface IFinanceAnalyticsResponse {
+  summary: IFinanceAnalyticsSummary;
+  trend: IAnalyticsTrendBucket[];
+  categories: IAnalyticsCategoryBreakdown[];
+  debts: IAnalyticsDebtBreakdown;
 }

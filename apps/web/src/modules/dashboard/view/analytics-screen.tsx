@@ -2,14 +2,12 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { localeTag, type TransactionType } from '@telebot/contracts';
+import { localeTag, type TransactionType, type IAnalyticsTrendBucket } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
-import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
 import { useContactsQuery } from '@/modules/contacts/api/contacts-query';
 import {
   useCreateDebtPaymentMutation,
@@ -21,6 +19,10 @@ import {
   useDeleteTransactionMutation,
   useUpdateTransactionMutation,
 } from '../api/transactions-query';
+import { useFinanceAnalyticsQuery } from '../api/analytics-query';
+import { CashflowTrendChart } from '@/shared/ui/charts/cashflow-trend-chart';
+import { CategoryDonutChart } from '@/shared/ui/charts/category-donut-chart';
+import { DebtStructureChart } from '@/shared/ui/charts/debt-structure-chart';
 
 type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
 type TransactionItem = DashboardData['transactions'][number];
@@ -69,6 +71,23 @@ export function AnalyticsScreen() {
 
   const dashboard = useDashboardQuery();
   const contactsQuery = useContactsQuery();
+
+  const startAtStr = useMemo(() => {
+    if (periodFilter.grain === 'all') return undefined;
+    return periodFilter.startDate.toISOString();
+  }, [periodFilter.grain, periodFilter.startDate]);
+
+  const endAtStr = useMemo(() => {
+    if (periodFilter.grain === 'all') return undefined;
+    return periodFilter.endDate.toISOString();
+  }, [periodFilter.grain, periodFilter.endDate]);
+
+  const analyticsQuery = useFinanceAnalyticsQuery({
+    startAt: startAtStr,
+    endAt: endAtStr,
+    grain: periodFilter.grain,
+  });
+
   const updateTxMutation = useUpdateTransactionMutation();
   const deleteTxMutation = useDeleteTransactionMutation();
   const updateDebtMutation = useUpdateDebtMutation();
@@ -76,6 +95,7 @@ export function AnalyticsScreen() {
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
+    void queryClient.invalidateQueries({ queryKey: ['finance-analytics'] });
     void queryClient.invalidateQueries({ queryKey: ['contacts'] });
   };
 
@@ -125,6 +145,18 @@ export function AnalyticsScreen() {
       periodBuckets: buckets,
     };
   }, [periodTransactions, periodFilter]);
+
+  const fallbackTrendBuckets = useMemo<IAnalyticsTrendBucket[]>(() => {
+    return periodBuckets.map((b) => ({
+      key: b.key,
+      label: b.label,
+      income: b.income,
+      expense: b.expense,
+      balance: b.income - b.expense,
+      startAt: '',
+      endAt: '',
+    }));
+  }, [periodBuckets]);
 
   const filteredTx = useMemo(() => {
     if (!txSearch.trim()) return periodTransactions;
@@ -682,7 +714,6 @@ export function AnalyticsScreen() {
   if (dashboard.isLoading || !rawData) {
     return (
       <div aria-busy="true" className="flex flex-col gap-3">
-        <WorkspaceHeader title={t('analytics.title')} subtitle={t('analytics.subtitle')} />
         <section
           className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
           aria-hidden="true"
@@ -701,16 +732,17 @@ export function AnalyticsScreen() {
     );
   }
 
-  const netDebt = rawData.finance.receivable - rawData.finance.payable;
+  const totalIncome = analyticsQuery.data?.summary.income ?? periodIncome;
+  const totalExpense = analyticsQuery.data?.summary.expense ?? periodExpense;
+  const netSavings = analyticsQuery.data?.summary.balance ?? totalIncome - totalExpense;
+  const savingsRate =
+    analyticsQuery.data?.summary.netSavingsRate ??
+    (totalIncome > 0 ? Math.max(0, ((totalIncome - totalExpense) / totalIncome) * 100) : 0);
+  const netDebt =
+    analyticsQuery.data?.debts.netDebt ?? rawData.finance.receivable - rawData.finance.payable;
 
   return (
     <div className="flex flex-col gap-3">
-      <WorkspaceHeader
-        title={t('analytics.title')}
-        subtitle={t('analytics.subtitle')}
-        onRefresh={refresh}
-      />
-
       <datalist id="analytics-debt-contacts-autocomplete">
         {contactsList.map((contact) => (
           <option key={contact.id} value={contact.displayName}>
@@ -731,27 +763,116 @@ export function AnalyticsScreen() {
 
       <PeriodFilterToolbar filter={periodFilter} />
 
-      <TrendSummaryStrip
-        income={periodIncome}
-        expense={periodExpense}
-        buckets={periodBuckets}
-        extraMetrics={
-          <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
-            <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-              {t('dashboard.netDebt')}
-            </span>
-            <strong
-              className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
-                netDebt >= 0
-                  ? 'text-emerald-700 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
-            >
-              {money(netDebt)}
-            </strong>
-          </article>
-        }
-      />
+      {/* KPI Cards Strip */}
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.incomeTotal')}
+          </span>
+          <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-400">
+            {money(totalIncome)}
+          </strong>
+        </article>
+
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.expenseTotal')}
+          </span>
+          <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-amber-700 dark:text-amber-400">
+            {money(totalExpense)}
+          </strong>
+        </article>
+
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('analytics.kpi.netSavings')}
+          </span>
+          <strong
+            className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
+              netSavings >= 0
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {money(netSavings)}
+          </strong>
+        </article>
+
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('analytics.kpi.savingsRate')}
+          </span>
+          <strong
+            className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
+              savingsRate >= 20
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : savingsRate > 0
+                  ? 'text-amber-700 dark:text-amber-400'
+                  : 'text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            {savingsRate.toFixed(1)}%
+          </strong>
+        </article>
+
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.netDebt')}
+          </span>
+          <strong
+            className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
+              netDebt >= 0
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {money(netDebt)}
+          </strong>
+        </article>
+      </section>
+
+      {/* Visual Charts Grid */}
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+        <div className="lg:col-span-7">
+          <DataPanel title={t('analytics.chart.cashflowTrend')}>
+            <div className="p-3">
+              <CashflowTrendChart
+                buckets={analyticsQuery.data?.trend ?? fallbackTrendBuckets}
+                height={200}
+              />
+            </div>
+          </DataPanel>
+        </div>
+
+        <div className="flex flex-col gap-3 lg:col-span-5">
+          <DataPanel title={t('analytics.chart.spendingDistribution')}>
+            <div className="p-3">
+              <CategoryDonutChart
+                categories={analyticsQuery.data?.categories ?? []}
+                totalAmount={totalExpense}
+                height={180}
+              />
+            </div>
+          </DataPanel>
+
+          <DataPanel title={t('analytics.chart.debtBreakdown')}>
+            <div className="p-3">
+              <DebtStructureChart
+                debts={
+                  analyticsQuery.data?.debts ?? {
+                    receivable: rawData.finance.receivable,
+                    payable: rawData.finance.payable,
+                    netDebt,
+                    topReceivables: [],
+                    topPayables: [],
+                  }
+                }
+                height={160}
+              />
+            </div>
+          </DataPanel>
+        </div>
+      </section>
 
       {rawData.admin && (
         <section className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-400">
