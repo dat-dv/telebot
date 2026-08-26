@@ -6,9 +6,10 @@ import { getDashboard } from './dashboard-api';
 
 export const dashboardQueryKeys = { detail: () => ['dashboard'] as const };
 
-export function useDashboardQuery() {
+export function useDashboardQuery(options?: { enabled?: boolean }) {
   return useQuery<IDashboardData>({
     queryKey: dashboardQueryKeys.detail(),
     queryFn: ({ signal }) => getDashboard(signal),
+    enabled: options?.enabled,
   });
 }

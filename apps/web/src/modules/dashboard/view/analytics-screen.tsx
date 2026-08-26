@@ -15,6 +15,7 @@ import {
   useCreateDebtPaymentMutation,
   useUpdateDebtMutation,
 } from '@/modules/debts/api/debts-query';
+import { SessionStateScreen } from '@/modules/auth/view/session-state-screen';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 import {
   useDeleteTransactionMutation,
@@ -663,17 +664,7 @@ export function AnalyticsScreen() {
   ];
 
   if (dashboard.isError) {
-    return (
-      <div className="center">
-        <section className="alert" role="alert">
-          <h1>{t('dashboard.error.title')}</h1>
-          <p>{t('dashboard.error.desc')}</p>
-          <button type="button" onClick={refresh}>
-            {t('common.retry')}
-          </button>
-        </section>
-      </div>
-    );
+    return <SessionStateScreen reason="expired" onRetry={refresh} />;
   }
 
   if (dashboard.isLoading || !rawData) {

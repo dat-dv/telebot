@@ -35,7 +35,7 @@ export function WorkspaceHeader({
     } finally {
       clearAccessToken();
       queryClient.clear();
-      window.location.assign(APP_ROUTES.home);
+      window.location.assign(`${APP_ROUTES.home}?status=logged_out`);
     }
   };
 

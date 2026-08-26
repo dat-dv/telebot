@@ -181,6 +181,16 @@ const messages = {
     'dashboard.columns.schedule': 'Thời gian',
     'dashboard.error.title': 'Không mở được trang',
     'dashboard.error.desc': 'Phiên làm việc đã hết hạn. Hãy mở lại từ Telegram bot.',
+    'auth.loggedOut.title': 'Đã đăng xuất thành công',
+    'auth.loggedOut.desc':
+      'Phiên làm việc của bạn đã kết thúc an toàn. Hãy mở lại từ Telegram bot để bắt đầu phiên mới.',
+    'auth.sessionExpired.title': 'Phiên làm việc đã hết hạn',
+    'auth.sessionExpired.desc':
+      'Phiên truy cập đã hết hạn hoặc không tìm thấy thông tin đăng nhập. Hãy mở lại từ Telegram bot.',
+    'auth.openTelegramBot': 'Mở Telegram Bot',
+    'auth.clearSessionAndRetry': 'Xóa phiên & Thử lại',
+    'auth.backToAbout': 'Xem trang giới thiệu',
+    'auth.closeMiniApp': 'Đóng cửa sổ',
     'debts.title': 'Vay & cho vay',
     'debts.subtitle': 'Theo dõi tiền bạn cho mượn và tiền bạn đang vay',
     'expenses.title': 'Chi tiêu',
@@ -578,6 +588,16 @@ const messages = {
     'dashboard.columns.schedule': 'Schedule',
     'dashboard.error.title': 'Unable to load page',
     'dashboard.error.desc': 'Session expired. Please open again from the Telegram bot.',
+    'auth.loggedOut.title': 'Logged out successfully',
+    'auth.loggedOut.desc':
+      'Your session has ended securely. Please open again from the Telegram bot to start a new session.',
+    'auth.sessionExpired.title': 'Session expired',
+    'auth.sessionExpired.desc':
+      'Your access session has expired or no credentials were found. Please open again from the Telegram bot.',
+    'auth.openTelegramBot': 'Open Telegram Bot',
+    'auth.clearSessionAndRetry': 'Clear session & retry',
+    'auth.backToAbout': 'About Telebot',
+    'auth.closeMiniApp': 'Close window',
     'debts.title': 'Loans & Debts',
     'debts.subtitle': 'Track money you lent and money you owe',
     'expenses.title': 'Expenses',

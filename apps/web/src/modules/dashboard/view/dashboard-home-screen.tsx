@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { APP_ROUTES, localeTag } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
+import { SessionStateScreen } from '@/modules/auth/view/session-state-screen';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { WorkspaceHeader } from '@/shared/ui/workspace-header';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
@@ -15,23 +16,21 @@ type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
 export function DashboardHomeScreen() {
   const queryClient = useQueryClient();
   const { t } = useLocale();
-  const dashboard = useDashboardQuery();
+  const [isLoggedOut] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('status') === 'logged_out';
+  });
+  const dashboard = useDashboardQuery({ enabled: !isLoggedOut });
 
   const refresh = () =>
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
 
+  if (isLoggedOut) {
+    return <SessionStateScreen reason="logged_out" />;
+  }
+
   if (dashboard.isError) {
-    return (
-      <div className="center">
-        <section className="alert" role="alert">
-          <h1>{t('dashboard.error.title')}</h1>
-          <p>{t('dashboard.error.desc')}</p>
-          <button type="button" onClick={refresh}>
-            {t('common.retry')}
-          </button>
-        </section>
-      </div>
-    );
+    return <SessionStateScreen reason="expired" onRetry={refresh} />;
   }
 
   if (dashboard.isLoading || !dashboard.data) {
