@@ -17,3 +17,13 @@ Private workspace headers are rendered once in the common private layout (`apps/
 The shared reports navigation is an admin-style sidebar on desktop: product mark, concise section label, icon-and-text links, and a semantic active state. Desktop private routes use a viewport-bound shell: only the main content pane scrolls, while the sidebar remains fixed beside it. It must retain visible text plus `aria-current` for the active route. On narrow screens (<= 960px), the shell returns to normal document scrolling and navigation transitions to a sticky mobile topbar with a brand mark and an accessible hamburger button that opens a smooth slide-out navigation drawer with backdrop overlay.
 
 Dark mode is activated by `html[data-theme='dark']`; Tailwind dark utilities target this same data attribute via `@custom-variant dark`. All surfaces (desktop/mobile navigation, workspace headers, period controls, data panels, forms, dialogs, charts, and public/legal pages) use Tailwind dark utilities (`dark:bg-*`, `dark:border-*`, `dark:text-*`, `dark:hover:*`, `dark:focus:*`). Keep the selected navigation/action state high contrast and retain a visible light-blue keyboard focus outline.
+
+## Skeleton & Loading State Full Fidelity
+
+Skeleton loading states must achieve strict 1:1 structural, spatial, and visual boundary parity with real rendered components:
+
+1. **Cell-Level Border & Column Width Parity**: `DataTable` skeleton rows (`loading === true`) must render explicit vertical and bottom cell borders (`border-r border-b border-r-slate-50 border-b-slate-100 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800`) and apply `style={{ minWidth: column.minWidth, width: getColumnWidth(column) }}` on every `td`. Right-aligned numeric and action columns (`align === 'right'`) must align their pulse bars to the right (`ml-auto`) to match loaded layout metrics.
+2. **Container Preservation**: Skeletons must never collapse or omit outer wrapper containers. `DataPanel` containers with outer borders (`border border-slate-200`), headers (`border-b`), search inputs, `PeriodFilterToolbar` blocks, and Quick Links bars must remain fully rendered during loading.
+3. **No Raw Text Loading**: Replacing full page structures with bare text banners (e.g. `<div className="p-4">Loading...</div>`) is strictly forbidden. Screens must preserve their layout shells and forward `loading={true}` to nested tables and charts.
+4. **No Duplicate or Shifting Headers**: Because `WorkspaceHeader` is universally mounted in `PrivateLayout`, view-level skeletons must never inject an extra `<header>` tag.
+

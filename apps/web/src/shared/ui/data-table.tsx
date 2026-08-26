@@ -525,10 +525,23 @@ export function DataTable<T extends DataTableRow>({
           <tbody>
             {loading ? (
               Array.from({ length: 4 }, (_, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-slate-100 dark:border-slate-800">
+                <tr key={rowIndex}>
                   {visibleColumns.map((column) => (
-                    <td key={column.id} className="h-8 px-2 py-1 align-middle">
-                      <span className="block h-2.5 w-3/4 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+                    <td
+                      key={column.id}
+                      className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
+                        column.align === 'right' ? 'text-right' : 'text-left'
+                      } ${column.className ?? ''}`.trim()}
+                      style={{
+                        minWidth: column.minWidth,
+                        width: getColumnWidth(column),
+                      }}
+                    >
+                      <span
+                        className={`block h-2.5 w-3/4 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800 ${
+                          column.align === 'right' ? 'ml-auto' : ''
+                        }`}
+                      />
                     </td>
                   ))}
                 </tr>

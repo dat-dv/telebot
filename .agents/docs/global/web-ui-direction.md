@@ -26,3 +26,25 @@ Thanh điều hướng dùng chung (`apps/web/src/shared/ui/app-navigation.tsx`)
 Trên màn hình hẹp (<= 960px), shell trở lại cơ chế cuộn trang bình thường và giao diện tự động chuyển đổi thành Mobile Topbar sticky trên cùng kết hợp nút Hamburger Button. Khi bấm vào, Drawer Menu điều hướng trượt mượt mà từ bên trái kèm Backdrop làm mờ nền; tự động đóng khi chọn link, bấm backdrop hoặc bấm Escape.
 
 Dark mode được kích hoạt bằng `html[data-theme='dark']`; mọi utility dark của Tailwind phải dùng đúng data attribute này thông qua `@custom-variant dark`. Toàn bộ các bề mặt giao diện — navigation desktop/mobile, workspace header, period toolbar, data panel, form edit, dialog, biểu đồ và trang public/legal — bắt buộc dùng utility classes với tiền tố `dark:` phù hợp (`dark:bg-*`, `dark:border-*`, `dark:text-*`, `dark:hover:*`, `dark:focus:*`). Giữ trạng thái mục đang chọn dễ nhận biết và focus bàn phím màu xanh nhạt, đủ tương phản.
+
+---
+
+## Quy chuẩn Skeleton Loading mô phỏng chính xác giao diện thực tế (Full Fidelity)
+
+Trạng thái Skeleton Loading có nhiệm vụ giữ vững khung xương không gian và chuẩn bị mắt người dùng trước khi dữ liệu xuất hiện. Để tránh hiện tượng giật cục (layout shift) hoặc giao diện bị méo mó khi tải, bắt buộc tuân thủ 4 nguyên tắc sau:
+
+1. **Đồng bộ đường viền ô bảng (`DataTable`)**:
+   - Từng ô skeleton `td` bắt buộc phải có đầy đủ viền dọc `border-r border-r-slate-50 last:border-r-0 dark:border-r-slate-900/60` và viền đáy `border-b border-b-slate-100 dark:border-b-slate-800`.
+   - Phải truyền inline style `style={{ minWidth: column.minWidth, width: getColumnWidth(column) }}` trên từng ô `td` để giữ nguyên độ rộng cột theo cấu hình.
+   - Các cột có `align === 'right'` (Số tiền, Ngày giờ, Thao tác) phải thêm `ml-auto` vào thẻ span pulse để thanh nhấp nháy căn phải như dữ liệu thực.
+
+2. **Bảo tồn toàn bộ các khối bao ngoài (Containers)**:
+   - Khi trang đang tải (`isLoading === true`), không được ẩn hoặc bỏ qua các khối `DataPanel` bao quanh. Phải render đầy đủ `DataPanel` với viền `border border-slate-200`, header `border-b`, ô tìm kiếm dạng pulse và lồng bảng `DataTable loading={true}` bên trong.
+   - Giữ nguyên thanh công cụ lọc kỳ (`PeriodFilterToolbar`) và thanh liên kết nhanh (`Quick Links`) có viền `border border-slate-200`.
+
+3. **Cấm tuyệt đối Text Loading thô sơ**:
+   - Không được dùng các đoạn text đơn sơ kiểu `{isLoading ? <div>Đang tải...</div> : <MainUI />}` vì sẽ làm mất toàn bộ cấu trúc trang và gây giật khung mạnh khi nạp xong.
+
+4. **Cấm Header thừa trong View Skeleton**:
+   - `WorkspaceHeader` đã được layout chung (`PrivateLayout`) cung cấp. View skeleton tuyệt đối không được tự ý sinh thêm thẻ `<header>` chứa chữ loading.
+

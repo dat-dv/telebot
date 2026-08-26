@@ -171,8 +171,12 @@ export function AnalyticsScreen() {
   if (dashboard.isLoading || !rawData) {
     return (
       <div aria-busy="true" className="flex flex-col gap-3">
+        {/* Top Filter Toolbar */}
+        <PeriodFilterToolbar filter={periodFilter} />
+
+        {/* 5 KPI Cards Strip */}
         <section
-          className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
+          className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2 max-[640px]:grid-cols-2"
           aria-hidden="true"
         >
           {Array.from({ length: 5 }, (_, i) => (
@@ -184,6 +188,73 @@ export function AnalyticsScreen() {
               <strong className="mt-2 block h-4 w-24 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
             </div>
           ))}
+        </section>
+
+        {/* Cashflow Trend Panel Skeleton */}
+        <DataPanel
+          title={t('analytics.chart.cashflowTrend')}
+          toolbar={
+            <div className="flex items-center gap-1">
+              <div className="h-6 w-16 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+              <div className="h-6 w-16 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-3 p-3">
+            <div className="flex items-center gap-4">
+              <div className="h-3 w-20 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+              <div className="h-3 w-20 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+              <div className="h-3 w-20 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+            </div>
+            <div className="flex h-[220px] w-full items-end gap-2 rounded border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-950/30">
+              {Array.from({ length: 12 }, (_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 animate-pulse rounded-t-[2px] bg-slate-200 dark:bg-slate-800"
+                  style={{ height: `${20 + ((i * 17) % 70)}%` }}
+                />
+              ))}
+            </div>
+          </div>
+        </DataPanel>
+
+        {/* 2-Column Grid: Spending Distribution & Debt Breakdown */}
+        <section className="grid grid-cols-1 gap-3 lg:grid-cols-12" aria-hidden="true">
+          <div className="lg:col-span-6">
+            <DataPanel title={t('analytics.chart.spendingDistribution')}>
+              <div className="flex h-[200px] items-center justify-center gap-4 p-3">
+                <div className="size-[110px] animate-pulse rounded-full border-8 border-slate-200 dark:border-slate-800 shrink-0" />
+                <div className="flex flex-1 flex-col gap-2.5">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="h-3 w-full animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800"
+                    />
+                  ))}
+                </div>
+              </div>
+            </DataPanel>
+          </div>
+
+          <div className="lg:col-span-6">
+            <DataPanel title={t('analytics.chart.debtBreakdown')}>
+              <div className="flex h-[200px] flex-col justify-center gap-3 p-3">
+                <div className="flex justify-between">
+                  <div className="h-3 w-24 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-24 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+                </div>
+                <div className="h-2.5 w-full animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="flex flex-col gap-2 pt-2">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="h-3 w-full animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800"
+                    />
+                  ))}
+                </div>
+              </div>
+            </DataPanel>
+          </div>
         </section>
       </div>
     );

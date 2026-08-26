@@ -411,16 +411,32 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
 
 function DashboardHomeSkeleton() {
   const { t } = useLocale();
+
+  const activityColumns: DataTableColumn<{
+    id: string;
+    action: string;
+    tableName: string;
+    createdAt: string;
+  }>[] = [
+    {
+      id: 'action',
+      header: t('dashboard.columns.action'),
+      minWidth: '180px',
+      hideable: false,
+      cell: () => null,
+    },
+    {
+      id: 'createdAt',
+      header: t('dashboard.columns.date'),
+      align: 'right',
+      minWidth: '140px',
+      cell: () => null,
+    },
+  ];
+
   return (
     <div aria-busy="true" className="flex flex-col gap-3">
-      <header className="mb-1 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900">
-        <div>
-          <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Telebot</p>
-          <h1 className="m-0 text-base font-semibold text-slate-900 dark:text-slate-100">
-            {t('common.loadingDashboard')}
-          </h1>
-        </div>
-      </header>
+      {/* 6 KPI Cards */}
       <section
         className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
         aria-hidden="true"
@@ -434,6 +450,114 @@ function DashboardHomeSkeleton() {
             <strong className="mt-2 block h-4 w-24 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
           </div>
         ))}
+      </section>
+
+      {/* Quick links skeleton */}
+      <section
+        className="flex flex-wrap gap-1.5 rounded border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900"
+        aria-hidden="true"
+      >
+        {Array.from({ length: 7 }, (_, i) => (
+          <div
+            key={i}
+            className="h-6 w-20 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+          />
+        ))}
+      </section>
+
+      {/* 6 DataPanels in 2-column grid */}
+      <section className="grid grid-cols-2 gap-3 max-[960px]:grid-cols-1" aria-hidden="true">
+        <DataPanel
+          title={t('dashboard.tasks')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <TasksTable
+            id="home-tasks-skeleton"
+            ariaLabel={t('dashboard.tasks')}
+            tasks={[]}
+            emptyMessage={t('dashboard.noTasks')}
+            loading={true}
+          />
+        </DataPanel>
+
+        <DataPanel
+          title={t('dashboard.reminders')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <RemindersTable
+            id="home-reminders-skeleton"
+            ariaLabel={t('dashboard.reminders')}
+            reminders={[]}
+            emptyMessage={t('dashboard.noReminders')}
+            loading={true}
+          />
+        </DataPanel>
+
+        <DataPanel
+          title={t('dashboard.calendar')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <CalendarTable
+            id="home-calendar-skeleton"
+            ariaLabel={t('dashboard.calendar')}
+            events={[]}
+            emptyMessage={t('dashboard.noCalendar')}
+            loading={true}
+          />
+        </DataPanel>
+
+        <DataPanel
+          title={t('dashboard.transactions')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <TransactionsTable
+            id="home-transactions-skeleton"
+            ariaLabel={t('dashboard.transactions')}
+            transactions={[]}
+            emptyMessage={t('dashboard.noTransactions')}
+            loading={true}
+          />
+        </DataPanel>
+
+        <DataPanel
+          title={t('dashboard.openDebts')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <DebtsTable
+            id="home-debts-skeleton"
+            ariaLabel={t('dashboard.openDebts')}
+            debts={[]}
+            emptyMessage={t('dashboard.noDebts')}
+            loading={true}
+          />
+        </DataPanel>
+
+        <DataPanel
+          title={t('dashboard.activity')}
+          toolbar={
+            <div className="h-6 w-44 animate-pulse rounded-[3px] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          }
+        >
+          <DataTable
+            id="home-activity-skeleton"
+            ariaLabel={t('dashboard.activity')}
+            rows={[]}
+            emptyMessage={t('dashboard.noActivity')}
+            loading={true}
+            columns={activityColumns}
+            getRowKey={(item) => item.id}
+          />
+        </DataPanel>
       </section>
     </div>
   );

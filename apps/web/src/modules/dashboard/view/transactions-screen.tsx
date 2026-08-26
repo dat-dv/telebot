@@ -216,88 +216,80 @@ export function TransactionsScreen() {
         </div>
       )}
 
-      {dashboard.isLoading ? (
-        <div className="p-4 text-xs text-slate-500">{t('common.loadingDashboard')}</div>
-      ) : (
-        <section className="flex flex-col gap-3" aria-label={t('transactions.title')}>
-          <PeriodFilterToolbar filter={periodFilter} />
+      <section className="flex flex-col gap-3" aria-label={t('transactions.title')}>
+        <PeriodFilterToolbar filter={periodFilter} />
 
-          <TrendSummaryStrip
-            buckets={periodBuckets}
-            income={periodIncome}
-            expense={periodExpense}
+        <TrendSummaryStrip buckets={periodBuckets} income={periodIncome} expense={periodExpense} />
+
+        <DataPanel
+          title={t('transactions.title')}
+          counter={t('table.rowsCount', { count: filteredTransactions.length })}
+          toolbar={
+            <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
+              <button
+                type="button"
+                className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                  activeFilter === 'all'
+                    ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+                onClick={() => setFilter('all')}
+              >
+                {t('table.filter.all')}
+              </button>
+              <button
+                type="button"
+                className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                  activeFilter === 'income'
+                    ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+                onClick={() => setFilter('income')}
+              >
+                {t('table.filter.income')}
+              </button>
+              <button
+                type="button"
+                className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                  activeFilter === 'expense'
+                    ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+                onClick={() => setFilter('expense')}
+              >
+                {t('table.filter.expense')}
+              </button>
+              <input
+                type="search"
+                className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
+                placeholder={t('table.searchPlaceholder')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label={t('table.searchPlaceholder')}
+              />
+            </div>
+          }
+        >
+          <TransactionsTable
+            id="transactions"
+            ariaLabel={t('transactions.title')}
+            transactions={filteredTransactions}
+            loading={dashboard.isLoading}
+            emptyMessage={t('dashboard.noTransactions')}
+            maxAmount={maxAmount}
+            editingId={editingId}
+            editDraft={editDraft}
+            onChangeEditDraft={setEditDraft}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSaveEdit={handleSaveEdit}
+            onDelete={handleDelete}
+            categorySuggestions={categorySuggestions}
+            placeSuggestions={placeSuggestions}
+            isPending={updateMutation.isPending}
           />
-
-          <DataPanel
-            title={t('transactions.title')}
-            counter={t('table.rowsCount', { count: filteredTransactions.length })}
-            toolbar={
-              <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
-                <button
-                  type="button"
-                  className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
-                    activeFilter === 'all'
-                      ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
-                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-                  }`}
-                  onClick={() => setFilter('all')}
-                >
-                  {t('table.filter.all')}
-                </button>
-                <button
-                  type="button"
-                  className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
-                    activeFilter === 'income'
-                      ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
-                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-                  }`}
-                  onClick={() => setFilter('income')}
-                >
-                  {t('table.filter.income')}
-                </button>
-                <button
-                  type="button"
-                  className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
-                    activeFilter === 'expense'
-                      ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
-                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-                  }`}
-                  onClick={() => setFilter('expense')}
-                >
-                  {t('table.filter.expense')}
-                </button>
-                <input
-                  type="search"
-                  className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
-                  placeholder={t('table.searchPlaceholder')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label={t('table.searchPlaceholder')}
-                />
-              </div>
-            }
-          >
-            <TransactionsTable
-              id="transactions"
-              ariaLabel={t('transactions.title')}
-              transactions={filteredTransactions}
-              loading={dashboard.isLoading}
-              emptyMessage={t('dashboard.noTransactions')}
-              maxAmount={maxAmount}
-              editingId={editingId}
-              editDraft={editDraft}
-              onChangeEditDraft={setEditDraft}
-              onStartEdit={handleStartEdit}
-              onCancelEdit={handleCancelEdit}
-              onSaveEdit={handleSaveEdit}
-              onDelete={handleDelete}
-              categorySuggestions={categorySuggestions}
-              placeSuggestions={placeSuggestions}
-              isPending={updateMutation.isPending}
-            />
-          </DataPanel>
-        </section>
-      )}
+        </DataPanel>
+      </section>
     </>
   );
 }
