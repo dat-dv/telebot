@@ -6,7 +6,7 @@ export class CreateDebtPaymentAllocations1724670000000 implements MigrationInter
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "debt_payment_allocations" (
-        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+        "id" character varying NOT NULL DEFAULT gen_random_uuid()::text,
         "user_id" character varying NOT NULL,
         "finance_transaction_id" character varying NOT NULL,
         "debt_id" character varying NOT NULL,
@@ -14,9 +14,7 @@ export class CreateDebtPaymentAllocations1724670000000 implements MigrationInter
         "allocated_at" TIMESTAMP NOT NULL,
         "note" character varying,
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-        CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id"),
-        CONSTRAINT "FK_debt_payment_allocations_transaction" FOREIGN KEY ("finance_transaction_id") REFERENCES "finance_transactions"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
-        CONSTRAINT "FK_debt_payment_allocations_debt" FOREIGN KEY ("debt_id") REFERENCES "debts"("id") ON DELETE CASCADE ON UPDATE NO ACTION
+        CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
       )
     `);
 
