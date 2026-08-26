@@ -111,29 +111,6 @@ export function PlacesScreen() {
 
   const placeColumns: DataTableColumn<IFinancePlace>[] = [
     {
-      id: 'ordinal',
-      header: t('table.ordinal'),
-      label: t('table.ordinal'),
-      minWidth: '56px',
-      width: '56px',
-      align: 'right',
-      hideable: false,
-      cell: (_item, index) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{(index ?? 0) + 1}</span>
-      ),
-    },
-    {
-      id: 'id',
-      header: t('table.id'),
-      minWidth: '160px',
-      width: '220px',
-      cell: (item) => (
-        <code className="font-mono text-[11px] text-slate-600 whitespace-nowrap dark:text-slate-400">
-          {item.id}
-        </code>
-      ),
-    },
-    {
       id: 'name',
       header: t('places.columns.name'),
       minWidth: '220px',

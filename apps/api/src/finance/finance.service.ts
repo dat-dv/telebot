@@ -28,6 +28,7 @@ export interface CreateFinanceTransactionDto {
   receiptUrl?: string;
   contactId?: string;
   placeId?: string | null;
+  createNewPlace?: boolean;
   placeName?: string;
   note: string;
   occurredAt?: string;
@@ -63,6 +64,7 @@ export interface UpdateTransactionDto {
   receiptUrl?: string;
   contactId?: string;
   placeId?: string | null;
+  createNewPlace?: boolean;
   placeName?: string;
   note?: string;
   occurredAt?: string;
@@ -498,6 +500,15 @@ export class FinanceService {
       transaction.occurredAt = occurredAt;
     }
     return this.transactionRepo.save(transaction);
+  }
+
+  public async resolvePlaces(userId: number, name: string): Promise<FinancePlaceEntity[]> {
+    const normalizedName = this.normalizeIdentity(name);
+    if (!normalizedName) return [];
+    return this.placeRepo.find({
+      where: { userId: userId.toString(), normalizedName },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   public listPlaces(userId: number): Promise<FinancePlaceEntity[]> {

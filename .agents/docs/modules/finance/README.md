@@ -25,8 +25,13 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
 - Trang **Báo cáo & Phân tích** (`/analytics`) gọi `GET /api/finance/analytics` để trực quan hóa biểu đồ dòng tiền (Cashflow trend), cơ cấu chi tiêu (Category donut), và phân bổ công nợ (Debt structure).
 - Bảng **Thu chi** có cột **Nơi chốn**. Khi sửa nhanh, có thể chọn từ gợi ý hoặc gõ tên mới; xóa nội dung rồi lưu sẽ bỏ nơi chốn của giao dịch.
 - Tìm kiếm giao dịch áp dụng cho danh mục, ghi chú và nơi chốn.
-- Gemini truyền `placeName` cho dịch vụ thu–chi; tên này được lưu vào `finance_places`, không tạo liên hệ công nợ.
+- **Tra cứu và tạo nơi chốn của Gemini**:
+  * Khi người dùng nhắc đến tên quán ăn/địa điểm, Gemini gọi công cụ `resolve_finance_place` để tra cứu danh sách nơi chốn đã có của người dùng, tránh tạo trùng lặp nơi chốn đã tồn tại.
+  * Nếu nơi chốn đã có: Gemini truyền `placeId` vào payload cập nhật/ghi sổ giao dịch.
+  * Nếu nơi chốn chưa có: Gemini truyền `createNewPlace: true` và `placeName`. Telegram UI hiển thị hộp thoại xác nhận đa thao tác (1. Tạo nơi chốn mới, 2. Ghi/cập nhật giao dịch) kèm toàn bộ khối JSON payload của từng thao tác gọi API để người dùng kiểm tra minh bạch trước khi bấm Xác nhận.
+  * Tạo riêng địa điểm độc lập sử dụng `create_finance_place`.
 
 ## Kiểm thử
 
 Chạy `npm run build --workspace @telebot/contracts`, `npm run typecheck`, `npm run lint` và `npm run test --workspace @telebot/api`. Nếu cơ sở dữ liệu chạy `TYPEORM_SYNCHRONIZE=true`, entity mới được đồng bộ khi API khởi động; môi trường production cần áp dụng migration/schema change tương ứng trước khi triển khai.
+

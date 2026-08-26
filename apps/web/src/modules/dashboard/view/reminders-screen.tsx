@@ -2,15 +2,10 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  localeTag,
-  type IReminderListItem,
-  type ReminderNotifyType,
-  type ReminderRepeatType,
-} from '@telebot/contracts';
+import { type IReminderListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
-import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
-
+import { DataPanel } from '@/shared/ui/data-table';
+import { RemindersTable, type ReminderEditDraft } from './reminders-table';
 import {
   remindersQueryKeys,
   useDeleteReminderMutation,
@@ -21,15 +16,10 @@ import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 export function RemindersScreen() {
   const queryClient = useQueryClient();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<{
-    title: string;
-    remindAt: string;
-    notifyType: ReminderNotifyType;
-    repeatType: ReminderRepeatType;
-  }>({
+  const [editDraft, setEditDraft] = useState<ReminderEditDraft>({
     title: '',
     remindAt: '',
     notifyType: 'text',
@@ -60,14 +50,6 @@ export function RemindersScreen() {
     const q = search.toLowerCase();
     return rawList.filter((item) => item.title.toLowerCase().includes(q));
   }, [rawList, search]);
-
-  const date = (value?: string) =>
-    value
-      ? new Intl.DateTimeFormat(localeTag(locale), {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }).format(new Date(value))
-      : t('common.notSet');
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -144,213 +126,6 @@ export function RemindersScreen() {
     }
   };
 
-  const reminderColumns: DataTableColumn<IReminderListItem>[] = [
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '200px',
-      hideable: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.title}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, title: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('reminders.placeholder.title')}
-              autoFocus
-              required
-              aria-label={t('dashboard.columns.title')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer font-semibold text-slate-900 select-none dark:text-slate-100"
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.title}
-          >
-            {item.title}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'notifyType',
-      header: t('reminders.columns.notifyType'),
-      minWidth: '120px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <select
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.notifyType}
-              onChange={(e) =>
-                setEditDraft((prev) => ({
-                  ...prev,
-                  notifyType: e.target.value as ReminderNotifyType,
-                }))
-              }
-              aria-label={t('reminders.columns.notifyType')}
-            >
-              <option value="text">{t('reminders.notifyType.text')}</option>
-              <option value="call">{t('reminders.notifyType.call')}</option>
-            </select>
-          );
-        }
-        return (
-          <span
-            className="inline-flex cursor-pointer items-center rounded-[2px] border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {item.notifyType === 'call'
-              ? `📞 ${t('reminders.notifyType.call')}`
-              : `💬 ${t('reminders.notifyType.text')}`}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'remindAt',
-      header: t('dashboard.columns.schedule'),
-      align: 'right',
-      minWidth: '150px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="datetime-local"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.remindAt}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, remindAt: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              aria-label={t('dashboard.columns.schedule')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {date(item.remindAt)}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'repeatType',
-      header: t('reminders.columns.repeatType'),
-      minWidth: '120px',
-      defaultHidden: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <select
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.repeatType}
-              onChange={(e) =>
-                setEditDraft((prev) => ({
-                  ...prev,
-                  repeatType: e.target.value as ReminderRepeatType,
-                }))
-              }
-              aria-label={t('reminders.columns.repeatType')}
-            >
-              <option value="none">{t('reminders.repeatType.none')}</option>
-              <option value="daily">{t('reminders.repeatType.daily')}</option>
-              <option value="weekly">{t('reminders.repeatType.weekly')}</option>
-            </select>
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {item.repeatType === 'daily'
-              ? t('reminders.repeatType.daily')
-              : item.repeatType === 'weekly'
-                ? t('reminders.repeatType.weekly')
-                : t('reminders.repeatType.none')}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      header: t('dashboard.columns.action'),
-      align: 'right',
-      minWidth: '150px',
-      hideable: false,
-      cell: (item) => {
-        const isEditing = editingId === item.id;
-        if (isEditing) {
-          return (
-            <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white whitespace-nowrap transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-                onClick={() => void handleSaveEdit(item.id)}
-                disabled={updateMutation.isPending || !editDraft.title.trim()}
-                title={t('reminders.actions.save')}
-              >
-                ✓ {t('reminders.actions.save')}
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-                onClick={handleCancelEdit}
-                disabled={updateMutation.isPending}
-                title={t('reminders.actions.cancel')}
-              >
-                ✕
-              </button>
-            </div>
-          );
-        }
-        return (
-          <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-              onClick={() => handleStartEdit(item)}
-              title={t('reminders.actions.edit')}
-            >
-              ✎ {t('reminders.actions.edit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-              onClick={() => void handleSnooze(item)}
-              disabled={updateMutation.isPending}
-              title={t('reminders.actions.snooze')}
-            >
-              ⏳
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
-              onClick={() => void handleDelete(item.id)}
-              disabled={deleteMutation.isPending}
-              title={t('reminders.actions.delete')}
-            >
-              🗑
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-
   const isLoading = dashboard.isLoading || remindersQuery.isLoading;
   const isError = dashboard.isError && remindersQuery.isError;
 
@@ -358,9 +133,8 @@ export function RemindersScreen() {
     <>
       {toastMessage && (
         <div
-          className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
           role="status"
-          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 rounded bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
         >
           {toastMessage}
         </div>
@@ -381,7 +155,7 @@ export function RemindersScreen() {
           </button>
         </section>
       ) : (
-        <section className="grid gap-3">
+        <section className="flex flex-col gap-3" aria-label={t('dashboard.reminders')}>
           <DataPanel
             title={t('dashboard.reminders')}
             counter={t('table.rowsCount', { count: filteredReminders.length })}
@@ -396,14 +170,21 @@ export function RemindersScreen() {
               />
             }
           >
-            <DataTable
+            <RemindersTable
               id="reminders"
               ariaLabel={t('dashboard.reminders')}
-              rows={filteredReminders}
+              reminders={filteredReminders}
               loading={isLoading}
               emptyMessage={t('dashboard.noReminders')}
-              columns={reminderColumns}
-              getRowKey={(item) => item.id}
+              editingId={editingId}
+              editDraft={editDraft}
+              onChangeEditDraft={setEditDraft}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              onSnooze={handleSnooze}
+              onDelete={handleDelete}
+              isPending={updateMutation.isPending}
             />
           </DataPanel>
         </section>

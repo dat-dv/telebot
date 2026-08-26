@@ -78,6 +78,7 @@ const messages = {
     'common.showMoney': 'Hiện số tiền',
     'common.toggleMoneyVisibility': 'Ẩn/hiện số tiền',
     'common.maskedAmount': '••••••',
+    'common.today': 'Hôm nay',
     'nav.home': 'Tổng quan',
     'nav.statistics': 'Phân tích',
     'nav.contacts': 'Người liên quan',
@@ -245,9 +246,15 @@ const messages = {
     'debts.status.active': 'Đang mở',
     'debts.status.settled': 'Đã tất toán',
     'debts.filter.statusAll': 'Tất cả trạng thái',
+    'debts.filter.allStatus': 'Tất cả trạng thái',
     'debts.filter.statusActive': 'Đang mở',
     'debts.filter.statusSettled': 'Đã tất toán',
     'debts.filter.directionAll': 'Tất cả luồng',
+    'debts.filter.allDirections': 'Tất cả luồng',
+    'debts.stats.receivable': 'Tổng tiền cho vay (Phải thu)',
+    'debts.stats.payable': 'Tổng tiền đi vay (Phải trả)',
+    'debts.stats.activeCount': 'Khoản nợ đang mở',
+    'debts.stats.settledCount': 'Khoản nợ đã tất toán',
     'debts.history.title': 'Lịch sử trả nợ',
     'debts.history.paidAmount': 'Đã trả',
     'debts.history.paymentDate': 'Ngày trả',
@@ -304,6 +311,19 @@ const messages = {
     'analytics.topCategories': 'Top danh mục chi tiêu',
     'analytics.topDebtors': 'Top người vay / nợ',
     'analytics.drilldownTitle': 'Chi tiết giao dịch & công nợ trong kỳ',
+    'analytics.tab.allCharts': 'Tổng quan biểu đồ',
+    'analytics.tab.cashflow': 'Xu hướng dòng tiền',
+    'analytics.tab.spending': 'Cơ cấu chi tiêu',
+    'analytics.tab.debts': 'Cơ cấu công nợ',
+    'analytics.tab.records': 'Dữ liệu chi tiết',
+    'analytics.cashflow.breakdownTitle': 'Bảng tổng hợp dòng tiền theo kỳ',
+    'analytics.cashflow.avgDailyExpense': 'Chi tiêu TB / ngày',
+    'analytics.cashflow.avgDailyIncome': 'Thu nhập TB / ngày',
+    'analytics.cashflow.totalPeriod': 'Tổng trong kỳ',
+    'analytics.cashflow.column.period': 'Mốc thời gian',
+    'analytics.cashflow.column.income': 'Thu vào',
+    'analytics.cashflow.column.expense': 'Chi ra',
+    'analytics.cashflow.column.balance': 'Thặng dư / Thâm hụt',
     'calendar.title': 'Lịch',
     'calendar.subtitle': 'Lịch trình sự kiện 7 ngày tới',
     'calendar.columns.description': 'Mô tả',
@@ -513,6 +533,7 @@ const messages = {
     'common.showMoney': 'Show amounts',
     'common.toggleMoneyVisibility': 'Toggle amount visibility',
     'common.maskedAmount': '••••••',
+    'common.today': 'Today',
     'nav.home': 'Overview',
     'nav.statistics': 'Analytics',
     'nav.contacts': 'People',
@@ -680,9 +701,15 @@ const messages = {
     'debts.status.active': 'Active',
     'debts.status.settled': 'Settled',
     'debts.filter.statusAll': 'All status',
+    'debts.filter.allStatus': 'All status',
     'debts.filter.statusActive': 'Active',
     'debts.filter.statusSettled': 'Settled',
     'debts.filter.directionAll': 'All directions',
+    'debts.filter.allDirections': 'All directions',
+    'debts.stats.receivable': 'Total Receivables (Lent)',
+    'debts.stats.payable': 'Total Payables (Borrowed)',
+    'debts.stats.activeCount': 'Open Debts Count',
+    'debts.stats.settledCount': 'Settled Debts Count',
     'debts.history.title': 'Repayment history',
     'debts.history.paidAmount': 'Paid amount',
     'debts.history.paymentDate': 'Payment date',
@@ -739,6 +766,19 @@ const messages = {
     'analytics.topCategories': 'Top Spending Categories',
     'analytics.topDebtors': 'Top Debtors / Creditors',
     'analytics.drilldownTitle': 'Detailed Transactions & Debts',
+    'analytics.tab.allCharts': 'All Charts',
+    'analytics.tab.cashflow': 'Cashflow Trend',
+    'analytics.tab.spending': 'Spending Breakdown',
+    'analytics.tab.debts': 'Debt Structure',
+    'analytics.tab.records': 'Detailed Records',
+    'analytics.cashflow.breakdownTitle': 'Cashflow Breakdown by Period',
+    'analytics.cashflow.avgDailyExpense': 'Avg Daily Expense',
+    'analytics.cashflow.avgDailyIncome': 'Avg Daily Income',
+    'analytics.cashflow.totalPeriod': 'Period Total',
+    'analytics.cashflow.column.period': 'Time Period',
+    'analytics.cashflow.column.income': 'Income',
+    'analytics.cashflow.column.expense': 'Expense',
+    'analytics.cashflow.column.balance': 'Surplus / Deficit',
     'calendar.title': 'Calendar',
     'calendar.subtitle': 'Upcoming 7-day schedule and events',
     'calendar.columns.description': 'Description',
@@ -1052,16 +1092,7 @@ export interface IDashboardData {
     placeName?: string;
     occurredAt: string;
   }>;
-  debts: Array<{
-    id: string;
-    direction: 'receivable' | 'payable';
-    counterparty: string;
-    remainingAmount: number;
-    currency?: string;
-    occurredAt: string;
-    dueAt?: string;
-    settledAt?: string;
-  }>;
+  debts: IDebtListItem[];
   calendar: ICalendarEventItem[];
   tasks: ITaskListItem[];
   reminders: IReminderListItem[];

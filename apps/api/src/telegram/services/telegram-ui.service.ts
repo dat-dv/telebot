@@ -241,6 +241,36 @@ export class TelegramUiService {
     }
   }
 
+  private withConfirmationPayloadJson(
+    message: string,
+    payload: Record<string, unknown>,
+    name?: string,
+  ): string {
+    const { duplicateWarnings: _duplicateWarnings, ...actionPayload } = payload;
+    if (
+      payload.createNewPlace === true &&
+      typeof payload.placeName === 'string' &&
+      payload.placeName.trim()
+    ) {
+      const { createNewPlace: _createNewPlace, ...restPayload } = actionPayload;
+      const multiAction = [
+        {
+          action: 'create_finance_place',
+          name: payload.placeName.trim(),
+        },
+        {
+          action: name || 'update_finance_transaction',
+          ...restPayload,
+        },
+      ];
+      const json = this.escapeHtml(JSON.stringify(multiAction, null, 2));
+      return `${message}\n\n📄 <b>Payloads JSON (${multiAction.length} thao tác API):</b>\n<pre><code class="language-json">${json}</code></pre>`;
+    }
+
+    const json = this.escapeHtml(JSON.stringify(actionPayload, null, 2));
+    return `${message}\n\n📄 <b>Payload JSON:</b>\n<pre><code class="language-json">${json}</code></pre>`;
+  }
+
   public formatConfirmationBox(
     name: string,
     payload: Record<string, unknown>,
@@ -249,13 +279,8 @@ export class TelegramUiService {
     return this.withConfirmationPayloadJson(
       this.formatConfirmationContent(name, payload, referenceId),
       payload,
+      name,
     );
-  }
-
-  private withConfirmationPayloadJson(message: string, payload: Record<string, unknown>): string {
-    const { duplicateWarnings: _duplicateWarnings, ...actionPayload } = payload;
-    const json = this.escapeHtml(JSON.stringify(actionPayload, null, 2));
-    return `${message}\n\n📄 <b>Payload JSON:</b>\n<pre><code class="language-json">${json}</code></pre>`;
   }
 
   private formatConfirmationContent(
@@ -263,22 +288,31 @@ export class TelegramUiService {
     payload: Record<string, unknown>,
     referenceId: string,
   ): string {
+    if (name === 'create_finance_place') {
+      const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'Chưa rõ';
+      return `⚠️ <b>XÁC NHẬN TẠO NƠI CHỐN</b>\n\n📍 Tên nơi chốn: <b>${this.escapeHtml(placeName)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu nơi chốn mới.`;
+    }
     if (name === 'create_finance_transaction') {
       const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
       const amount =
         typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
       const category = typeof payload.category === 'string' ? payload.category : 'Khác';
       const note = typeof payload.note === 'string' ? payload.note : 'Chưa có mô tả';
-      const placeLine =
-        typeof payload.placeName === 'string' && payload.placeName.trim()
-          ? `\n📍 Địa điểm: <i>${this.escapeHtml(payload.placeName.trim())}</i>`
-          : '';
+      let placeLine = '';
+      if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
+        const placeTag = payload.createNewPlace === true ? ' (Tạo nơi chốn mới)' : '';
+        placeLine = `\n📍 Địa điểm: <i>${this.escapeHtml(payload.placeName.trim())}</i>${placeTag}`;
+      } else if (typeof payload.placeId === 'string' && payload.placeId.trim()) {
+        placeLine = `\n📍 Địa điểm: <i>(Đã có trong danh sách)</i>`;
+      }
       const occurredAtFormatted = this.formatFinanceOccurredAt(payload.occurredAt);
       const occurredAtLine = occurredAtFormatted
         ? `\n📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`
         : '';
 
-      return `⚠️ <b>XÁC NHẬN THU–CHI</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
+      const actionHeader =
+        payload.createNewPlace === true ? 'THU–CHI & TẠO NƠI CHỐN MỚI' : 'THU–CHI';
+      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
     }
     if (name === 'update_finance_transaction') {
       const type =
@@ -298,11 +332,23 @@ export class TelegramUiService {
       if (amount) changeLines.push(`💵 ${this.escapeHtml(amount)}`);
       if (category) changeLines.push(`🏷️ ${this.escapeHtml(category)}`);
       if (note) changeLines.push(`📝 ${this.escapeHtml(note)}`);
+      if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
+        const placeTag = payload.createNewPlace === true ? ' <i>(Tạo mới nơi chốn)</i>' : '';
+        changeLines.push(
+          `📍 Địa điểm: <i>${this.escapeHtml(payload.placeName.trim())}</i>${placeTag}`,
+        );
+      } else if (typeof payload.placeId === 'string' && payload.placeId.trim()) {
+        changeLines.push(`📍 Địa điểm: <i>(Đã liên kết nơi chốn có sẵn)</i>`);
+      }
       if (occurredAtFormatted) {
         changeLines.push(`📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`);
       }
 
-      return `⚠️ <b>XÁC NHẬN CẬP NHẬT THU–CHI</b>\n\n${changeLines.join('\n') || 'Cập nhật thông tin giao dịch gần nhất'}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cập nhật.`;
+      const actionHeader =
+        payload.createNewPlace === true
+          ? 'CẬP NHẬT THU–CHI & TẠO NƠI CHỐN MỚI'
+          : 'CẬP NHẬT THU–CHI';
+      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n${changeLines.join('\n') || 'Cập nhật thông tin giao dịch gần nhất'}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cập nhật.`;
     }
     if (name === 'create_finance_transactions') {
       const list = Array.isArray(payload.transactions)
@@ -506,6 +552,11 @@ export class TelegramUiService {
       const dateSuffix = occurredAtText ? ` · 📅 ${occurredAtText}` : '';
       return `✅ <b>Đã ghi sổ thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(placeText)}${this.escapeHtml(dateSuffix)}`;
     }
+    if (name === 'create_finance_place') {
+      const place = result.place as Record<string, unknown> | undefined;
+      const placeName = typeof place?.name === 'string' ? place.name : '';
+      return `✅ <b>Đã tạo nơi chốn</b> · 📍 ${this.escapeHtml(placeName)}`;
+    }
     if (name === 'update_finance_transaction') {
       const tx = result.transaction as Record<string, unknown> | undefined;
       const typeText = tx?.type === 'income' ? 'Khoản thu' : 'Khoản chi';
@@ -516,11 +567,15 @@ export class TelegramUiService {
             ? this.formatMoney(tx.amount)
             : '';
       const noteText = typeof tx?.note === 'string' ? tx.note : '';
+      const placeText =
+        typeof tx?.placeName === 'string' && tx.placeName.trim()
+          ? ` · 📍 ${tx.placeName.trim()}`
+          : '';
       const categoryText =
         typeof tx?.category === 'string' && tx.category !== 'Khác' ? ` (${tx.category})` : '';
       const occurredAtText = this.formatFinanceOccurredAt(tx?.occurredAt);
       const dateSuffix = occurredAtText ? ` · 📅 ${occurredAtText}` : '';
-      return `✅ <b>Đã cập nhật giao dịch thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(dateSuffix)}`;
+      return `✅ <b>Đã cập nhật giao dịch thu–chi</b> · ${this.escapeHtml(typeText)} ${this.escapeHtml(amountText)}${this.escapeHtml(categoryText)} · ${this.escapeHtml(noteText)}${this.escapeHtml(placeText)}${this.escapeHtml(dateSuffix)}`;
     }
     if (name === 'create_finance_transactions') {
       const created = Array.isArray(result.created)

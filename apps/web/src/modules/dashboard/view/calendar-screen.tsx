@@ -4,7 +4,8 @@ import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { localeTag, type ICalendarEventItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
-import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { DataPanel } from '@/shared/ui/data-table';
+import { CalendarTable, type CalendarEditDraft } from './calendar-table';
 
 import {
   calendarQueryKeys,
@@ -24,13 +25,7 @@ export function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<{
-    summary: string;
-    location: string;
-    description: string;
-    startDateTime: string;
-    endDateTime: string;
-  }>({
+  const [editDraft, setEditDraft] = useState<CalendarEditDraft>({
     summary: '',
     location: '',
     description: '',
@@ -65,14 +60,6 @@ export function CalendarScreen() {
         (item.description && item.description.toLowerCase().includes(q)),
     );
   }, [rawList, search]);
-
-  const date = (value?: string) =>
-    value
-      ? new Intl.DateTimeFormat(localeTag(locale), {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }).format(new Date(value))
-      : t('common.notSet');
 
   const formattedMonthYear = useMemo(() => {
     return new Intl.DateTimeFormat(localeTag(locale), {
@@ -162,228 +149,6 @@ export function CalendarScreen() {
     }
   };
 
-  const calendarColumns: DataTableColumn<ICalendarEventItem>[] = [
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '180px',
-      hideable: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.summary}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, summary: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('calendar.placeholder.title')}
-              autoFocus
-              required
-              aria-label={t('dashboard.columns.title')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer font-semibold text-slate-900 select-none dark:text-slate-100"
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.title}
-          >
-            {item.title}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'location',
-      header: t('calendar.columns.location'),
-      minWidth: '150px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.location}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, location: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('calendar.placeholder.location')}
-              aria-label={t('calendar.columns.location')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.location}
-          >
-            {item.location || '—'}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'description',
-      header: t('calendar.columns.description'),
-      minWidth: '120px',
-      width: '160px',
-      defaultHidden: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.description}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, description: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('calendar.placeholder.description')}
-              aria-label={t('calendar.columns.description')}
-            />
-          );
-        }
-        return (
-          <span
-            className="block max-w-[200px] cursor-pointer truncate text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.description}
-          >
-            {item.description || '—'}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'startAt',
-      header: t('dashboard.columns.date'),
-      align: 'right',
-      minWidth: '140px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="datetime-local"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.startDateTime}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, startDateTime: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              aria-label={t('dashboard.columns.date')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {date(item.startAt)}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'endAt',
-      header: t('calendar.columns.endAt'),
-      align: 'right',
-      minWidth: '140px',
-      defaultHidden: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="datetime-local"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.endDateTime}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, endDateTime: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              aria-label={t('calendar.columns.endAt')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {item.endAt ? date(item.endAt) : '—'}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      header: t('dashboard.columns.action'),
-      align: 'right',
-      minWidth: '130px',
-      hideable: false,
-      cell: (item) => {
-        const isEditing = editingId === item.id;
-        if (isEditing) {
-          return (
-            <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white whitespace-nowrap transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-                onClick={() => void handleSaveEdit(item.id)}
-                disabled={updateMutation.isPending || !editDraft.summary.trim()}
-                title={t('calendar.actions.save')}
-              >
-                ✓ {t('calendar.actions.save')}
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-                onClick={handleCancelEdit}
-                disabled={updateMutation.isPending}
-                title={t('calendar.actions.cancel')}
-              >
-                ✕
-              </button>
-            </div>
-          );
-        }
-        return (
-          <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-              onClick={() => handleStartEdit(item)}
-              title={t('calendar.actions.edit')}
-            >
-              ✎ {t('calendar.actions.edit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
-              onClick={() => void handleDelete(item.id)}
-              disabled={deleteMutation.isPending}
-              title={t('calendar.actions.delete')}
-            >
-              🗑
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-
   const isLoading = dashboard.isLoading || calendarQuery.isLoading;
   const isError = dashboard.isError && calendarQuery.isError;
 
@@ -391,9 +156,8 @@ export function CalendarScreen() {
     <>
       {toastMessage && (
         <div
-          className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
           role="status"
-          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 rounded bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
         >
           {toastMessage}
         </div>
@@ -414,77 +178,65 @@ export function CalendarScreen() {
           </button>
         </section>
       ) : (
-        <section className="grid gap-3">
+        <section className="flex flex-col gap-3" aria-label={t('dashboard.calendar')}>
           <DataPanel
             title={t('dashboard.calendar')}
             description={isGoogleConnected ? undefined : t('dashboard.connectGoogleTip')}
             counter={t('table.rowsCount', { count: filteredCalendar.length })}
             toolbar={
-              <div className="flex flex-wrap items-center justify-between gap-2 max-[640px]:w-full">
-                {/* Month Navigation */}
-                <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="inline-flex h-6 min-h-6 w-6 cursor-pointer items-center justify-center rounded-[3px] border border-slate-300 bg-white text-[11px] text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    className="inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border border-slate-300 bg-white px-2 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    onClick={handleToday}
+                  >
+                    {t('common.today')}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-6 w-6 min-h-6 min-w-6 cursor-pointer items-center justify-center rounded-[3px] border border-slate-300 bg-white text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                     onClick={handlePrevMonth}
-                    title={t('calendar.nav.prev')}
                     aria-label={t('calendar.nav.prev')}
                   >
-                    ◀
+                    &lt;
                   </button>
-                  <span className="min-w-[120px] text-center text-xs font-semibold text-slate-900 capitalize dark:text-slate-100">
-                    {formattedMonthYear}
-                  </span>
                   <button
                     type="button"
-                    className="inline-flex h-6 min-h-6 w-6 cursor-pointer items-center justify-center rounded-[3px] border border-slate-300 bg-white text-[11px] text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    className="inline-flex h-6 w-6 min-h-6 min-w-6 cursor-pointer items-center justify-center rounded-[3px] border border-slate-300 bg-white text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                     onClick={handleNextMonth}
-                    title={t('calendar.nav.next')}
                     aria-label={t('calendar.nav.next')}
                   >
-                    ▶
+                    &gt;
                   </button>
-                  <button
-                    type="button"
-                    className="inline-flex h-6 min-h-6 cursor-pointer items-center justify-center rounded-[3px] border border-slate-300 bg-white px-2 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                    onClick={handleToday}
-                    title={t('calendar.nav.today')}
-                  >
-                    {t('calendar.nav.today')}
-                  </button>
+                  <span className="ml-1 text-xs font-bold text-slate-900 capitalize dark:text-slate-100">
+                    {formattedMonthYear}
+                  </span>
                 </div>
 
-                {/* View Mode Toggle & Search */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <div
-                    className="inline-flex rounded-[3px] border border-slate-300 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-900"
-                    role="tablist"
-                  >
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={viewMode === 'grid'}
-                      className={`inline-flex h-5 items-center rounded-[2px] px-1.5 text-[11px] font-medium transition-colors ${
+                      className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
                         viewMode === 'grid'
-                          ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                          ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                       }`}
                       onClick={() => setViewMode('grid')}
                     >
-                      ⊞ {t('calendar.view.grid')}
+                      {t('calendar.view.grid')}
                     </button>
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={viewMode === 'table'}
-                      className={`inline-flex h-5 items-center rounded-[2px] px-1.5 text-[11px] font-medium transition-colors ${
+                      className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
                         viewMode === 'table'
-                          ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                          ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                       }`}
                       onClick={() => setViewMode('table')}
                     >
-                      ☰ {t('calendar.view.table')}
+                      {t('calendar.view.table')}
                     </button>
                   </div>
 
@@ -517,14 +269,20 @@ export function CalendarScreen() {
                 isDeleting={deleteMutation.isPending}
               />
             ) : (
-              <DataTable
+              <CalendarTable
                 id="calendar"
                 ariaLabel={t('dashboard.calendar')}
-                rows={filteredCalendar}
+                events={filteredCalendar}
                 loading={isLoading}
                 emptyMessage={t('dashboard.noCalendar')}
-                columns={calendarColumns}
-                getRowKey={(item) => item.id}
+                editingId={editingId}
+                editDraft={editDraft}
+                onChangeEditDraft={setEditDraft}
+                onStartEdit={handleStartEdit}
+                onCancelEdit={handleCancelEdit}
+                onSaveEdit={handleSaveEdit}
+                onDelete={handleDelete}
+                isPending={updateMutation.isPending}
               />
             )}
           </DataPanel>

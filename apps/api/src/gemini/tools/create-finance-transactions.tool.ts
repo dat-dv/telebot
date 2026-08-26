@@ -8,6 +8,8 @@ export interface CreateFinanceTransactionItemArgs {
   amount: number;
   category?: string;
   note: string;
+  placeId?: string;
+  createNewPlace?: boolean;
   placeName?: string;
   occurredAt?: string;
 }
@@ -74,6 +76,15 @@ export class CreateFinanceTransactionsTool implements GeminiTool {
               note: {
                 type: SchemaType.STRING,
                 description: 'Nội dung khoản chi ngắn gọn, ví dụ "Ly cà phê", "Ly nước cam".',
+              },
+              placeId: {
+                type: SchemaType.STRING,
+                description: 'Mã nơi chốn lấy từ resolve_finance_place khi có đúng một kết quả.',
+              },
+              createNewPlace: {
+                type: SchemaType.BOOLEAN,
+                description:
+                  'Chỉ true khi resolve_finance_place không có kết quả và người dùng muốn tạo nơi chốn mới.',
               },
               placeName: {
                 type: SchemaType.STRING,
@@ -157,6 +168,8 @@ export class CreateFinanceTransactionsTool implements GeminiTool {
           amount,
           category: item.category,
           note,
+          placeId: item.placeId?.trim() || undefined,
+          createNewPlace: item.createNewPlace,
           placeName: item.placeName?.trim() || undefined,
           occurredAt: item.occurredAt,
         });

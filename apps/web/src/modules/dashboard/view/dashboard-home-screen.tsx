@@ -8,6 +8,11 @@ import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { SessionStateScreen } from '@/modules/auth/view/session-state-screen';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { TransactionsTable } from './transactions-table';
+import { DebtsTable } from '@/modules/debts/view/debts-table';
+import { TasksTable } from './tasks-table';
+import { RemindersTable } from './reminders-table';
+import { CalendarTable } from './calendar-table';
 import { dashboardQueryKeys, useDashboardQuery } from '../api/dashboard-query';
 
 type DashboardData = NonNullable<ReturnType<typeof useDashboardQuery>['data']>;
@@ -75,6 +80,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
   const money = useMoneyFormatter();
   const [taskSearch, setTaskSearch] = useState('');
   const [reminderSearch, setReminderSearch] = useState('');
+  const [calendarSearch, setCalendarSearch] = useState('');
+  const [txSearch, setTxSearch] = useState('');
+  const [debtSearch, setDebtSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
 
   const date = (value?: string) =>
@@ -85,7 +93,11 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
         }).format(new Date(value))
       : t('common.notSet');
 
-  const attentionCount = data.debts.length + data.reminders.length + data.tasks.length;
+  const pendingTasks = useMemo(() => {
+    return data.tasks.filter((item) => item.status !== 'completed');
+  }, [data.tasks]);
+
+  const attentionCount = data.debts.length + data.reminders.length + pendingTasks.length;
 
   const filteredTasks = useMemo(() => {
     if (!taskSearch.trim()) return data.tasks;
@@ -99,6 +111,32 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     return data.reminders.filter((item) => item.title.toLowerCase().includes(q));
   }, [data.reminders, reminderSearch]);
 
+  const filteredCalendar = useMemo(() => {
+    if (!calendarSearch.trim()) return data.calendar;
+    const q = calendarSearch.toLowerCase();
+    return data.calendar.filter((item) => item.title.toLowerCase().includes(q));
+  }, [data.calendar, calendarSearch]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!txSearch.trim()) return data.transactions;
+    const q = txSearch.toLowerCase();
+    return data.transactions.filter(
+      (item) =>
+        item.category.toLowerCase().includes(q) ||
+        (item.note && item.note.toLowerCase().includes(q)),
+    );
+  }, [data.transactions, txSearch]);
+
+  const filteredDebts = useMemo(() => {
+    if (!debtSearch.trim()) return data.debts;
+    const q = debtSearch.toLowerCase();
+    return data.debts.filter(
+      (item) =>
+        item.counterparty.toLowerCase().includes(q) ||
+        (item.note && item.note.toLowerCase().includes(q)),
+    );
+  }, [data.debts, debtSearch]);
+
   const filteredActivity = useMemo(() => {
     if (!activitySearch.trim()) return data.activity;
     const q = activitySearch.toLowerCase();
@@ -106,73 +144,6 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       (item) => item.action.toLowerCase().includes(q) || item.tableName.toLowerCase().includes(q),
     );
   }, [data.activity, activitySearch]);
-
-  const taskColumns: DataTableColumn<DashboardData['tasks'][number]>[] = [
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '180px',
-      hideable: false,
-      cell: (item) => (
-        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
-      ),
-    },
-    {
-      id: 'dueAt',
-      header: t('dashboard.columns.dueDate'),
-      align: 'right',
-      minWidth: '130px',
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{date(item.dueAt)}</span>
-      ),
-    },
-  ];
-
-  const reminderColumns: DataTableColumn<DashboardData['reminders'][number]>[] = [
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '180px',
-      hideable: false,
-      cell: (item) => (
-        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
-      ),
-    },
-    {
-      id: 'schedule',
-      header: t('dashboard.columns.schedule'),
-      align: 'right',
-      minWidth: '140px',
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
-          {item.notifyType === 'call' ? '📞' : '💬'} {date(item.remindAt)}
-        </span>
-      ),
-    },
-  ];
-
-  const calendarColumns: DataTableColumn<DashboardData['calendar'][number]>[] = [
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '180px',
-      hideable: false,
-      cell: (item) => (
-        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
-      ),
-    },
-    {
-      id: 'startAt',
-      header: t('dashboard.columns.date'),
-      align: 'right',
-      minWidth: '140px',
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
-          {date(item.startAt)}
-        </span>
-      ),
-    },
-  ];
 
   const activityColumns: DataTableColumn<DashboardData['activity'][number]>[] = [
     {
@@ -196,86 +167,6 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           {date(item.createdAt)}
         </span>
       ),
-    },
-  ];
-
-  const recentTxColumns: DataTableColumn<DashboardData['transactions'][number]>[] = [
-    {
-      id: 'category',
-      header: t('dashboard.columns.transaction'),
-      minWidth: '160px',
-      hideable: false,
-      cell: (item) => (
-        <span className="inline-flex flex-nowrap items-center font-semibold text-slate-900 whitespace-nowrap dark:text-slate-100">
-          <span
-            className={`mr-1.5 inline-flex shrink-0 items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
-              item.type === 'income'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-            }`}
-          >
-            {item.type === 'income' ? t('table.filter.income') : t('table.filter.expense')}
-          </span>
-          {item.category}
-        </span>
-      ),
-    },
-    {
-      id: 'note',
-      header: t('dashboard.columns.note'),
-      minWidth: '140px',
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{item.note || '—'}</span>
-      ),
-    },
-    {
-      id: 'amount',
-      header: t('dashboard.columns.amount'),
-      align: 'right',
-      minWidth: '130px',
-      hideable: false,
-      cell: (item) => <strong>{money(item.amount)}</strong>,
-    },
-  ];
-
-  const recentDebtsColumns: DataTableColumn<DashboardData['debts'][number]>[] = [
-    {
-      id: 'counterparty',
-      header: t('dashboard.columns.counterparty'),
-      minWidth: '160px',
-      hideable: false,
-      cell: (item) => (
-        <span className="inline-flex flex-nowrap items-center font-semibold text-slate-900 whitespace-nowrap dark:text-slate-100">
-          <span
-            className={`mr-1.5 inline-flex shrink-0 items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
-              item.direction === 'receivable'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-            }`}
-          >
-            {item.direction === 'receivable'
-              ? t('table.filter.receivable')
-              : t('table.filter.payable')}
-          </span>
-          {item.counterparty}
-        </span>
-      ),
-    },
-    {
-      id: 'dueAt',
-      header: t('dashboard.columns.dueDate'),
-      minWidth: '110px',
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{date(item.dueAt)}</span>
-      ),
-    },
-    {
-      id: 'remainingAmount',
-      header: t('dashboard.columns.remaining'),
-      align: 'right',
-      minWidth: '130px',
-      hideable: false,
-      cell: (item) => <strong>{money(item.remainingAmount)}</strong>,
     },
   ];
 
@@ -393,13 +284,11 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
             />
           }
         >
-          <DataTable
+          <TasksTable
             id="home-tasks"
             ariaLabel={t('dashboard.tasks')}
-            rows={filteredTasks}
+            tasks={filteredTasks}
             emptyMessage={t('dashboard.noTasks')}
-            columns={taskColumns}
-            getRowKey={(item) => item.id}
           />
         </DataPanel>
 
@@ -417,56 +306,78 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
             />
           }
         >
-          <DataTable
+          <RemindersTable
             id="home-reminders"
             ariaLabel={t('dashboard.reminders')}
-            rows={filteredReminders}
+            reminders={filteredReminders}
             emptyMessage={t('dashboard.noReminders')}
-            columns={reminderColumns}
-            getRowKey={(item) => item.id}
           />
         </DataPanel>
 
         <DataPanel
           title={t('dashboard.calendar')}
           description={data.user.googleConnected ? undefined : t('dashboard.connectGoogleTip')}
-          counter={t('table.rowsCount', { count: data.calendar.length })}
+          counter={t('table.rowsCount', { count: filteredCalendar.length })}
+          toolbar={
+            <input
+              type="search"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
+              placeholder={t('table.searchPlaceholder')}
+              value={calendarSearch}
+              onChange={(e) => setCalendarSearch(e.target.value)}
+              aria-label={t('table.searchPlaceholder')}
+            />
+          }
         >
-          <DataTable
+          <CalendarTable
             id="home-calendar"
             ariaLabel={t('dashboard.calendar')}
-            rows={data.calendar}
+            events={filteredCalendar}
             emptyMessage={t('dashboard.noCalendar')}
-            columns={calendarColumns}
-            getRowKey={(item) => item.id}
           />
         </DataPanel>
 
         <DataPanel
           title={t('dashboard.transactions')}
-          counter={t('table.rowsCount', { count: data.transactions.length })}
+          counter={t('table.rowsCount', { count: filteredTransactions.length })}
+          toolbar={
+            <input
+              type="search"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
+              placeholder={t('table.searchPlaceholder')}
+              value={txSearch}
+              onChange={(e) => setTxSearch(e.target.value)}
+              aria-label={t('table.searchPlaceholder')}
+            />
+          }
         >
-          <DataTable
+          <TransactionsTable
             id="home-transactions"
             ariaLabel={t('dashboard.transactions')}
-            rows={data.transactions.slice(0, 5)}
+            transactions={filteredTransactions}
             emptyMessage={t('dashboard.noTransactions')}
-            columns={recentTxColumns}
-            getRowKey={(item) => item.id}
           />
         </DataPanel>
 
         <DataPanel
           title={t('dashboard.openDebts')}
-          counter={t('table.rowsCount', { count: data.debts.length })}
+          counter={t('table.rowsCount', { count: filteredDebts.length })}
+          toolbar={
+            <input
+              type="search"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
+              placeholder={t('table.searchPlaceholder')}
+              value={debtSearch}
+              onChange={(e) => setDebtSearch(e.target.value)}
+              aria-label={t('table.searchPlaceholder')}
+            />
+          }
         >
-          <DataTable
+          <DebtsTable
             id="home-debts"
             ariaLabel={t('dashboard.openDebts')}
-            rows={data.debts.slice(0, 5)}
+            debts={filteredDebts}
             emptyMessage={t('dashboard.noDebts')}
-            columns={recentDebtsColumns}
-            getRowKey={(item) => item.id}
           />
         </DataPanel>
 

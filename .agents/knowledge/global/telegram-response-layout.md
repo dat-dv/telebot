@@ -8,6 +8,11 @@ AI-generated Markdown is normalized before delivery: HTML entities are decoded a
 
 Long-lived interactive list and information messages (today summary, task list, account status, admin user list, debt detail, and dashboard/report links) include a close action. It deletes the message when Telegram permits it; otherwise, it removes the inline keyboard so obsolete actions cannot be used. Confirmation dialogs retain cancel semantics, while reminder and calendar receipts retain their hide-controls action.
 
+When the user continues chatting, sends a new message (text, voice, photo), or issues a new command while a confirmation dialog is still open:
+- All pending confirmation actions and pending voice requests for that user are automatically cancelled.
+- The previous confirmation message in Telegram is automatically updated (via `editMessageText`) to `❌ Đã hủy thao tác.` (or `❌ Đã hủy yêu cầu từ voice.`) with inline confirmation buttons removed to prevent accidental taps.
+- If the user taps a button on an expired or cancelled confirmation message, the bot answers with an invalid notice and strips the obsolete inline buttons.
+
 Every confirmation card displays an escaped, formatted JSON preview (`<pre><code class="language-json">...</code></pre>`) of the final action payload before any mutation. This applies to finance, debts, tasks, calendar, reminders, invite/admin actions, and debt deletion. UI-only `duplicateWarnings` are excluded because they are not sent to the executing tool.
 
 Finance transaction confirmations (`create_finance_transaction`, `create_finance_transactions`) present structured fields (type, formatted VND amount, category, note, place name, and occurred/issued date) alongside that JSON preview and confirmation buttons before mutating records.

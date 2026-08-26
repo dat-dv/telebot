@@ -163,3 +163,39 @@ void test('createTransaction reuses a user-scoped place instead of creating a de
   );
   assert.equal(savedTransactions[0]?.contactId, undefined);
 });
+
+void test('FinanceService.resolvePlaces finds places matching normalized name', async () => {
+  const mockPlaces: FinancePlaceEntity[] = [
+    {
+      id: 'place-tch',
+      userId: '42',
+      name: 'The Coffee House Tô Hiệu',
+      normalizedName: 'the coffee house to hieu',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const service = new FinanceService(
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {
+      find: (opts: { where: { userId: string; normalizedName: string } }) => {
+        assert.equal(opts.where.userId, '42');
+        assert.equal(opts.where.normalizedName, 'the coffee house to hieu');
+        return Promise.resolve(mockPlaces);
+      },
+    } as never,
+  );
+
+  const found = await service.resolvePlaces(42, 'The Coffee House Tô Hiệu');
+  assert.equal(found.length, 1);
+  assert.equal(found[0]?.id, 'place-tch');
+  assert.equal(found[0]?.name, 'The Coffee House Tô Hiệu');
+
+  const empty = await service.resolvePlaces(42, '   ');
+  assert.equal(empty.length, 0);
+});

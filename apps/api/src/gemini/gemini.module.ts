@@ -27,6 +27,8 @@ import { ListDebtsTool } from './tools/list-debts.tool';
 import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
 import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
 import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
+import { ResolveFinancePlaceTool } from './tools/resolve-finance-place.tool';
+import { CreateFinancePlaceTool } from './tools/create-finance-place.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { ConversationHistoryService } from './services/conversation-history.service';
 
@@ -58,6 +60,8 @@ import { ConversationHistoryService } from './services/conversation-history.serv
     RecordDebtPaymentTool,
     ResolveDebtContactTool,
     UpdateDebtContactTool,
+    ResolveFinancePlaceTool,
+    CreateFinancePlaceTool,
     UpdateReminderTool,
   ],
   exports: [GeminiService, ConversationHistoryService],

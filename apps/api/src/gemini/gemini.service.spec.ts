@@ -51,3 +51,74 @@ void test('does not create a transaction from an incomplete image analysis', () 
     summary: 'Chỉ đọc được tên cửa hàng.',
   });
 });
+
+void test('GeminiService queues, attaches message, and cancels pending actions for user', async () => {
+  const { GeminiService } = await import('./gemini.service');
+  const dummyTool = {
+    name: 'create_finance_transaction',
+    declaration: { name: 'create_finance_transaction' },
+    execute: () => Promise.resolve({}),
+  };
+  const config = {
+    getOrThrow: (key: string) => {
+      if (key === 'gemini.apiKey') return 'fake-key';
+      if (key === 'gemini.model') return 'gemini-1.5-flash';
+      if (key === 'timezone') return 'Asia/Ho_Chi_Minh';
+      return '';
+    },
+  };
+  const service = new GeminiService(
+    config as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    {} as never,
+  );
+
+  const action1 = service.queueToolConfirmation(
+    'create_finance_transaction',
+    { amount: 64000 },
+    100,
+  );
+  service.attachMessageToPendingAction(action1.id, 999, 12345);
+
+  const action2 = service.queueToolConfirmation(
+    'create_finance_transaction',
+    { amount: 30000 },
+    200,
+  );
+
+  const cancelledUser100 = service.cancelPendingActionsForUser(100);
+  assert.equal(cancelledUser100.length, 1);
+  assert.equal(cancelledUser100[0].id, action1.id);
+  assert.equal(cancelledUser100[0].chatId, 999);
+  assert.equal(cancelledUser100[0].messageId, 12345);
+
+  // User 200 action should still be pending
+  const cancelledUser200 = service.cancelPendingActionsForUser(200);
+  assert.equal(cancelledUser200.length, 1);
+  assert.equal(cancelledUser200[0].id, action2.id);
+});

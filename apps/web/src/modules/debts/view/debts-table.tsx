@@ -1,0 +1,478 @@
+'use client';
+
+import { useMemo } from 'react';
+import { localeTag, type IDebtListItem } from '@telebot/contracts';
+import { useLocale } from '@/shared/providers/locale-provider';
+import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
+import { DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+
+export type DebtEditDraft = {
+  direction: 'receivable' | 'payable';
+  counterparty: string;
+  counterpartyAlias: string;
+  contactId: string;
+  originalAmount: string;
+  remainingAmount: string;
+  note: string;
+  dueAt: string;
+};
+
+export type DebtsTableProps = {
+  id?: string;
+  debts: IDebtListItem[];
+  ariaLabel?: string;
+  emptyMessage?: string;
+  loading?: boolean;
+  editingId?: string | null;
+  editDraft?: DebtEditDraft;
+  onStartEdit?: (item: IDebtListItem) => void;
+  onCancelEdit?: () => void;
+  onSaveEdit?: (id: string) => void | Promise<void>;
+  onQuickSettle?: (item: IDebtListItem) => void | Promise<void>;
+  onDelete?: (id: string) => void | Promise<void>;
+  onCounterpartyChange?: (val: string) => void;
+  onChangeEditDraft?: React.Dispatch<React.SetStateAction<DebtEditDraft>>;
+  isPending?: boolean;
+};
+
+export function getDebtStatus(item: IDebtListItem): 'active' | 'settled' {
+  if (item.status) return item.status;
+  return item.remainingAmount === 0 || item.settledAt ? 'settled' : 'active';
+}
+
+export function DebtsTable({
+  id = 'debts-table',
+  debts,
+  ariaLabel,
+  emptyMessage,
+  loading = false,
+  editingId,
+  editDraft,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onQuickSettle,
+  onDelete,
+  onCounterpartyChange,
+  onChangeEditDraft,
+  isPending = false,
+}: DebtsTableProps) {
+  const { locale, t } = useLocale();
+  const money = useMoneyFormatter();
+
+  const columns = useMemo<DataTableColumn<IDebtListItem>[]>(() => {
+    const hasActions = Boolean(onStartEdit || onSaveEdit || onQuickSettle || onDelete);
+    const date = (value?: string) =>
+      value
+        ? new Intl.DateTimeFormat(localeTag(locale), { dateStyle: 'short' }).format(new Date(value))
+        : t('common.notSet');
+
+    const list: DataTableColumn<IDebtListItem>[] = [
+      {
+        id: 'status',
+        header: t('debts.columns.status'),
+        minWidth: '100px',
+        width: '100px',
+        hideable: false,
+        cell: (item) => {
+          const isSettled = getDebtStatus(item) === 'settled';
+          return (
+            <span
+              className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
+                isSettled
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+              }`}
+            >
+              {isSettled ? t('debts.status.settled') : t('debts.status.active')}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'direction',
+        header: t('dashboard.columns.direction'),
+        minWidth: '100px',
+        cell: (item) => {
+          if (editingId === item.id && editDraft && onChangeEditDraft) {
+            return (
+              <select
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.direction}
+                onChange={(e) =>
+                  onChangeEditDraft((prev) => ({
+                    ...prev,
+                    direction: e.target.value as 'receivable' | 'payable',
+                  }))
+                }
+                aria-label={t('dashboard.columns.direction')}
+              >
+                <option value="receivable">{t('table.filter.receivable')}</option>
+                <option value="payable">{t('table.filter.payable')}</option>
+              </select>
+            );
+          }
+          return (
+            <span
+              className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
+                onStartEdit ? 'cursor-pointer' : ''
+              } ${
+                item.direction === 'receivable'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+            >
+              {item.direction === 'receivable'
+                ? t('table.filter.receivable')
+                : t('table.filter.payable')}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'counterparty',
+        header: t('dashboard.columns.counterparty'),
+        minWidth: '180px',
+        hideable: false,
+        cell: (item) => {
+          if (
+            editingId === item.id &&
+            editDraft &&
+            onCounterpartyChange &&
+            onSaveEdit &&
+            onCancelEdit
+          ) {
+            return (
+              <input
+                type="text"
+                list="debt-contacts-autocomplete"
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.counterparty}
+                onChange={(e) => onCounterpartyChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void onSaveEdit(item.id);
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                placeholder={t('debts.placeholder.counterparty')}
+                autoFocus
+                required
+                aria-label={t('dashboard.columns.counterparty')}
+              />
+            );
+          }
+          return (
+            <span
+              className={`font-semibold text-slate-900 select-none dark:text-slate-100 ${
+                onStartEdit ? 'cursor-pointer' : ''
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+              title={item.counterparty}
+            >
+              {item.counterparty}
+              {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'originalAmount',
+        header: t('dashboard.columns.original'),
+        align: 'right',
+        minWidth: '140px',
+        cell: (item) => {
+          if (
+            editingId === item.id &&
+            editDraft &&
+            onChangeEditDraft &&
+            onSaveEdit &&
+            onCancelEdit
+          ) {
+            return (
+              <input
+                type="number"
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-right text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.originalAmount}
+                onChange={(e) =>
+                  onChangeEditDraft((prev) => ({ ...prev, originalAmount: e.target.value }))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void onSaveEdit(item.id);
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                placeholder={t('debts.placeholder.originalAmount')}
+                min="0"
+                step="1000"
+                required
+                aria-label={t('dashboard.columns.original')}
+              />
+            );
+          }
+          return (
+            <span
+              className={`tabular-nums text-slate-600 select-none dark:text-slate-300 ${
+                onStartEdit ? 'cursor-pointer' : ''
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+            >
+              {money(item.originalAmount)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'remainingAmount',
+        header: t('dashboard.columns.remaining'),
+        align: 'right',
+        minWidth: '140px',
+        hideable: false,
+        cell: (item) => {
+          if (
+            editingId === item.id &&
+            editDraft &&
+            onChangeEditDraft &&
+            onSaveEdit &&
+            onCancelEdit
+          ) {
+            return (
+              <input
+                type="number"
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-right text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.remainingAmount}
+                onChange={(e) =>
+                  onChangeEditDraft((prev) => ({ ...prev, remainingAmount: e.target.value }))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void onSaveEdit(item.id);
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                placeholder={t('debts.placeholder.remainingAmount')}
+                min="0"
+                step="1000"
+                required
+                aria-label={t('dashboard.columns.remaining')}
+              />
+            );
+          }
+          return (
+            <strong
+              className={`tabular-nums select-none ${onStartEdit ? 'cursor-pointer' : ''} ${
+                item.direction === 'receivable'
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-amber-700 dark:text-amber-400'
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+            >
+              {money(item.remainingAmount)}
+            </strong>
+          );
+        },
+      },
+      {
+        id: 'currency',
+        header: t('debts.columns.currency'),
+        minWidth: '80px',
+        cell: (item) => (
+          <span className="inline-flex items-center rounded-[2px] border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            {item.currency || 'VND'}
+          </span>
+        ),
+      },
+      {
+        id: 'dueAt',
+        header: t('dashboard.columns.dueDate'),
+        minWidth: '130px',
+        cell: (item) => {
+          if (
+            editingId === item.id &&
+            editDraft &&
+            onChangeEditDraft &&
+            onSaveEdit &&
+            onCancelEdit
+          ) {
+            return (
+              <input
+                type="date"
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.dueAt}
+                onChange={(e) => onChangeEditDraft((prev) => ({ ...prev, dueAt: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void onSaveEdit(item.id);
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                aria-label={t('dashboard.columns.dueDate')}
+              />
+            );
+          }
+          return (
+            <span
+              className={`text-[11.5px] text-slate-500 select-none dark:text-slate-400 ${
+                onStartEdit ? 'cursor-pointer' : ''
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+            >
+              {date(item.dueAt)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'settledAt',
+        header: t('debts.columns.settledAt'),
+        minWidth: '120px',
+        cell: (item) => (
+          <span className="text-[11.5px] text-slate-500 select-none dark:text-slate-400">
+            {item.settledAt ? date(item.settledAt) : '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'note',
+        header: t('dashboard.columns.note'),
+        minWidth: '150px',
+        cell: (item) => {
+          if (
+            editingId === item.id &&
+            editDraft &&
+            onChangeEditDraft &&
+            onSaveEdit &&
+            onCancelEdit
+          ) {
+            return (
+              <input
+                type="text"
+                className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
+                value={editDraft.note}
+                onChange={(e) => onChangeEditDraft((prev) => ({ ...prev, note: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void onSaveEdit(item.id);
+                  if (e.key === 'Escape') onCancelEdit();
+                }}
+                placeholder={t('debts.placeholder.note')}
+                aria-label={t('dashboard.columns.note')}
+              />
+            );
+          }
+          return (
+            <span
+              className={`text-slate-500 select-none dark:text-slate-400 ${
+                onStartEdit ? 'cursor-pointer' : ''
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+              title={item.note || undefined}
+            >
+              {item.note || '—'}
+            </span>
+          );
+        },
+      },
+    ];
+
+    if (hasActions) {
+      list.push({
+        id: 'actions',
+        header: t('dashboard.columns.action'),
+        align: 'right',
+        minWidth: '140px',
+        hideable: false,
+        cell: (item) => {
+          const isEditing = editingId === item.id;
+          if (isEditing && editDraft && onSaveEdit && onCancelEdit) {
+            return (
+              <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white whitespace-nowrap transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+                  onClick={() => void onSaveEdit(item.id)}
+                  disabled={
+                    isPending ||
+                    !editDraft.counterparty.trim() ||
+                    Number.isNaN(Number(editDraft.originalAmount)) ||
+                    Number.isNaN(Number(editDraft.remainingAmount))
+                  }
+                  title={t('debts.actions.save')}
+                >
+                  ✓ {t('debts.actions.save')}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                  onClick={onCancelEdit}
+                  disabled={isPending}
+                  title={t('debts.actions.cancel')}
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          }
+
+          const isSettled = getDebtStatus(item) === 'settled';
+
+          return (
+            <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+              {!isSettled && onQuickSettle && (
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-emerald-600 bg-emerald-50 px-1.5 text-[11px] font-semibold text-emerald-700 whitespace-nowrap transition-colors hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+                  onClick={() => void onQuickSettle(item)}
+                  title={t('debts.actions.repay')}
+                >
+                  {t('debts.actions.repay')}
+                </button>
+              )}
+              {onStartEdit && (
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-200 bg-white px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                  onClick={() => onStartEdit(item)}
+                  title={t('debts.actions.edit')}
+                >
+                  {t('debts.actions.edit')}
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-rose-200 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700 whitespace-nowrap transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/70"
+                  onClick={() => void onDelete(item.id)}
+                  title={t('common.cancel')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          );
+        },
+      });
+    }
+
+    return list;
+  }, [
+    editDraft,
+    editingId,
+    isPending,
+    locale,
+    money,
+    onCancelEdit,
+    onChangeEditDraft,
+    onCounterpartyChange,
+    onDelete,
+    onQuickSettle,
+    onSaveEdit,
+    onStartEdit,
+    t,
+  ]);
+
+  return (
+    <DataTable
+      id={id}
+      ariaLabel={ariaLabel ?? t('dashboard.openDebts')}
+      rows={debts}
+      emptyMessage={emptyMessage ?? t('dashboard.noDebts')}
+      columns={columns}
+      getRowKey={(item) => item.id}
+      loading={loading}
+    />
+  );
+}

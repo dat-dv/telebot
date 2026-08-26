@@ -15,9 +15,9 @@
 
 ## Integration seams
 
-The dashboard payload exposes `placeId` and `placeName` on transactions. Gemini finance tools pass `placeName` to the same service flow. Shared contracts define `IFinancePlace`, `API_ROUTES.places`, `API_ROUTES.financeAnalytics`, `IFinanceAnalyticsResponse`, `IAnalyticsTrendBucket`, `IAnalyticsCategoryBreakdown`, `IAnalyticsDebtBreakdown`, and transaction request/response fields.
+The dashboard payload exposes `placeId` and `placeName` on transactions. Gemini assistant leverages `resolve_finance_place` to query existing user places prior to transaction mutations to avoid duplicate creation. When a place does not exist, `createNewPlace: true` along with `placeName` triggers explicit multi-action confirmation and displays structured JSON payloads for both place creation and transaction update/record. Independent place management uses `create_finance_place`. Shared contracts define `IFinancePlace`, `API_ROUTES.places`, `API_ROUTES.financeAnalytics`, `IFinanceAnalyticsResponse`, `IAnalyticsTrendBucket`, `IAnalyticsCategoryBreakdown`, `IAnalyticsDebtBreakdown`, and transaction request/response fields.
 
 ## UX requirements
 
-The Transactions table shows a Place column. Inline editing uses a searchable, keyboard-accessible combobox populated from the caller's saved places while allowing a new name. Clearing the field sends `placeId: null`. Search includes place names; the table remains horizontally scrollable on narrow screens. The Analytics screen leverages `GET /api/finance/analytics` with `PeriodFilterToolbar` to render responsive Native SVG charts (Cashflow trend line/bar, Category Donut, and Debt Structure) in both light and dark themes.
+The Transactions table shows a Place column. Inline editing uses a searchable, keyboard-accessible combobox populated from the caller's saved places while allowing a new name. Clearing the field sends `placeId: null`. Search includes place names; the table remains horizontally scrollable on narrow screens. The Analytics screen leverages `GET /api/finance/analytics` with `PeriodFilterToolbar` to render responsive Native SVG charts (Cashflow trend line/bar, Category Donut, and Debt Structure) in both light and dark themes. Telegram confirmation dialogs transparently display multi-action JSON blocks whenever a new place is created alongside a transaction edit or creation.
 

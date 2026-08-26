@@ -9,6 +9,8 @@ interface UpdateFinanceTransactionArgs {
   amount?: number;
   category?: string;
   note?: string;
+  placeId?: string;
+  createNewPlace?: boolean;
   placeName?: string;
   occurredAt?: string;
 }
@@ -44,9 +46,18 @@ export class UpdateFinanceTransactionTool implements GeminiTool {
           type: SchemaType.STRING,
           description: 'Nội dung/ghi chú mới của giao dịch.',
         },
+        placeId: {
+          type: SchemaType.STRING,
+          description: 'Mã nơi chốn lấy từ resolve_finance_place khi có đúng một kết quả.',
+        },
+        createNewPlace: {
+          type: SchemaType.BOOLEAN,
+          description:
+            'Chỉ true khi resolve_finance_place không có kết quả và người dùng muốn tạo nơi chốn mới.',
+        },
         placeName: {
           type: SchemaType.STRING,
-          description: 'Tên quán ăn, cửa hàng hoặc nơi chốn mới của giao dịch.',
+          description: 'Tên quán ăn, cửa hàng hoặc nơi chốn mới của giao dịch khi tạo mới.',
         },
         occurredAt: {
           type: SchemaType.STRING,
@@ -99,6 +110,12 @@ export class UpdateFinanceTransactionTool implements GeminiTool {
     }
     if (typeof payload.note === 'string' && payload.note.trim()) {
       updateInput.note = payload.note.trim();
+    }
+    if (typeof payload.placeId === 'string' && payload.placeId.trim()) {
+      updateInput.placeId = payload.placeId.trim();
+    }
+    if (typeof payload.createNewPlace === 'boolean') {
+      updateInput.createNewPlace = payload.createNewPlace;
     }
     if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
       updateInput.placeName = payload.placeName.trim();

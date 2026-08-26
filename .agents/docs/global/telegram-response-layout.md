@@ -19,6 +19,11 @@ Trước khi gửi Markdown do AI tạo, bot giải mã HTML entity và bỏ esc
 
 Các tin nhắn danh sách/thông tin có nút thao tác dài hạn — tổng kết hôm nay, danh sách việc, trạng thái tài khoản, danh sách người dùng, chi tiết công nợ và liên kết Dashboard/Báo cáo — phải có nút `❌ Đóng`. Khi bấm, bot ưu tiên xóa tin nhắn; nếu Telegram không cho phép xóa thì gỡ toàn bộ bàn phím inline để không còn thao tác cũ. Hộp xác nhận vẫn dùng `Hủy`; biên nhận Reminder và Calendar giữ `Ẩn nút` để không làm mất lịch sử thao tác.
 
+Khi người dùng đang có một hộp xác nhận (hoặc yêu cầu voice) mở nhưng không bấm nút mà gửi tin nhắn mới (text, voice, photo) hoặc gọi lệnh mới:
+- Hệ thống tự động hủy toàn bộ các yêu cầu xác nhận đang chờ của người dùng đó.
+- Tin nhắn xác nhận cũ trên Telegram được tự động cập nhật (edit message) thành `❌ Đã hủy thao tác.` (hoặc `❌ Đã hủy yêu cầu từ voice.`) và gỡ bỏ toàn bộ nút bấm inline để tránh bấm nhầm.
+- Nếu người dùng bấm vào nút của tin nhắn đã hết hạn hoặc bị hủy, bot thông báo không còn hiệu lực và xóa bỏ nút bấm inline bị treo.
+
 Mọi hộp xác nhận đều hiển thị khối `Payload JSON` đã format và escape (`<pre><code class="language-json">...</code></pre>`) của đúng payload sẽ được thực thi trước khi người dùng bấm Xác nhận. Quy tắc này áp dụng cho thu–chi, công nợ, việc, lịch, lời nhắc, thao tác quản trị và xóa công nợ. `duplicateWarnings` chỉ phục vụ giao diện nên không có trong JSON vì không được gửi tới tool thực thi.
 
 Hộp xác nhận thu–chi (`create_finance_transaction`, `create_finance_transactions`) hiển thị thẻ thông tin giao dịch trực quan (loại, số tiền VND, danh mục, nội dung, ngày phát sinh) cùng khối JSON payload xem trước. Mặc định mốc phát sinh là thời điểm hiện tại, trừ khi người dùng chỉ định thời gian quá khứ (input muộn).

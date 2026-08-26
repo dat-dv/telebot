@@ -13,6 +13,8 @@ interface PendingVoiceRequest {
   transcript: string;
   userId: number;
   expiresAt: number;
+  chatId?: number | string;
+  messageId?: number;
 }
 
 @Injectable()
@@ -92,6 +94,27 @@ export class VoiceTranscriptionService {
       throw new Error('Yêu cầu voice không còn hiệu lực. Hãy gửi lại voice.');
     }
     return pending.transcript;
+  }
+
+  public attachMessageToPendingVoice(id: string, chatId: number | string, messageId: number): void {
+    const pending = this.pendingRequests.get(id);
+    if (pending) {
+      pending.chatId = chatId;
+      pending.messageId = messageId;
+    }
+  }
+
+  public cancelPendingVoiceRequestsForUser(
+    userId: number,
+  ): Array<PendingVoiceRequest & { id: string }> {
+    const cancelled: Array<PendingVoiceRequest & { id: string }> = [];
+    for (const [id, req] of this.pendingRequests.entries()) {
+      if (req.userId === userId) {
+        this.pendingRequests.delete(id);
+        cancelled.push({ ...req, id });
+      }
+    }
+    return cancelled;
   }
 
   public cancelTranscript(id: string, userId: number): boolean {

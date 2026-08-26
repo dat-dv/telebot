@@ -87,3 +87,78 @@ void test('complete-task callback queues confirmation without completing the tas
   assert.deepEqual(callbackAnswers, ['Hãy xác nhận payload trước khi hoàn tất.']);
   assert.deepEqual(replies, ['Xác nhận hoàn tất task']);
 });
+
+void test('onTextMessage auto-cancels pending actions and edits the previous message', async () => {
+  const cancelledActions: number[] = [];
+  const editedMessages: Array<{ chatId: unknown; messageId: unknown; text: string }> = [];
+  const gemini = {
+    cancelPendingActionsForUser: (userId: number) => {
+      cancelledActions.push(userId);
+      return [
+        {
+          id: 'action-old',
+          referenceId: 'REQ-OLD',
+          userId,
+          name: 'create_finance_transaction',
+          payload: { amount: 64000 },
+          expiresAt: Date.now() + 60000,
+          chatId: 12345,
+          messageId: 999,
+        },
+      ];
+    },
+    chat: () => Promise.resolve({ text: 'Đã nhận yêu cầu mới' }),
+  };
+  const voice = {
+    cancelPendingVoiceRequestsForUser: () => [],
+  };
+  const ui = {
+    withTyping: async <T>(_ctx: unknown, action: () => Promise<T>) => action(),
+    formatResultBox: (_name: string, _res: unknown, _ref: string, cancelled: boolean) =>
+      cancelled ? '❌ Đã hủy thao tác.' : '',
+    buildNotificationActionsMarkup: () => ({ reply_markup: {} }),
+    sendSafeReply: () => Promise.resolve(),
+  };
+  const history = {
+    getHistory: () => [],
+    appendUserMessage: () => {},
+    appendModelMessage: () => {},
+  };
+  const googleAuth = {
+    isAuthorized: () => true,
+  };
+  const update = new TelegramUpdate(
+    gemini as never,
+    history as never,
+    {} as never,
+    googleAuth as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    ui as never,
+    voice as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  const ctx = {
+    from: { id: 7 },
+    message: { text: 'vào lúc 3h' },
+    telegram: {
+      editMessageText: (chatId: unknown, messageId: unknown, _inline: unknown, text: string) => {
+        editedMessages.push({ chatId, messageId, text });
+        return Promise.resolve();
+      },
+    },
+  };
+
+  await update.onTextMessage(ctx as never);
+
+  assert.deepEqual(cancelledActions, [7]);
+  assert.equal(editedMessages.length, 1);
+  assert.equal(editedMessages[0].chatId, 12345);
+  assert.equal(editedMessages[0].messageId, 999);
+  assert.equal(editedMessages[0].text, '❌ Đã hủy thao tác.');
+});

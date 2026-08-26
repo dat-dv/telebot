@@ -56,22 +56,72 @@ export class TelegramUpdate {
     }
   }
 
+  private async cancelPendingUserActions(ctx: Context, userId: number): Promise<void> {
+    const cancelledToolActions = this.geminiService.cancelPendingActionsForUser?.(userId) ?? [];
+    for (const action of cancelledToolActions) {
+      if (action.chatId && action.messageId) {
+        try {
+          await ctx.telegram.editMessageText(
+            action.chatId,
+            action.messageId,
+            undefined,
+            this.uiService.formatResultBox(
+              'cancelled',
+              { changed: false },
+              action.referenceId,
+              true,
+            ),
+            { parse_mode: 'HTML', ...this.uiService.buildNotificationActionsMarkup() },
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.debug(`Could not update cancelled message ${action.messageId}: ${message}`);
+        }
+      }
+    }
+
+    const cancelledVoiceRequests =
+      this.voiceTranscriptionService.cancelPendingVoiceRequestsForUser?.(userId) ?? [];
+    for (const req of cancelledVoiceRequests) {
+      if (req.chatId && req.messageId) {
+        try {
+          await ctx.telegram.editMessageText(
+            req.chatId,
+            req.messageId,
+            undefined,
+            '❌ Đã hủy yêu cầu từ voice.',
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.debug(
+            `Could not update cancelled voice message ${req.messageId}: ${message}`,
+          );
+        }
+      }
+    }
+  }
+
   private async requestToolConfirmation(
     ctx: Context,
     userId: number,
     name: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
+    await this.cancelPendingUserActions(ctx, userId);
     const pending = this.geminiService.queueToolConfirmation(
       name,
       payload,
       userId,
       ctx.botInfo?.username,
     );
-    await ctx.reply(
+    const sent = await ctx.reply(
       this.uiService.formatConfirmationBox(pending.name, pending.payload, pending.referenceId),
       { parse_mode: 'HTML', ...this.uiService.buildConfirmationMarkup(pending.id) },
     );
+    if (sent && typeof sent === 'object' && 'message_id' in sent && 'chat' in sent) {
+      const msg = sent as { chat: { id: number | string }; message_id: number };
+      this.geminiService.attachMessageToPendingAction(pending.id, msg.chat.id, msg.message_id);
+    }
   }
 
   private async processAgentRequest(ctx: Context, text: string, userId: number): Promise<void> {
@@ -91,10 +141,14 @@ export class TelegramUpdate {
         userId,
         `Yêu cầu xác nhận thao tác ${name}: ${JSON.stringify(payload)}`,
       );
-      await ctx.reply(confirmBox, {
+      const sent = await ctx.reply(confirmBox, {
         parse_mode: 'HTML',
         ...this.uiService.buildConfirmationMarkup(id),
       });
+      if (sent && typeof sent === 'object' && 'message_id' in sent && 'chat' in sent) {
+        const msg = sent as { chat: { id: number | string }; message_id: number };
+        this.geminiService.attachMessageToPendingAction(id, msg.chat.id, msg.message_id);
+      }
       return;
     }
 
@@ -139,6 +193,8 @@ export class TelegramUpdate {
   public async onStart(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+
+    await this.cancelPendingUserActions(ctx, userId);
 
     const fromName = ctx.from?.first_name || 'bạn';
     const isAdmin = this.usersService.isAdmin(userId);
@@ -254,6 +310,7 @@ ${googleStatus}
   @Command('help')
   public async onHelp(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    if (userId) await this.cancelPendingUserActions(ctx, userId);
     const isAdmin = userId ? this.usersService.isAdmin(userId) : false;
     const isGoogleConnected = userId ? this.googleAuthService.isAuthorized(userId) : false;
 
@@ -496,6 +553,7 @@ ${googleStatus}
   @Command('today')
   public async onToday(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    if (userId) await this.cancelPendingUserActions(ctx, userId);
     const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
       this.geminiService.getTodaySummary(userId, botUsername),
@@ -506,6 +564,7 @@ ${googleStatus}
   @Command('week')
   public async onWeek(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    if (userId) await this.cancelPendingUserActions(ctx, userId);
     const botUsername = ctx.botInfo?.username;
     const summary = await this.uiService.withTyping(ctx, () =>
       this.geminiService.getWeekSummary(userId, botUsername),
@@ -518,6 +577,7 @@ ${googleStatus}
   public async onFinance(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+    await this.cancelPendingUserActions(ctx, userId);
 
     const { startAt, endAt } = this.financeService.getTodayRange();
     const summary = await this.financeService.getSummary(userId, startAt, endAt);
@@ -537,6 +597,7 @@ ${googleStatus}
   public async onHistory(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+    await this.cancelPendingUserActions(ctx, userId);
     const logs = await this.auditService.listRecent(userId);
     if (logs.length === 0) {
       await ctx.reply('📜 Chưa có lịch sử thay đổi để hiển thị.');
@@ -556,6 +617,7 @@ ${googleStatus}
   public async onDebts(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+    await this.cancelPendingUserActions(ctx, userId);
 
     const debts = await this.financeService.getActiveDebts(userId);
     if (debts.length === 0) {
@@ -604,6 +666,7 @@ ${googleStatus}
   public async onTasksChecklist(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+    await this.cancelPendingUserActions(ctx, userId);
 
     try {
       const tasks = await this.uiService.withTyping(ctx, () =>
@@ -633,7 +696,9 @@ ${googleStatus}
 
   @Command('dashboard')
   public async onDashboard(@Ctx() ctx: Context): Promise<void> {
-    const reportsUrl = await this.getReportsUrl(ctx.from?.id);
+    const userId = ctx.from?.id;
+    if (userId) await this.cancelPendingUserActions(ctx, userId);
+    const reportsUrl = await this.getReportsUrl(userId);
     if (!reportsUrl) {
       await ctx.reply(
         '⚠️ Chưa thể tạo link Dashboard. Vui lòng kiểm tra cấu hình domain public (APP_URL) trên server.',
@@ -655,6 +720,7 @@ ${googleStatus}
   public async onRemindersList(@Ctx() ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     if (!userId) return;
+    await this.cancelPendingUserActions(ctx, userId);
     const locale = await this.usersService.getPreferredLocale(userId);
 
     try {
@@ -961,6 +1027,7 @@ ${googleStatus}
       });
     } catch (error) {
       await ctx.answerCbQuery((error as Error).message);
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     }
   }
 
@@ -976,6 +1043,8 @@ ${googleStatus}
         this.uiService.formatResultBox('cancelled', { changed: false }, 'CANCELLED', true),
         { parse_mode: 'HTML', ...this.uiService.buildNotificationActionsMarkup() },
       );
+    } else {
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     }
   }
 
@@ -991,6 +1060,7 @@ ${googleStatus}
       await this.processAgentRequest(ctx, transcript, userId);
     } catch (error) {
       await ctx.answerCbQuery((error as Error).message);
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     }
   }
 
@@ -1003,8 +1073,11 @@ ${googleStatus}
     await ctx.answerCbQuery(
       cancelled ? 'Hãy gửi lại nội dung bằng text.' : 'Yêu cầu không còn hiệu lực.',
     );
-    if (cancelled)
+    if (cancelled) {
       await ctx.editMessageText('✏️ Hãy gửi lại yêu cầu chính xác bằng tin nhắn text.');
+    } else {
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+    }
   }
 
   @Action(/^voice:cancel:(.+)$/)
@@ -1014,7 +1087,11 @@ ${googleStatus}
     if (!requestId || !userId) return;
     const cancelled = this.voiceTranscriptionService.cancelTranscript(requestId, userId);
     await ctx.answerCbQuery(cancelled ? 'Đã hủy voice.' : 'Yêu cầu không còn hiệu lực.');
-    if (cancelled) await ctx.editMessageText('❌ Đã hủy yêu cầu từ voice.');
+    if (cancelled) {
+      await ctx.editMessageText('❌ Đã hủy yêu cầu từ voice.');
+    } else {
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+    }
   }
 
   @Action('notice:ack')
@@ -1051,7 +1128,9 @@ ${googleStatus}
     const userId = ctx.from?.id;
     const message = ctx.message;
     const text = message && 'text' in message ? message.text.trim() : '';
-    if (!text) return;
+    if (!text || !userId) return;
+
+    await this.cancelPendingUserActions(ctx, userId);
 
     if (this.isDashboardRequest(text)) {
       await this.onDashboard(ctx);
@@ -1080,15 +1159,25 @@ ${googleStatus}
     const message = ctx.message;
     if (!userId || !message || !('voice' in message)) return;
 
+    await this.cancelPendingUserActions(ctx, userId);
+
     try {
       const transcript = await this.uiService.withTyping(ctx, () =>
         this.voiceTranscriptionService.transcribe(ctx.telegram, message.voice),
       );
       const requestId = this.voiceTranscriptionService.queueTranscript(userId, transcript);
-      await ctx.reply(this.uiService.formatVoiceConfirmation(transcript), {
+      const sent = await ctx.reply(this.uiService.formatVoiceConfirmation(transcript), {
         parse_mode: 'HTML',
         ...this.uiService.buildVoiceConfirmationMarkup(requestId),
       });
+      if (sent && typeof sent === 'object' && 'message_id' in sent && 'chat' in sent) {
+        const msg = sent as { chat: { id: number | string }; message_id: number };
+        this.voiceTranscriptionService.attachMessageToPendingVoice(
+          requestId,
+          msg.chat.id,
+          msg.message_id,
+        );
+      }
     } catch (error) {
       await ctx.reply(`⚠️ ${(error as Error).message}`);
     }
@@ -1099,6 +1188,8 @@ ${googleStatus}
     const userId = ctx.from?.id;
     const message = ctx.message;
     if (!userId || !message || !('photo' in message)) return;
+
+    await this.cancelPendingUserActions(ctx, userId);
 
     try {
       const analysis = await this.uiService.withTyping(ctx, () =>

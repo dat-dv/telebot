@@ -63,3 +63,54 @@ void test('UpdateFinanceTransactionTool returns error when no recent transaction
   assert.equal(result.success, false);
   assert.equal(result.error, 'Không tìm thấy giao dịch thu–chi gần đây để cập nhật.');
 });
+
+void test('UpdateFinanceTransactionTool passes placeId and placeName correctly', async () => {
+  let updatedInput: unknown = null;
+  const mockTransaction = {
+    id: 'tx-488d99b3',
+    userId: '42',
+    type: 'expense',
+    amount: 98000,
+    category: 'Ăn uống',
+    note: '1 ly cà phê',
+    occurredAt: new Date('2026-08-25T12:33:00+07:00'),
+  };
+
+  const financeService = {
+    getTransaction: (userId: number, id: string) => {
+      assert.equal(userId, 42);
+      assert.equal(id, 'tx-488d99b3');
+      return Promise.resolve(mockTransaction);
+    },
+    updateTransaction: (userId: number, id: string, input: unknown) => {
+      assert.equal(userId, 42);
+      assert.equal(id, 'tx-488d99b3');
+      updatedInput = input;
+      return Promise.resolve({
+        ...mockTransaction,
+        placeId: 'place-tch',
+        place: { name: 'The Coffee House Tô Hiệu' },
+      });
+    },
+    formatMoney: (val: number) => `${val.toLocaleString('vi-VN')}đ`,
+  } as unknown as FinanceService;
+
+  const tool = new UpdateFinanceTransactionTool(financeService);
+  const result = await tool.execute(
+    {
+      transactionId: 'tx-488d99b3',
+      createNewPlace: true,
+      placeName: 'The Coffee House Tô Hiệu',
+    },
+    { userId: 42 },
+  );
+
+  assert.equal(result.success, true);
+  assert.deepEqual(updatedInput, {
+    createNewPlace: true,
+    placeName: 'The Coffee House Tô Hiệu',
+  });
+  const tx = result.transaction as Record<string, unknown>;
+  assert.equal(tx.id, 'tx-488d99b3');
+  assert.equal(tx.placeName, 'The Coffee House Tô Hiệu');
+});

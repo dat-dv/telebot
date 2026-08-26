@@ -25,6 +25,8 @@ import { ListDebtsTool } from './tools/list-debts.tool';
 import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
 import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
 import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
+import { ResolveFinancePlaceTool } from './tools/resolve-finance-place.tool';
+import { CreateFinancePlaceTool } from './tools/create-finance-place.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { buildSystemInstruction, getCurrentTimeInfo } from './helpers/gemini-prompt.helper';
 import { randomUUID } from 'crypto';
@@ -127,6 +129,8 @@ interface PendingToolAction {
   name: string;
   payload: Record<string, unknown>;
   expiresAt: number;
+  chatId?: number | string;
+  messageId?: number;
 }
 
 @Injectable()
@@ -150,6 +154,7 @@ export class GeminiService {
     'create_finance_transaction',
     'create_finance_transactions',
     'update_finance_transaction',
+    'create_finance_place',
     'create_debt',
     'record_debt_payment',
     'update_debt_contact',
@@ -183,6 +188,8 @@ export class GeminiService {
     private readonly recordDebtPaymentTool: RecordDebtPaymentTool,
     private readonly resolveDebtContactTool: ResolveDebtContactTool,
     private readonly updateDebtContactTool: UpdateDebtContactTool,
+    private readonly resolveFinancePlaceTool: ResolveFinancePlaceTool,
+    private readonly createFinancePlaceTool: CreateFinancePlaceTool,
     private readonly updateReminderTool: UpdateReminderTool,
     private readonly tasksService: GoogleTasksService,
   ) {
@@ -217,6 +224,8 @@ export class GeminiService {
       this.recordDebtPaymentTool,
       this.resolveDebtContactTool,
       this.updateDebtContactTool,
+      this.resolveFinancePlaceTool,
+      this.createFinancePlaceTool,
       this.updateReminderTool,
     ];
 
@@ -296,6 +305,29 @@ export class GeminiService {
     if (!pending || pending.userId !== userId) return false;
     this.pendingActions.delete(actionId);
     return true;
+  }
+
+  public attachMessageToPendingAction(
+    actionId: string,
+    chatId: number | string,
+    messageId: number,
+  ): void {
+    const pending = this.pendingActions.get(actionId);
+    if (pending) {
+      pending.chatId = chatId;
+      pending.messageId = messageId;
+    }
+  }
+
+  public cancelPendingActionsForUser(userId: number): Array<PendingToolAction & { id: string }> {
+    const cancelled: Array<PendingToolAction & { id: string }> = [];
+    for (const [id, action] of this.pendingActions.entries()) {
+      if (action.userId === userId) {
+        this.pendingActions.delete(id);
+        cancelled.push({ ...action, id });
+      }
+    }
+    return cancelled;
   }
 
   public queueToolConfirmation(

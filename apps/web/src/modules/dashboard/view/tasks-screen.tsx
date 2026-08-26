@@ -2,9 +2,10 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { localeTag, type ITaskListItem } from '@telebot/contracts';
+import { type ITaskListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
-import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { DataPanel } from '@/shared/ui/data-table';
+import { TasksTable, type TaskEditDraft } from './tasks-table';
 
 import { usePeriodFilter, type PeriodGrain } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
@@ -20,19 +21,14 @@ const TASK_GRAINS: PeriodGrain[] = ['day', 'week', 'month', 'quarter', 'year', '
 
 export function TasksScreen() {
   const queryClient = useQueryClient();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const periodFilter = usePeriodFilter('month');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needsAction' | 'completed'>(
     'needsAction',
   );
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<{
-    title: string;
-    notes: string;
-    due: string;
-    status: 'needsAction' | 'completed';
-  }>({
+  const [editDraft, setEditDraft] = useState<TaskEditDraft>({
     title: '',
     notes: '',
     due: '',
@@ -110,14 +106,6 @@ export function TasksScreen() {
     });
   }, [periodTasks, statusFilter, search]);
 
-  const date = (value?: string) =>
-    value
-      ? new Intl.DateTimeFormat(localeTag(locale), {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }).format(new Date(value))
-      : t('common.notSet');
-
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
@@ -194,244 +182,19 @@ export function TasksScreen() {
     }
   };
 
-  const taskColumns: DataTableColumn<ITaskListItem>[] = [
-    {
-      id: 'status',
-      header: t('tasks.columns.status'),
-      minWidth: '130px',
-      width: '130px',
-      hideable: false,
-      cell: (item) => {
-        const isEditing = editingId === item.id;
-        if (isEditing) {
-          return (
-            <select
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.status}
-              onChange={(e) =>
-                setEditDraft((prev) => ({
-                  ...prev,
-                  status: e.target.value as 'needsAction' | 'completed',
-                }))
-              }
-              aria-label={t('tasks.columns.status')}
-            >
-              <option value="needsAction">{t('tasks.status.needsAction')}</option>
-              <option value="completed">{t('tasks.status.completed')}</option>
-            </select>
-          );
-        }
-
-        const isCompleted = item.status === 'completed';
-        return (
-          <label className="inline-flex cursor-pointer items-center gap-1.5 select-none">
-            <input
-              type="checkbox"
-              className="cursor-pointer accent-slate-900 dark:accent-sky-500"
-              checked={isCompleted}
-              onChange={() => void handleToggleStatus(item)}
-              aria-label={t('tasks.actions.complete')}
-            />
-            <span
-              className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
-                isCompleted
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-              }`}
-            >
-              {isCompleted ? t('tasks.status.completed') : t('tasks.status.needsAction')}
-            </span>
-          </label>
-        );
-      },
-    },
-    {
-      id: 'title',
-      header: t('dashboard.columns.title'),
-      minWidth: '220px',
-      hideable: false,
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.title}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, title: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('tasks.placeholder.title')}
-              autoFocus
-              required
-              aria-label={t('dashboard.columns.title')}
-            />
-          );
-        }
-        return (
-          <span
-            className={`cursor-pointer font-semibold select-none ${
-              item.status === 'completed'
-                ? 'text-slate-400 line-through opacity-70 dark:text-slate-500'
-                : 'text-slate-900 dark:text-slate-100'
-            }`}
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.title}
-          >
-            {item.title}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'notes',
-      header: t('tasks.columns.notes'),
-      minWidth: '200px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="text"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.notes}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, notes: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              placeholder={t('tasks.placeholder.notes')}
-              aria-label={t('tasks.columns.notes')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-            title={item.notes}
-          >
-            {item.notes || '—'}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'dueAt',
-      header: t('dashboard.columns.dueDate'),
-      align: 'right',
-      minWidth: '150px',
-      cell: (item) => {
-        if (editingId === item.id) {
-          return (
-            <input
-              type="date"
-              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
-              value={editDraft.due}
-              onChange={(e) => setEditDraft((prev) => ({ ...prev, due: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveEdit(item.id);
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              aria-label={t('dashboard.columns.dueDate')}
-            />
-          );
-        }
-        return (
-          <span
-            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
-            onDoubleClick={() => handleStartEdit(item)}
-          >
-            {date(item.dueAt)}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'updatedAt',
-      header: t('tasks.columns.updatedAt'),
-      align: 'right',
-      minWidth: '130px',
-      defaultHidden: false,
-      cell: (item) => (
-        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
-          {date(item.updatedAt)}
-        </span>
-      ),
-    },
-    {
-      id: 'actions',
-      header: t('dashboard.columns.action'),
-      align: 'right',
-      minWidth: '130px',
-      hideable: false,
-      cell: (item) => {
-        const isEditing = editingId === item.id;
-        if (isEditing) {
-          return (
-            <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white whitespace-nowrap transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-                onClick={() => void handleSaveEdit(item.id)}
-                disabled={updateMutation.isPending || !editDraft.title.trim()}
-                title={t('tasks.actions.save')}
-              >
-                ✓ {t('tasks.actions.save')}
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-                onClick={handleCancelEdit}
-                disabled={updateMutation.isPending}
-                title={t('tasks.actions.cancel')}
-              >
-                ✕
-              </button>
-            </div>
-          );
-        }
-        return (
-          <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-              onClick={() => handleStartEdit(item)}
-              title={t('tasks.actions.edit')}
-            >
-              ✎ {t('tasks.actions.edit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
-              onClick={() => void handleDelete(item.id)}
-              disabled={deleteMutation.isPending}
-              title={t('tasks.actions.delete')}
-            >
-              🗑
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-
-  const isLoading = dashboard.isLoading || tasksQuery.isLoading;
-  const isError = dashboard.isError && tasksQuery.isError;
+  const isLoading = tasksQuery.isLoading || dashboard.isLoading;
+  const isError = tasksQuery.isError || dashboard.isError;
 
   return (
     <>
       {toastMessage && (
         <div
-          className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
           role="status"
-          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 rounded bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
         >
           {toastMessage}
         </div>
       )}
-
-      <PeriodFilterToolbar filter={periodFilter} grains={TASK_GRAINS} />
 
       {isError ? (
         <section
@@ -448,14 +211,54 @@ export function TasksScreen() {
           </button>
         </section>
       ) : (
-        <section className="grid gap-3">
+        <section className="flex flex-col gap-3" aria-label={t('tasks.title')}>
+          <PeriodFilterToolbar filter={periodFilter} grains={TASK_GRAINS} />
+
+          <section
+            className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 max-[640px]:grid-cols-2"
+            aria-label={t('tasks.title')}
+          >
+            <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+                {t('tasks.stats.total')}
+              </span>
+              <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                {stats.total}
+              </strong>
+            </article>
+            <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+                {t('tasks.stats.pending')}
+              </span>
+              <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-amber-700 dark:text-amber-400">
+                {stats.pending}
+              </strong>
+            </article>
+            <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+                {t('tasks.stats.completed')}
+              </span>
+              <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-400">
+                {stats.completed}
+              </strong>
+            </article>
+            <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+                {t('tasks.stats.overdue')}
+              </span>
+              <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-rose-600 dark:text-rose-400">
+                {stats.overdue}
+              </strong>
+            </article>
+          </section>
+
           <DataPanel
             title={t('dashboard.tasks')}
             description={isGoogleConnected ? undefined : t('dashboard.connectGoogleTip')}
             counter={t('table.rowsCount', { count: filteredTasks.length })}
             toolbar={
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex gap-1">
+              <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
@@ -465,7 +268,7 @@ export function TasksScreen() {
                     }`}
                     onClick={() => setStatusFilter('all')}
                   >
-                    {t('tasks.filter.all')} ({stats.total})
+                    {t('tasks.filter.all')}
                   </button>
                   <button
                     type="button"
@@ -476,7 +279,7 @@ export function TasksScreen() {
                     }`}
                     onClick={() => setStatusFilter('needsAction')}
                   >
-                    {t('tasks.filter.needsAction')} ({stats.pending})
+                    {t('tasks.filter.needsAction')}
                   </button>
                   <button
                     type="button"
@@ -487,7 +290,7 @@ export function TasksScreen() {
                     }`}
                     onClick={() => setStatusFilter('completed')}
                   >
-                    {t('tasks.filter.completed')} ({stats.completed})
+                    {t('tasks.filter.completed')}
                   </button>
                 </div>
                 <input
@@ -501,14 +304,21 @@ export function TasksScreen() {
               </div>
             }
           >
-            <DataTable
+            <TasksTable
               id="tasks"
               ariaLabel={t('dashboard.tasks')}
-              rows={filteredTasks}
+              tasks={filteredTasks}
               loading={isLoading}
               emptyMessage={t('dashboard.noTasks')}
-              columns={taskColumns}
-              getRowKey={(item) => item.id}
+              editingId={editingId}
+              editDraft={editDraft}
+              onChangeEditDraft={setEditDraft}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              onToggleStatus={handleToggleStatus}
+              onDelete={handleDelete}
+              isPending={updateMutation.isPending}
             />
           </DataPanel>
         </section>
