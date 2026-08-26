@@ -45,11 +45,11 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const isBalancePos = data.balance >= 0;
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-[4px] border border-slate-200 bg-white/95 p-2.5 text-xs shadow-lg backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
-      <div className="border-b border-slate-100 pb-1 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-200">
+    <div className="z-50 flex min-w-[200px] flex-col gap-1.5 rounded-[4px] border border-slate-200 bg-white p-3 text-xs shadow-xl dark:border-slate-800 dark:bg-slate-900">
+      <div className="border-b border-slate-100 pb-1.5 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-200">
         {data.label}
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400">
             <span className="size-2 rounded-xs bg-sky-500" />
@@ -84,8 +84,8 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
             {money(netCashflow)}
           </span>
         </div>
-        <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-1 dark:border-slate-800">
-          <span className="flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-400">
+        <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-1.5 dark:border-slate-800">
+          <span className="flex items-center gap-1.5 font-semibold text-violet-700 dark:text-violet-400">
             <span className="size-2 rounded-xs bg-violet-500" />
             {t('analytics.chart.walletBalance')}:
           </span>
@@ -171,7 +171,11 @@ export function CashflowTrendChart({ buckets, height = 220 }: CashflowTrendChart
               tickFormatter={formatYAxis}
               className="fill-slate-500 dark:fill-slate-400"
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+              wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+            />
             <Bar
               dataKey="income"
               name={t('chart.income')}

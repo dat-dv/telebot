@@ -44,7 +44,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col gap-1 rounded-[4px] border border-slate-200 bg-white/95 px-2.5 py-1.5 text-xs shadow-lg backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
+    <div className="z-50 flex min-w-[150px] flex-col gap-1 rounded-[4px] border border-slate-200 bg-white px-3 py-2 text-xs shadow-xl dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
         <span className="size-2 rounded-xs" style={{ backgroundColor: data.color }} />
         {data.label}
@@ -113,7 +113,7 @@ export function CategoryDonutChart({
       <div className="relative flex size-[130px] items-center justify-center self-center max-[480px]:mx-auto">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} wrapperStyle={{ outline: 'none', zIndex: 1000 }} />
             <Pie
               data={slices}
               dataKey="amount"
