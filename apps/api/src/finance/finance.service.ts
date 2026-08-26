@@ -776,22 +776,21 @@ export class FinanceService {
   }
 
   public async listDebts(userId: number, status?: 'active' | 'settled'): Promise<DebtEntity[]> {
-    const query = this.debtRepo
-      .createQueryBuilder('debt')
-      .leftJoinAndSelect('debt.contact', 'contact')
-      .leftJoinAndSelect('debt.payments', 'payments')
-      .leftJoinAndSelect('debt.children', 'children')
-      .leftJoinAndSelect('children.contact', 'childContact')
-      .leftJoinAndSelect('children.payments', 'childPayments')
-      .leftJoinAndSelect('debt.parentDebt', 'parentDebt')
-      .where('debt.user_id = :userId', { userId: userId.toString() });
-    if (status) query.andWhere('debt.status = :status', { status });
-    return query
-      .orderBy('debt.occurred_at', 'DESC', 'NULLS LAST')
-      .addOrderBy('debt.created_at', 'DESC')
-      .addOrderBy('debt.id', 'DESC')
-      .take(200)
-      .getMany();
+    return this.debtRepo.find({
+      where: status ? { userId: userId.toString(), status } : { userId: userId.toString() },
+      relations: {
+        contact: true,
+        payments: true,
+        children: { contact: true, payments: true },
+        parentDebt: true,
+      },
+      order: {
+        occurredAt: 'DESC',
+        createdAt: 'DESC',
+        id: 'DESC',
+      },
+      take: 200,
+    });
   }
 
   public getDebt(userId: number, id: string): Promise<DebtEntity | null> {
