@@ -5,17 +5,41 @@ export class CreateDebtPaymentAllocations1724670000000 implements MigrationInter
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "debt_payment_allocations" (
-        "id" character varying NOT NULL DEFAULT gen_random_uuid()::text,
-        "user_id" character varying NOT NULL,
-        "finance_transaction_id" character varying NOT NULL,
-        "debt_id" character varying NOT NULL,
-        "amount" integer NOT NULL,
-        "allocated_at" TIMESTAMP NOT NULL,
-        "note" character varying,
-        "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-        CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
-      )
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'debts' AND column_name = 'id' AND data_type = 'uuid'
+        ) THEN
+          CREATE TABLE IF NOT EXISTS "debt_payment_allocations" (
+            "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+            "user_id" character varying NOT NULL,
+            "finance_transaction_id" uuid NOT NULL,
+            "debt_id" uuid NOT NULL,
+            "amount" integer NOT NULL,
+            "allocated_at" TIMESTAMP NOT NULL,
+            "note" character varying,
+            "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+            CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
+          );
+
+          ALTER TABLE "debt_payments" ADD COLUMN IF NOT EXISTS "finance_transaction_id" uuid;
+        ELSE
+          CREATE TABLE IF NOT EXISTS "debt_payment_allocations" (
+            "id" character varying NOT NULL DEFAULT gen_random_uuid()::text,
+            "user_id" character varying NOT NULL,
+            "finance_transaction_id" character varying NOT NULL,
+            "debt_id" character varying NOT NULL,
+            "amount" integer NOT NULL,
+            "allocated_at" TIMESTAMP NOT NULL,
+            "note" character varying,
+            "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+            CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
+          );
+
+          ALTER TABLE "debt_payments" ADD COLUMN IF NOT EXISTS "finance_transaction_id" character varying;
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`
@@ -27,12 +51,6 @@ export class CreateDebtPaymentAllocations1724670000000 implements MigrationInter
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_debt_id" ON "debt_payment_allocations" ("debt_id")
     `);
-
-    await queryRunner.query(`
-      ALTER TABLE "debt_payments"
-      ADD COLUMN IF NOT EXISTS "finance_transaction_id" character varying
-    `);
-
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "IDX_debt_payments_finance_transaction_id" ON "debt_payments" ("finance_transaction_id")
     `);
