@@ -204,7 +204,7 @@ export function TasksScreen() {
         if (isEditing) {
           return (
             <select
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.status}
               onChange={(e) =>
                 setEditDraft((prev) => ({
@@ -222,18 +222,21 @@ export function TasksScreen() {
 
         const isCompleted = item.status === 'completed';
         return (
-          <label
-            className="table-select-cell"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-          >
+          <label className="inline-flex cursor-pointer items-center gap-1.5 select-none">
             <input
               type="checkbox"
-              className="table-select-checkbox"
+              className="cursor-pointer accent-slate-900 dark:accent-sky-500"
               checked={isCompleted}
               onChange={() => void handleToggleStatus(item)}
               aria-label={t('tasks.actions.complete')}
             />
-            <span className={isCompleted ? 'badge badge--completed' : 'badge badge--pending'}>
+            <span
+              className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+                isCompleted
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
               {isCompleted ? t('tasks.status.completed') : t('tasks.status.needsAction')}
             </span>
           </label>
@@ -250,7 +253,7 @@ export function TasksScreen() {
           return (
             <input
               type="text"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.title}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, title: e.target.value }))}
               onKeyDown={(e) => {
@@ -266,13 +269,13 @@ export function TasksScreen() {
         }
         return (
           <span
-            className="cell-primary"
+            className={`cursor-pointer font-semibold select-none ${
+              item.status === 'completed'
+                ? 'text-slate-400 line-through opacity-70 dark:text-slate-500'
+                : 'text-slate-900 dark:text-slate-100'
+            }`}
             onDoubleClick={() => handleStartEdit(item)}
             title={item.title}
-            style={{
-              textDecoration: item.status === 'completed' ? 'line-through' : 'none',
-              opacity: item.status === 'completed' ? 0.7 : 1,
-            }}
           >
             {item.title}
           </span>
@@ -288,7 +291,7 @@ export function TasksScreen() {
           return (
             <input
               type="text"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.notes}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, notes: e.target.value }))}
               onKeyDown={(e) => {
@@ -302,7 +305,7 @@ export function TasksScreen() {
         }
         return (
           <span
-            className="cell-muted"
+            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
             onDoubleClick={() => handleStartEdit(item)}
             title={item.notes}
           >
@@ -321,7 +324,7 @@ export function TasksScreen() {
           return (
             <input
               type="date"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.due}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, due: e.target.value }))}
               onKeyDown={(e) => {
@@ -333,7 +336,10 @@ export function TasksScreen() {
           );
         }
         return (
-          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+          <span
+            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
+            onDoubleClick={() => handleStartEdit(item)}
+          >
             {date(item.dueAt)}
           </span>
         );
@@ -345,7 +351,11 @@ export function TasksScreen() {
       align: 'right',
       minWidth: '130px',
       defaultHidden: false,
-      cell: (item) => <span className="cell-muted">{date(item.updatedAt)}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
+          {date(item.updatedAt)}
+        </span>
+      ),
     },
     {
       id: 'actions',
@@ -357,10 +367,10 @@ export function TasksScreen() {
         const isEditing = editingId === item.id;
         if (isEditing) {
           return (
-            <div className="table-inline-actions">
+            <div className="flex items-center justify-end gap-1">
               <button
                 type="button"
-                className="table-inline-action-btn table-inline-action-btn--save"
+                className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                 onClick={() => void handleSaveEdit(item.id)}
                 disabled={updateMutation.isPending || !editDraft.title.trim()}
                 title={t('tasks.actions.save')}
@@ -369,7 +379,7 @@ export function TasksScreen() {
               </button>
               <button
                 type="button"
-                className="table-inline-action-btn table-inline-action-btn--cancel"
+                className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
                 onClick={handleCancelEdit}
                 disabled={updateMutation.isPending}
                 title={t('tasks.actions.cancel')}
@@ -380,10 +390,10 @@ export function TasksScreen() {
           );
         }
         return (
-          <div className="table-inline-actions">
+          <div className="flex items-center justify-end gap-1">
             <button
               type="button"
-              className="table-inline-action-btn"
+              className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
               onClick={() => handleStartEdit(item)}
               title={t('tasks.actions.edit')}
             >
@@ -391,7 +401,7 @@ export function TasksScreen() {
             </button>
             <button
               type="button"
-              className="table-inline-action-btn table-inline-action-btn--cancel"
+              className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
               onClick={() => void handleDelete(item.id)}
               disabled={deleteMutation.isPending}
               title={t('tasks.actions.delete')}
@@ -416,7 +426,11 @@ export function TasksScreen() {
       />
 
       {toastMessage && (
-        <div className="toast-notification" role="status" aria-live="polite">
+        <div
+          className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+          role="status"
+          aria-live="polite"
+        >
           {toastMessage}
         </div>
       )}
@@ -424,38 +438,57 @@ export function TasksScreen() {
       <PeriodFilterToolbar filter={periodFilter} grains={TASK_GRAINS} />
 
       {isError ? (
-        <section className="inline-alert" role="alert">
+        <section
+          className="flex items-center justify-between rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300"
+          role="alert"
+        >
           <strong>{t('dashboard.error.title')}</strong>
-          <button type="button" onClick={refresh}>
+          <button
+            type="button"
+            className="cursor-pointer rounded-[2px] bg-rose-600 px-2 py-0.5 text-white hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600"
+            onClick={refresh}
+          >
             {t('common.retry')}
           </button>
         </section>
       ) : (
-        <section className="content-grid content-grid--wide">
+        <section className="grid gap-3">
           <DataPanel
             title={t('dashboard.tasks')}
             description={isGoogleConnected ? undefined : t('dashboard.connectGoogleTip')}
             counter={t('table.rowsCount', { count: filteredTasks.length })}
             toolbar={
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ display: 'inline-flex', gap: '4px' }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex gap-1">
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'all' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'all'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('all')}
                   >
                     {t('tasks.filter.all')} ({stats.total})
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'needsAction' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'needsAction'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('needsAction')}
                   >
                     {t('tasks.filter.needsAction')} ({stats.pending})
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'completed' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'completed'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('completed')}
                   >
                     {t('tasks.filter.completed')} ({stats.completed})
@@ -463,7 +496,7 @@ export function TasksScreen() {
                 </div>
                 <input
                   type="search"
-                  className="table-search-input"
+                  className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
                   placeholder={t('table.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

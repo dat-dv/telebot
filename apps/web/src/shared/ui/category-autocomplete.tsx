@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 type CategoryAutocompleteProps = {
@@ -111,11 +104,11 @@ export function CategoryAutocomplete({
   };
 
   return (
-    <div className="category-autocomplete" ref={containerRef}>
+    <div className="relative block" ref={containerRef}>
       <input
         ref={inputRef}
         type="text"
-        className="table-inline-input category-autocomplete__input"
+        className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 pr-5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 focus:shadow-[0_0_0_2px_rgba(2,132,199,0.25)] dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
         value={value}
         onChange={(event) => {
           onChange(event.target.value);
@@ -133,16 +126,23 @@ export function CategoryAutocomplete({
         aria-autocomplete="list"
         aria-controls={listboxId}
         aria-expanded={isOpen}
-        aria-activedescendant={isOpen && filteredOptions[activeIndex] ? `${inputId}-${activeIndex}` : undefined}
+        aria-activedescendant={
+          isOpen && filteredOptions[activeIndex] ? `${inputId}-${activeIndex}` : undefined
+        }
       />
-      <span className="category-autocomplete__indicator" aria-hidden="true">⌄</span>
+      <span
+        className="pointer-events-none absolute top-1 right-1.5 text-sm leading-none text-slate-400 dark:text-slate-500"
+        aria-hidden="true"
+      >
+        ⌄
+      </span>
 
       {isOpen && filteredOptions.length > 0 && typeof document !== 'undefined'
         ? createPortal(
             <div
               ref={menuRef}
               id={listboxId}
-              className="category-autocomplete__menu"
+              className="fixed z-[100] max-h-48 overflow-y-auto rounded-[3px] border border-sky-600 bg-white shadow-2xl dark:border-sky-500 dark:bg-slate-900"
               role="listbox"
               aria-label={ariaLabel}
               style={menuPosition}
@@ -151,7 +151,11 @@ export function CategoryAutocomplete({
                 <div
                   key={option}
                   id={`${inputId}-${index}`}
-                  className={`category-autocomplete__option ${index === activeIndex ? 'is-active' : ''}`}
+                  className={`cursor-pointer px-2 py-1 text-[11.5px] leading-tight transition-colors ${
+                    index === activeIndex
+                      ? 'bg-sky-100 font-medium text-sky-900 dark:bg-sky-950 dark:text-sky-200'
+                      : 'text-slate-700 hover:bg-sky-50 hover:text-sky-900 dark:text-slate-200 dark:hover:bg-sky-950/60 dark:hover:text-sky-200'
+                  }`}
                   role="option"
                   aria-selected={index === activeIndex}
                   onMouseDown={(event) => event.preventDefault()}

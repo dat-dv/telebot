@@ -103,26 +103,32 @@ export function CombineContactsDialog({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation">
+    <div
+      className="fixed inset-0 z-[900] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+      role="presentation"
+    >
       <div
-        className="modal-dialog modal-dialog--md"
+        className="w-full max-w-[460px] rounded-md border border-slate-300 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
       >
-        <header className="modal-header">
+        <header className="flex items-start justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div>
-            <h3 id={titleId} className="modal-title">
+            <h3
+              id={titleId}
+              className="m-0 text-base font-semibold text-slate-900 dark:text-slate-100"
+            >
               {t('contacts.combineModal.title')}
             </h3>
-            <p id={descId} className="modal-subtitle">
+            <p id={descId} className="m-0 mt-1 text-xs text-slate-500 dark:text-slate-400">
               {t('contacts.combineModal.desc')}
             </p>
           </div>
           <button
             type="button"
-            className="modal-close-btn"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent text-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             onClick={onClose}
             disabled={combineMutation.isPending}
             aria-label={t('common.close')}
@@ -132,20 +138,26 @@ export function CombineContactsDialog({
         </header>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className="flex flex-col gap-3.5 px-5 py-4">
             {errorMessage && (
-              <div className="inline-alert inline-alert--error" role="alert">
+              <div
+                className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300"
+                role="alert"
+              >
                 <strong>{errorMessage}</strong>
               </div>
             )}
 
-            <div className="modal-field">
-              <label htmlFor="combine-target-select" className="modal-label">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="combine-target-select"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 {t('contacts.combineModal.targetLabel')}
               </label>
               <select
                 id="combine-target-select"
-                className="modal-select"
+                className="h-8 w-full rounded border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500"
                 value={targetId}
                 onChange={(e) => handleTargetChange(e.target.value)}
                 disabled={combineMutation.isPending}
@@ -160,14 +172,17 @@ export function CombineContactsDialog({
               </select>
             </div>
 
-            <div className="modal-field">
-              <label htmlFor="combine-name-input" className="modal-label">
-                {t('contacts.combineModal.mergedName')} <span className="text-danger">*</span>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="combine-name-input"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                {t('contacts.combineModal.mergedName')} <span className="text-rose-500">*</span>
               </label>
               <input
                 id="combine-name-input"
                 type="text"
-                className="modal-input"
+                className="h-8 w-full rounded border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={t('contacts.placeholder.name')}
@@ -176,14 +191,17 @@ export function CombineContactsDialog({
               />
             </div>
 
-            <div className="modal-field">
-              <label htmlFor="combine-alias-input" className="modal-label">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="combine-alias-input"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 {t('contacts.combineModal.mergedAlias')}
               </label>
               <input
                 id="combine-alias-input"
                 type="text"
-                className="modal-input"
+                className="h-8 w-full rounded border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500"
                 value={alias}
                 onChange={(e) => setAlias(e.target.value)}
                 placeholder={t('contacts.placeholder.alias')}
@@ -191,13 +209,16 @@ export function CombineContactsDialog({
               />
             </div>
 
-            <div className="modal-field">
-              <label htmlFor="combine-desc-input" className="modal-label">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="combine-desc-input"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 {t('contacts.combineModal.mergedDescriptor')}
               </label>
               <textarea
                 id="combine-desc-input"
-                className="modal-textarea"
+                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500"
                 rows={2}
                 value={descriptor}
                 onChange={(e) => setDescriptor(e.target.value)}
@@ -206,18 +227,18 @@ export function CombineContactsDialog({
               />
             </div>
 
-            <div className="modal-warning">
-              <span className="modal-warning__icon" aria-hidden="true">
+            <div className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+              <span className="shrink-0" aria-hidden="true">
                 ⚠️
               </span>
-              <p className="modal-warning__text">{t('contacts.combineModal.warning')}</p>
+              <p className="m-0 leading-normal">{t('contacts.combineModal.warning')}</p>
             </div>
           </div>
 
-          <footer className="modal-footer">
+          <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-950/50">
             <button
               type="button"
-              className="btn btn--secondary"
+              className="inline-flex min-h-8 items-center justify-center rounded border border-slate-300 bg-white px-3.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               onClick={onClose}
               disabled={combineMutation.isPending}
             >
@@ -225,7 +246,7 @@ export function CombineContactsDialog({
             </button>
             <button
               type="submit"
-              className="btn btn--primary"
+              className="inline-flex min-h-8 items-center justify-center rounded border border-slate-900 bg-slate-900 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
               disabled={combineMutation.isPending || !displayName.trim()}
             >
               {combineMutation.isPending

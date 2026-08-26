@@ -8,6 +8,7 @@
 
 ## UI and Inline Editing
 
+- **UI Styling**: Fully styled with 100% Tailwind CSS utility classes supporting dark mode (`dark:`) and compact responsive layouts.
 - **Table Columns**:
   - `status`: Interactive completion checkbox + status badge (`needsAction` vs `completed`).
   - `title`: Primary title with double-click inline text editing (`Enter` to save, `Escape` to cancel).

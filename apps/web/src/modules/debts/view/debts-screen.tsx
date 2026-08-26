@@ -240,7 +240,13 @@ export function DebtsScreen() {
       cell: (item) => {
         const isSettled = getDebtStatus(item) === 'settled';
         return (
-          <span className={`badge ${isSettled ? 'badge--completed' : 'badge--pending'}`}>
+          <span
+            className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
+              isSettled
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+            }`}
+          >
             {isSettled ? t('debts.status.settled') : t('debts.status.active')}
           </span>
         );
@@ -254,7 +260,7 @@ export function DebtsScreen() {
         if (editingId === item.id) {
           return (
             <select
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.direction}
               onChange={(e) =>
                 setEditDraft((prev) => ({
@@ -271,7 +277,11 @@ export function DebtsScreen() {
         }
         return (
           <span
-            className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
+            className={`inline-flex cursor-pointer items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
+              item.direction === 'receivable'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+            }`}
             onDoubleClick={() => handleStartEdit(item)}
           >
             {item.direction === 'receivable'
@@ -292,7 +302,7 @@ export function DebtsScreen() {
             <input
               type="text"
               list="debt-contacts-autocomplete"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.counterparty}
               onChange={(e) => handleCounterpartyChange(e.target.value)}
               onKeyDown={(e) => {
@@ -308,7 +318,7 @@ export function DebtsScreen() {
         }
         return (
           <span
-            className="cell-primary"
+            className="cursor-pointer font-semibold text-slate-900 select-none dark:text-slate-100"
             onDoubleClick={() => handleStartEdit(item)}
             title={item.counterparty}
           >
@@ -328,7 +338,7 @@ export function DebtsScreen() {
           return (
             <input
               type="number"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-right text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.originalAmount}
               onChange={(e) =>
                 setEditDraft((prev) => ({ ...prev, originalAmount: e.target.value }))
@@ -338,7 +348,6 @@ export function DebtsScreen() {
                 if (e.key === 'Escape') handleCancelEdit();
               }}
               placeholder={t('debts.placeholder.originalAmount')}
-              style={{ textAlign: 'right' }}
               min="0"
               step="1000"
               required
@@ -347,7 +356,12 @@ export function DebtsScreen() {
           );
         }
         return (
-          <span onDoubleClick={() => handleStartEdit(item)}>{money(item.originalAmount)}</span>
+          <span
+            className="cursor-pointer tabular-nums text-slate-600 select-none dark:text-slate-300"
+            onDoubleClick={() => handleStartEdit(item)}
+          >
+            {money(item.originalAmount)}
+          </span>
         );
       },
     },
@@ -362,7 +376,7 @@ export function DebtsScreen() {
           return (
             <input
               type="number"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-right text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.remainingAmount}
               onChange={(e) =>
                 setEditDraft((prev) => ({ ...prev, remainingAmount: e.target.value }))
@@ -372,7 +386,6 @@ export function DebtsScreen() {
                 if (e.key === 'Escape') handleCancelEdit();
               }}
               placeholder={t('debts.placeholder.remainingAmount')}
-              style={{ textAlign: 'right' }}
               min="0"
               step="1000"
               required
@@ -381,7 +394,16 @@ export function DebtsScreen() {
           );
         }
         return (
-          <strong onDoubleClick={() => handleStartEdit(item)}>{money(item.remainingAmount)}</strong>
+          <strong
+            className={`cursor-pointer tabular-nums select-none ${
+              item.direction === 'receivable'
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-amber-700 dark:text-amber-400'
+            }`}
+            onDoubleClick={() => handleStartEdit(item)}
+          >
+            {money(item.remainingAmount)}
+          </strong>
         );
       },
     },
@@ -389,7 +411,11 @@ export function DebtsScreen() {
       id: 'currency',
       header: t('debts.columns.currency'),
       minWidth: '80px',
-      cell: (item) => <span className="badge">{item.currency || 'VND'}</span>,
+      cell: (item) => (
+        <span className="inline-flex items-center rounded-[2px] border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          {item.currency || 'VND'}
+        </span>
+      ),
     },
     {
       id: 'dueAt',
@@ -400,7 +426,7 @@ export function DebtsScreen() {
           return (
             <input
               type="date"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.dueAt}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, dueAt: e.target.value }))}
               onKeyDown={(e) => {
@@ -412,7 +438,10 @@ export function DebtsScreen() {
           );
         }
         return (
-          <span className="cell-muted" onDoubleClick={() => handleStartEdit(item)}>
+          <span
+            className="cursor-pointer text-[11.5px] text-slate-500 select-none dark:text-slate-400"
+            onDoubleClick={() => handleStartEdit(item)}
+          >
             {date(item.dueAt)}
           </span>
         );
@@ -423,7 +452,9 @@ export function DebtsScreen() {
       header: t('debts.columns.settledAt'),
       minWidth: '120px',
       cell: (item) => (
-        <span className="cell-muted">{item.settledAt ? date(item.settledAt) : '—'}</span>
+        <span className="text-[11.5px] text-slate-500 select-none dark:text-slate-400">
+          {item.settledAt ? date(item.settledAt) : '—'}
+        </span>
       ),
     },
     {
@@ -435,7 +466,7 @@ export function DebtsScreen() {
           return (
             <input
               type="text"
-              className="table-inline-input"
+              className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
               value={editDraft.note}
               onChange={(e) => setEditDraft((prev) => ({ ...prev, note: e.target.value }))}
               onKeyDown={(e) => {
@@ -449,7 +480,7 @@ export function DebtsScreen() {
         }
         return (
           <span
-            className="cell-muted"
+            className="cursor-pointer text-slate-500 select-none dark:text-slate-400"
             onDoubleClick={() => handleStartEdit(item)}
             title={item.note}
           >
@@ -468,10 +499,10 @@ export function DebtsScreen() {
         const isEditing = editingId === item.id;
         if (isEditing) {
           return (
-            <div className="table-inline-actions">
+            <div className="flex items-center justify-end gap-1">
               <button
                 type="button"
-                className="table-inline-action-btn table-inline-action-btn--save"
+                className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-900 bg-slate-900 px-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                 onClick={() => void handleSaveEdit(item.id)}
                 disabled={
                   updateMutation.isPending ||
@@ -485,7 +516,7 @@ export function DebtsScreen() {
               </button>
               <button
                 type="button"
-                className="table-inline-action-btn table-inline-action-btn--cancel"
+                className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
                 onClick={handleCancelEdit}
                 disabled={updateMutation.isPending}
                 title={t('debts.actions.cancel')}
@@ -496,10 +527,10 @@ export function DebtsScreen() {
           );
         }
         return (
-          <div className="table-inline-actions">
+          <div className="flex items-center justify-end gap-1">
             <button
               type="button"
-              className="table-inline-action-btn"
+              className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
               onClick={() => handleStartEdit(item)}
               title={t('debts.actions.edit')}
             >
@@ -508,7 +539,7 @@ export function DebtsScreen() {
             {item.remainingAmount > 0 && !item.settledAt && (
               <button
                 type="button"
-                className="table-inline-action-btn table-inline-action-btn--save"
+                className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-emerald-300 bg-emerald-50 px-1.5 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900"
                 onClick={() => void handleQuickSettle(item)}
                 disabled={paymentMutation.isPending}
                 title={t('debts.actions.repay')}
@@ -523,7 +554,7 @@ export function DebtsScreen() {
   ];
 
   return (
-    <>
+    <div className="flex flex-col gap-3">
       <WorkspaceHeader
         title={t('debts.title')}
         subtitle={t('debts.subtitle')}
@@ -539,84 +570,138 @@ export function DebtsScreen() {
       </datalist>
 
       {toastMessage && (
-        <div className="toast-notification" role="status" aria-live="polite">
+        <div
+          className="fixed top-4 left-1/2 z-[1000] -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+          role="status"
+          aria-live="polite"
+        >
           {toastMessage}
         </div>
       )}
 
-      <section className="metric-grid" aria-label={t('debts.title')}>
-        <article className="metric metric--positive">
-          <span>{t('dashboard.receivableTotal')}</span>
-          <strong>{money(totalReceivable)}</strong>
+      <section
+        className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
+        aria-label={t('debts.title')}
+      >
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.receivableTotal')}
+          </span>
+          <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-400">
+            {money(totalReceivable)}
+          </strong>
         </article>
-        <article className="metric metric--warning">
-          <span>{t('dashboard.payableTotal')}</span>
-          <strong>{money(totalPayable)}</strong>
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.payableTotal')}
+          </span>
+          <strong className="mt-0.5 block text-base font-bold tabular-nums tracking-tight text-amber-700 dark:text-amber-400">
+            {money(totalPayable)}
+          </strong>
         </article>
-        <article
-          className={`metric ${totalReceivable >= totalPayable ? 'metric--positive' : 'metric--negative'}`}
-        >
-          <span>{t('dashboard.netDebt')}</span>
-          <strong>{money(totalReceivable - totalPayable)}</strong>
+        <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {t('dashboard.netDebt')}
+          </span>
+          <strong
+            className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${
+              totalReceivable >= totalPayable
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {money(totalReceivable - totalPayable)}
+          </strong>
         </article>
       </section>
 
       {debts.isError ? (
-        <section className="inline-alert" role="alert">
+        <section
+          className="flex items-center justify-between rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300"
+          role="alert"
+        >
           <strong>{t('dashboard.error.title')}</strong>
-          <button type="button" onClick={refresh}>
+          <button
+            type="button"
+            className="cursor-pointer rounded-[2px] bg-rose-600 px-2 py-0.5 text-white hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600"
+            onClick={refresh}
+          >
             {t('common.retry')}
           </button>
         </section>
       ) : (
-        <section className="content-grid content-grid--wide">
+        <section className="grid gap-3">
           <DataPanel
             title={t('dashboard.openDebts')}
             description={t('debts.subtitle')}
             counter={t('table.rowsCount', { count: filteredDebts.length })}
             toolbar={
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'inline-flex', gap: '4px' }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex gap-1">
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'all' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'all'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('all')}
                   >
                     {t('debts.filter.statusAll')} ({stats.total})
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'active' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'active'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('active')}
                   >
                     {t('debts.filter.statusActive')} ({stats.active})
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${statusFilter === 'settled' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      statusFilter === 'settled'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setStatusFilter('settled')}
                   >
                     {t('debts.filter.statusSettled')} ({stats.settled})
                   </button>
                 </div>
-                <div style={{ display: 'inline-flex', gap: '4px' }}>
+                <div className="inline-flex gap-1">
                   <button
                     type="button"
-                    className={`filter-pill ${directionFilter === 'all' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      directionFilter === 'all'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setDirectionFilter('all')}
                   >
                     {t('debts.filter.directionAll')}
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${directionFilter === 'receivable' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      directionFilter === 'receivable'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setDirectionFilter('receivable')}
                   >
                     {t('table.filter.receivable')}
                   </button>
                   <button
                     type="button"
-                    className={`filter-pill ${directionFilter === 'payable' ? 'is-active' : ''}`}
+                    className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+                      directionFilter === 'payable'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                     onClick={() => setDirectionFilter('payable')}
                   >
                     {t('table.filter.payable')}
@@ -624,7 +709,7 @@ export function DebtsScreen() {
                 </div>
                 <input
                   type="search"
-                  className="table-search-input"
+                  className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
                   placeholder={t('table.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -645,6 +730,6 @@ export function DebtsScreen() {
           </DataPanel>
         </section>
       )}
-    </>
+    </div>
   );
 }

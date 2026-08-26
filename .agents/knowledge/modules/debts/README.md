@@ -8,7 +8,7 @@
 
 ## UI and state
 
-The table is ordered by debt occurrence time descending. A debt stores `occurredAt` separately from `createdAt`; older records without it fall back to `createdAt`. The table shows status, direction, counterparty, original and remaining amounts, due date, settled date, and note. It supports full inline editing:
+The table is ordered by debt occurrence time descending. A debt stores `occurredAt` separately from `createdAt`; older records without it fall back to `createdAt`. All UI components, KPI metric cards, status badges, and inline actions are styled with 100% Tailwind CSS utility classes supporting dark mode (`dark:`). The table shows status, direction, counterparty, original and remaining amounts, due date, settled date, and note. It supports full inline editing:
 - **Status**: Status badge indicating whether the debt is open (`active`) or paid in full (`settled`).
 - **Direction**: Toggle between receivable and payable.
 - **Counterparty**: Autocomplete input integrated with the contacts directory (`useContactsQuery`) linking `contactId` and `counterpartyAlias`.

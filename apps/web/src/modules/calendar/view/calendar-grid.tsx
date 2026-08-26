@@ -192,18 +192,29 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="calendar-grid-wrapper">
+    <div className="flex w-full flex-col gap-3.5">
       {/* 7 Day Header */}
-      <div className="calendar-grid-header" role="row">
+      <div
+        className="grid grid-cols-7 rounded-t border border-slate-200 bg-slate-100 text-center dark:border-slate-800 dark:bg-slate-800"
+        role="row"
+      >
         {dayHeaders.map((header) => (
-          <div key={header} className="calendar-grid-header-cell" role="columnheader">
+          <div
+            key={header}
+            className="px-1 py-2 text-[11px] font-semibold tracking-wider text-slate-600 uppercase dark:text-slate-400"
+            role="columnheader"
+          >
             {header}
           </div>
         ))}
       </div>
 
       {/* Days Grid */}
-      <div className="calendar-grid-body" role="grid" aria-label={t('dashboard.calendar')}>
+      <div
+        className="grid grid-cols-7 overflow-hidden rounded-b border-b border-l border-slate-200 dark:border-slate-800"
+        role="grid"
+        aria-label={t('dashboard.calendar')}
+      >
         {cells.map((cell) => {
           const maxVisibleEvents = 2;
           const visibleEvents = cell.events.slice(0, maxVisibleEvents);
@@ -213,25 +224,31 @@ export function CalendarGrid({
             <button
               type="button"
               key={cell.dateKey}
-              className={`calendar-grid-cell ${
-                cell.isCurrentMonth ? '' : 'calendar-grid-cell--outside'
-              } ${cell.isToday ? 'calendar-grid-cell--today' : ''} ${
-                cell.isSelected ? 'calendar-grid-cell--selected' : ''
+              className={`flex min-h-[96px] cursor-pointer flex-col items-stretch border-t border-r border-slate-200 p-1.5 text-left outline-none transition-colors dark:border-slate-800 ${
+                cell.isCurrentMonth
+                  ? 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/80'
+                  : 'bg-slate-50/60 opacity-55 hover:bg-slate-100/70 dark:bg-slate-950/60 dark:hover:bg-slate-950'
+              } ${cell.isToday ? '!bg-sky-50 dark:!bg-sky-950/40' : ''} ${
+                cell.isSelected
+                  ? '!bg-emerald-50 shadow-[inset_0_0_0_2px_#22c55e] dark:!bg-emerald-950/40 dark:shadow-[inset_0_0_0_2px_#16a34a]'
+                  : ''
               }`}
               onClick={() => onSelectDate(cell.date)}
               aria-label={`${cell.dateKey}, ${cell.events.length} ${t('dashboard.calendar')}`}
             >
-              <div className="calendar-grid-cell-header">
+              <div className="mb-1 flex items-center justify-between">
                 <span
-                  className={`calendar-grid-day-number ${
-                    cell.isToday ? 'calendar-grid-day-number--today' : ''
+                  className={`inline-flex size-[22px] items-center justify-center rounded-full text-xs ${
+                    cell.isToday
+                      ? 'bg-blue-600 font-bold text-white'
+                      : 'font-medium text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   {cell.dayNumber}
                 </span>
                 {cell.events.length > 0 && (
                   <span
-                    className="calendar-grid-event-count"
+                    className="rounded-full bg-slate-200 px-1.5 py-px text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                     title={t('table.rowsCount', { count: cell.events.length })}
                   >
                     {cell.events.length}
@@ -239,23 +256,25 @@ export function CalendarGrid({
                 )}
               </div>
 
-              <div className="calendar-grid-events-list">
+              <div className="flex flex-col gap-0.5 overflow-hidden">
                 {visibleEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="calendar-grid-event-chip"
+                    className="flex items-center gap-1 overflow-hidden rounded-[3px] border border-blue-200 bg-blue-50 px-1 py-0.5 text-[11px] text-blue-800 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-200 dark:hover:border-blue-700 dark:hover:bg-blue-900"
                     title={`${formatTime(event.startAt)} - ${event.title}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectDate(cell.date);
                     }}
                   >
-                    <span className="calendar-grid-event-time">{formatTime(event.startAt)}</span>
-                    <span className="calendar-grid-event-title">{event.title}</span>
+                    <span className="shrink-0 text-[10px] font-semibold opacity-85">
+                      {formatTime(event.startAt)}
+                    </span>
+                    <span className="truncate">{event.title}</span>
                   </div>
                 ))}
                 {hiddenCount > 0 && (
-                  <div className="calendar-grid-more-chip">
+                  <div className="pl-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">
                     {t('calendar.moreEvents', { count: hiddenCount })}
                   </div>
                 )}
@@ -267,22 +286,22 @@ export function CalendarGrid({
 
       {/* Selected Day Detail Panel */}
       {selectedDate && (
-        <div className="calendar-selected-day-panel">
-          <div className="calendar-selected-day-header">
-            <h3 className="calendar-selected-day-title">
+        <div className="rounded border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+            <h3 className="m-0 text-[13px] font-semibold text-slate-900 capitalize dark:text-slate-100">
               {t('calendar.selectedDayEvents', { date: formatFullDate(selectedDate) })}
             </h3>
-            <span className="calendar-selected-day-badge">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-400">
               {t('table.rowsCount', { count: selectedDayEvents.length })}
             </span>
           </div>
 
           {selectedDayEvents.length === 0 ? (
-            <div className="calendar-selected-day-empty">
+            <div className="p-4 text-center text-[13px] text-slate-400">
               <p>{t('calendar.noEventsOnDay')}</p>
             </div>
           ) : (
-            <div className="calendar-selected-day-events">
+            <div className="flex flex-col gap-2.5">
               {selectedDayEvents.map((event) => {
                 const isEditing = editingId === event.id;
 
@@ -290,13 +309,13 @@ export function CalendarGrid({
                   return (
                     <div
                       key={event.id}
-                      className="calendar-event-card calendar-event-card--editing"
+                      className="flex flex-col gap-2 rounded border border-blue-500 bg-white p-3 dark:border-blue-500 dark:bg-slate-900"
                     >
-                      <div className="calendar-edit-form">
-                        <div className="form-group">
+                      <div className="flex w-full flex-col gap-2">
+                        <div>
                           <input
                             type="text"
-                            className="table-inline-input"
+                            className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
                             value={editDraft.summary}
                             onChange={(e) =>
                               onEditDraftChange((prev) => ({ ...prev, summary: e.target.value }))
@@ -308,10 +327,10 @@ export function CalendarGrid({
                           />
                         </div>
 
-                        <div className="form-row-2">
+                        <div className="grid grid-cols-2 gap-2 max-[640px]:grid-cols-1">
                           <input
                             type="datetime-local"
-                            className="table-inline-input"
+                            className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
                             value={editDraft.startDateTime}
                             onChange={(e) =>
                               onEditDraftChange((prev) => ({
@@ -323,7 +342,7 @@ export function CalendarGrid({
                           />
                           <input
                             type="datetime-local"
-                            className="table-inline-input"
+                            className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
                             value={editDraft.endDateTime}
                             onChange={(e) =>
                               onEditDraftChange((prev) => ({
@@ -335,10 +354,10 @@ export function CalendarGrid({
                           />
                         </div>
 
-                        <div className="form-row-2">
+                        <div className="grid grid-cols-2 gap-2 max-[640px]:grid-cols-1">
                           <input
                             type="text"
-                            className="table-inline-input"
+                            className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
                             value={editDraft.location}
                             onChange={(e) =>
                               onEditDraftChange((prev) => ({ ...prev, location: e.target.value }))
@@ -348,7 +367,7 @@ export function CalendarGrid({
                           />
                           <input
                             type="text"
-                            className="table-inline-input"
+                            className="h-6 min-h-6 w-full rounded-[2px] border border-sky-600 bg-white px-1.5 text-[11.5px] text-slate-900 shadow-[0_0_0_1px_rgba(2,132,199,0.2)] outline-none focus:border-sky-700 dark:border-sky-400 dark:bg-slate-950 dark:text-slate-100"
                             value={editDraft.description}
                             onChange={(e) =>
                               onEditDraftChange((prev) => ({
@@ -361,10 +380,10 @@ export function CalendarGrid({
                           />
                         </div>
 
-                        <div className="calendar-edit-actions">
+                        <div className="flex justify-end gap-2 pt-1">
                           <button
                             type="button"
-                            className="button button--primary"
+                            className="inline-flex min-h-7 items-center justify-center rounded-[3px] border border-slate-900 bg-slate-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                             onClick={() => onSaveEdit(event.id)}
                             disabled={isSaving || !editDraft.summary.trim()}
                           >
@@ -372,7 +391,7 @@ export function CalendarGrid({
                           </button>
                           <button
                             type="button"
-                            className="button"
+                            className="inline-flex min-h-7 items-center justify-center rounded-[3px] border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                             onClick={onCancelEdit}
                             disabled={isSaving}
                           >
@@ -385,25 +404,34 @@ export function CalendarGrid({
                 }
 
                 return (
-                  <div key={event.id} className="calendar-event-card">
-                    <div className="calendar-event-card-main">
-                      <div className="calendar-event-card-time-pill">
+                  <div
+                    key={event.id}
+                    className="flex items-start justify-between gap-3 rounded border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-950/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1.5 inline-block rounded-[3px] bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
                         ⏰ {formatTime(event.startAt)}
                         {event.endAt ? ` − ${formatTime(event.endAt)}` : ''}
                       </div>
-                      <h4 className="calendar-event-card-title">{event.title}</h4>
+                      <h4 className="m-0 mb-1 text-[13px] font-semibold text-slate-900 dark:text-slate-100">
+                        {event.title}
+                      </h4>
                       {event.location && (
-                        <p className="calendar-event-card-meta">📍 {event.location}</p>
+                        <p className="m-0 mb-1 text-xs text-slate-500 dark:text-slate-400">
+                          📍 {event.location}
+                        </p>
                       )}
                       {event.description && (
-                        <p className="calendar-event-card-desc">{event.description}</p>
+                        <p className="m-0 text-xs whitespace-pre-wrap text-slate-600 dark:text-slate-300">
+                          {event.description}
+                        </p>
                       )}
                     </div>
 
-                    <div className="calendar-event-card-actions">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
-                        className="table-inline-action-btn"
+                        className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
                         onClick={() => onEdit(event)}
                         title={t('calendar.actions.edit')}
                       >
@@ -411,7 +439,7 @@ export function CalendarGrid({
                       </button>
                       <button
                         type="button"
-                        className="table-inline-action-btn table-inline-action-btn--cancel"
+                        className="inline-flex h-[22px] min-h-[22px] cursor-pointer items-center rounded-[2px] border border-slate-300 bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
                         onClick={() => onDelete(event.id)}
                         disabled={isDeleting}
                         title={t('calendar.actions.delete')}

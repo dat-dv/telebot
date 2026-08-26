@@ -8,7 +8,7 @@
 
 ## UI and state
 
-The module renders scheduled reminders with title, trigger time, status, and target metadata. Data fetching and mutations are managed via TanStack Query custom hooks (`useRemindersQuery`, `useUpdateReminderMutation`, `useDeleteReminderMutation`).
+The module is built with 100% Tailwind CSS utility classes and renders scheduled reminders with title, trigger time, status, notify type badges, and target metadata. Data fetching and mutations are managed via TanStack Query custom hooks (`useRemindersQuery`, `useUpdateReminderMutation`, `useDeleteReminderMutation`).
 
 ## Integration seams
 

@@ -60,10 +60,23 @@ function Metric({
   value: string;
   tone?: 'neutral' | 'positive' | 'warning' | 'negative';
 }) {
+  const toneStyles = {
+    neutral: 'text-slate-900 dark:text-slate-100',
+    positive: 'text-emerald-700 dark:text-emerald-400',
+    warning: 'text-amber-700 dark:text-amber-400',
+    negative: 'text-rose-600 dark:text-rose-400',
+  };
+
   return (
-    <article className={`metric metric--${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <article className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+      <span className="block text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+        {label}
+      </span>
+      <strong
+        className={`mt-0.5 block text-base font-bold tabular-nums tracking-tight ${toneStyles[tone]}`}
+      >
+        {value}
+      </strong>
     </article>
   );
 }
@@ -111,14 +124,18 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       header: t('dashboard.columns.title'),
       minWidth: '180px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.title}</span>,
+      cell: (item) => (
+        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
+      ),
     },
     {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
       align: 'right',
       minWidth: '130px',
-      cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{date(item.dueAt)}</span>
+      ),
     },
   ];
 
@@ -128,7 +145,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       header: t('dashboard.columns.title'),
       minWidth: '180px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.title}</span>,
+      cell: (item) => (
+        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
+      ),
     },
     {
       id: 'schedule',
@@ -136,7 +155,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       align: 'right',
       minWidth: '140px',
       cell: (item) => (
-        <span className="cell-muted">
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
           {item.notifyType === 'call' ? '📞' : '💬'} {date(item.remindAt)}
         </span>
       ),
@@ -149,14 +168,20 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       header: t('dashboard.columns.title'),
       minWidth: '180px',
       hideable: false,
-      cell: (item) => <span className="cell-primary">{item.title}</span>,
+      cell: (item) => (
+        <span className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</span>
+      ),
     },
     {
       id: 'startAt',
       header: t('dashboard.columns.date'),
       align: 'right',
       minWidth: '140px',
-      cell: (item) => <span className="cell-muted">{date(item.startAt)}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
+          {date(item.startAt)}
+        </span>
+      ),
     },
   ];
 
@@ -167,7 +192,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       minWidth: '180px',
       hideable: false,
       cell: (item) => (
-        <span className="cell-primary">
+        <span className="font-semibold text-slate-900 dark:text-slate-100">
           {item.action} · {item.tableName}
         </span>
       ),
@@ -177,7 +202,11 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       header: t('dashboard.columns.date'),
       align: 'right',
       minWidth: '140px',
-      cell: (item) => <span className="cell-muted">{date(item.createdAt)}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
+          {date(item.createdAt)}
+        </span>
+      ),
     },
   ];
 
@@ -188,10 +217,13 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       minWidth: '160px',
       hideable: false,
       cell: (item) => (
-        <span className="cell-primary">
+        <span className="inline-flex items-center font-semibold text-slate-900 dark:text-slate-100">
           <span
-            className={`badge ${item.type === 'income' ? 'badge--receivable' : 'badge--payable'}`}
-            style={{ marginRight: '6px' }}
+            className={`mr-1.5 inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+              item.type === 'income'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+            }`}
           >
             {item.type === 'income' ? t('table.filter.income') : t('table.filter.expense')}
           </span>
@@ -203,7 +235,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       id: 'note',
       header: t('dashboard.columns.note'),
       minWidth: '140px',
-      cell: (item) => <span className="cell-muted">{item.note || '—'}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{item.note || '—'}</span>
+      ),
     },
     {
       id: 'amount',
@@ -222,10 +256,13 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       minWidth: '160px',
       hideable: false,
       cell: (item) => (
-        <span className="cell-primary">
+        <span className="inline-flex items-center font-semibold text-slate-900 dark:text-slate-100">
           <span
-            className={`badge ${item.direction === 'receivable' ? 'badge--receivable' : 'badge--payable'}`}
-            style={{ marginRight: '6px' }}
+            className={`mr-1.5 inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+              item.direction === 'receivable'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+            }`}
           >
             {item.direction === 'receivable'
               ? t('table.filter.receivable')
@@ -239,7 +276,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
       id: 'dueAt',
       header: t('dashboard.columns.dueDate'),
       minWidth: '110px',
-      cell: (item) => <span className="cell-muted">{date(item.dueAt)}</span>,
+      cell: (item) => (
+        <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{date(item.dueAt)}</span>
+      ),
     },
     {
       id: 'remainingAmount',
@@ -252,8 +291,11 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
   ];
 
   return (
-    <>
-      <section className="metric-grid" aria-label={t('dashboard.quickStats')}>
+    <div className="flex flex-col gap-3">
+      <section
+        className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
+        aria-label={t('dashboard.quickStats')}
+      >
         <Metric
           label={t('dashboard.incomeTotal')}
           value={money(data.finance.income)}
@@ -286,19 +328,59 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
         />
       </section>
 
-      <section className="quick-actions" aria-label={t('dashboard.quickStats')}>
-        <Link href={APP_ROUTES.transactions}>{t('nav.transactions')}</Link>
-        <Link href={APP_ROUTES.debts}>{t('nav.debts')}</Link>
-        <Link href={APP_ROUTES.analytics}>{t('nav.analytics')}</Link>
-        <Link href={APP_ROUTES.calendar}>{t('nav.calendar')}</Link>
-        <Link href={APP_ROUTES.tasks}>{t('nav.tasks')}</Link>
-        <Link href={APP_ROUTES.reminders}>{t('nav.reminders')}</Link>
-        <Link href={APP_ROUTES.contacts}>{t('nav.contacts')}</Link>
+      <section
+        className="flex flex-wrap gap-1.5 rounded border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900"
+        aria-label={t('dashboard.quickStats')}
+      >
+        <Link
+          href={APP_ROUTES.transactions}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.transactions')}
+        </Link>
+        <Link
+          href={APP_ROUTES.debts}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.debts')}
+        </Link>
+        <Link
+          href={APP_ROUTES.analytics}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.analytics')}
+        </Link>
+        <Link
+          href={APP_ROUTES.calendar}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.calendar')}
+        </Link>
+        <Link
+          href={APP_ROUTES.tasks}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.tasks')}
+        </Link>
+        <Link
+          href={APP_ROUTES.reminders}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.reminders')}
+        </Link>
+        <Link
+          href={APP_ROUTES.contacts}
+          className="inline-flex h-6 min-h-6 items-center rounded-[3px] border border-slate-300 bg-slate-50 px-2 text-[11.5px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+        >
+          {t('nav.contacts')}
+        </Link>
       </section>
 
       {data.admin && (
-        <section className="admin-strip">
-          <strong>{t('dashboard.admin')}</strong>
+        <section className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-400">
+          <strong className="font-semibold text-slate-900 dark:text-slate-100">
+            {t('dashboard.admin')}
+          </strong>
           <span>{t('dashboard.usersCount', { count: data.admin.userCount })}</span>
           <span>
             {t('dashboard.googleConnectedCount', { count: data.admin.googleConnectedCount })}
@@ -306,7 +388,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
         </section>
       )}
 
-      <section className="content-grid">
+      <section className="grid grid-cols-2 gap-3 max-[960px]:grid-cols-1">
         <DataPanel
           title={t('dashboard.tasks')}
           description={data.user.googleConnected ? undefined : t('dashboard.connectGoogleTip')}
@@ -314,7 +396,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           toolbar={
             <input
               type="search"
-              className="table-search-input"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
               placeholder={t('table.searchPlaceholder')}
               value={taskSearch}
               onChange={(e) => setTaskSearch(e.target.value)}
@@ -338,7 +420,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           toolbar={
             <input
               type="search"
-              className="table-search-input"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
               placeholder={t('table.searchPlaceholder')}
               value={reminderSearch}
               onChange={(e) => setReminderSearch(e.target.value)}
@@ -405,7 +487,7 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           toolbar={
             <input
               type="search"
-              className="table-search-input"
+              className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
               placeholder={t('table.searchPlaceholder')}
               value={activitySearch}
               onChange={(e) => setActivitySearch(e.target.value)}
@@ -423,25 +505,33 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
           />
         </DataPanel>
       </section>
-    </>
+    </div>
   );
 }
 
 function DashboardHomeSkeleton() {
   const { t } = useLocale();
   return (
-    <div aria-busy="true">
-      <header className="workspace__header mb-1">
+    <div aria-busy="true" className="flex flex-col gap-3">
+      <header className="mb-1 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <p className="eyebrow">Telebot</p>
-          <h1>{t('common.loadingDashboard')}</h1>
+          <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Telebot</p>
+          <h1 className="m-0 text-base font-semibold text-slate-900 dark:text-slate-100">
+            {t('common.loadingDashboard')}
+          </h1>
         </div>
       </header>
-      <section className="metric-grid skeleton-grid" aria-hidden="true">
+      <section
+        className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2 max-[640px]:grid-cols-2"
+        aria-hidden="true"
+      >
         {Array.from({ length: 6 }, (_, index) => (
-          <div className="metric" key={index}>
-            <span className="skeleton skeleton--label" />
-            <strong className="skeleton skeleton--value" />
+          <div
+            className="flex min-h-[62px] flex-col justify-center rounded-[3px] border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60"
+            key={index}
+          >
+            <span className="block h-2.5 w-16 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
+            <strong className="mt-2 block h-4 w-24 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
           </div>
         ))}
       </section>

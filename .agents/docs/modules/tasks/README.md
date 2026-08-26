@@ -13,7 +13,7 @@ metadata:
 
 ## Tổng quan tính năng & Cấu trúc cột bảng
 
-Bảng dữ liệu công việc (`TasksScreen`) cung cấp đầy đủ các cột dữ liệu và tính năng tương tác chuẩn Enterprise UI:
+Bảng dữ liệu công việc (`TasksScreen`) được xây dựng 100% bằng Tailwind CSS utility classes (hỗ trợ dark mode `dark:`) và cung cấp đầy đủ các cột dữ liệu và tính năng tương tác chuẩn Enterprise UI:
 
 1. **Cột Trạng thái (`status`)**:
    - Checkbox đánh dấu hoàn thành/chưa hoàn thành nhanh chóng.

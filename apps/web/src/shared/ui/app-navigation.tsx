@@ -201,7 +201,7 @@ export function AppNavigation({ active, footer }: { active?: NavigationPage; foo
           </div>
           <button
             aria-label={t('nav.closeMenu')}
-            className="!hidden size-[30px] items-center justify-center rounded-[3px] border border-slate-200 !bg-transparent !p-0 !text-slate-500 hover:!bg-slate-100 hover:!text-slate-900 dark:border-slate-700 dark:!text-slate-400 dark:hover:!bg-slate-800 dark:hover:!text-slate-100 max-[960px]:!inline-flex app-nav__close-btn"
+            className="!hidden size-[30px] items-center justify-center rounded-[3px] border border-slate-200 !bg-transparent !p-0 !text-slate-500 hover:!bg-slate-100 hover:!text-slate-900 dark:border-slate-700 dark:!text-slate-400 dark:hover:!bg-slate-800 dark:hover:!text-slate-100 max-[960px]:!inline-flex"
             onClick={() => setIsOpen(false)}
             type="button"
           >

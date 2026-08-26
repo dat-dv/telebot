@@ -23,7 +23,10 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
 
   if (!buckets.length) {
     return (
-      <div className="micro-chart-empty" style={{ height }}>
+      <div
+        className="flex items-center justify-center text-[11px] text-slate-400 italic"
+        style={{ height }}
+      >
         <span>{t('chart.noData')}</span>
       </div>
     );
@@ -39,18 +42,18 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
   const hoveredBucket = hoveredIndex !== null ? buckets[hoveredIndex] : null;
 
   return (
-    <div className="micro-chart-container" style={{ height }}>
+    <div className="relative w-full" style={{ height }}>
       {hoveredBucket && (
-        <div className="micro-chart-tooltip">
-          <span className="tooltip-title">{hoveredBucket.label}</span>
-          <span className="tooltip-item text-positive">+ {money(hoveredBucket.income)}</span>
-          <span className="tooltip-item text-warning">- {money(hoveredBucket.expense)}</span>
+        <div className="pointer-events-none absolute -top-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-[3px] bg-slate-900 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-slate-50 shadow-md dark:bg-slate-800">
+          <span className="font-semibold text-slate-400">{hoveredBucket.label}</span>
+          <span className="text-sky-400">+ {money(hoveredBucket.income)}</span>
+          <span className="text-amber-400">- {money(hoveredBucket.expense)}</span>
         </div>
       )}
 
       <svg
         viewBox={`0 0 ${svgWidth} ${height}`}
-        className="micro-chart-svg"
+        className="size-full overflow-visible"
         preserveAspectRatio="none"
       >
         {/* Baseline grid */}
@@ -59,7 +62,9 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
           y1={chartHeight}
           x2={svgWidth}
           y2={chartHeight}
-          className="micro-chart-baseline"
+          strokeDasharray="2 2"
+          strokeWidth="1"
+          className="stroke-slate-200 dark:stroke-slate-800"
         />
 
         {buckets.map((bucket, i) => {
@@ -72,12 +77,10 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
           const incomeY = chartHeight - incomeHeight;
           const expenseY = chartHeight - expenseHeight;
 
-          const isHovered = hoveredIndex === i;
-
           return (
             <g
               key={bucket.key}
-              className={`micro-chart-group ${isHovered ? 'is-hovered' : ''}`}
+              className="group cursor-pointer"
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
@@ -88,7 +91,6 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
                 width={bucketWidth}
                 height={height}
                 fill="transparent"
-                style={{ cursor: 'pointer' }}
               />
 
               {/* Income bar */}
@@ -99,7 +101,7 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
                   width={barWidth}
                   height={Math.max(incomeHeight, 2)}
                   rx="1"
-                  className="bar-income"
+                  className="fill-sky-600 opacity-85 transition-opacity group-hover:opacity-100 dark:fill-sky-500"
                 />
               )}
 
@@ -111,12 +113,17 @@ export function MicroBarChart({ buckets, height = 76 }: MicroBarChartProps) {
                   width={barWidth}
                   height={Math.max(expenseHeight, 2)}
                   rx="1"
-                  className="bar-expense"
+                  className="fill-amber-500 opacity-85 transition-opacity group-hover:opacity-100 dark:fill-amber-400"
                 />
               )}
 
               {/* Label */}
-              <text x={centerX} y={height - 3} textAnchor="middle" className="micro-chart-label">
+              <text
+                x={centerX}
+                y={height - 3}
+                textAnchor="middle"
+                className="fill-slate-400 text-[9px] font-medium dark:fill-slate-500"
+              >
                 {bucket.label}
               </text>
             </g>

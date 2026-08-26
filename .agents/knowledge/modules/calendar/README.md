@@ -8,6 +8,7 @@
 
 ## UI and state
 
+- **UI Styling**: Fully styled with 100% Tailwind CSS utility classes supporting dark mode (`dark:`) and compact responsive layouts across desktop and mobile screens.
 - **Dual View Modes**: Switchable between Month Grid View (`calendar.view.grid`) and tabular Data Table View (`calendar.view.table`). In List View, the Description column defaults to a compact multi-line width and each column can be resized from its header; widths persist locally per table.
 - **Month Grid (`CalendarGrid`)**: 7-day grid (Mon–Sun) with leading/trailing padding days, today highlight, selected date focus, event chips with start time/summary, "+N more" badge, and an interactive selected day event details/inline-editing panel.
 - **Month Navigation**: Prev Month, Next Month, and Today navigation buttons with localized month/year formatting.

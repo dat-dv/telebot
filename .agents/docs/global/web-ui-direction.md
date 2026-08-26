@@ -9,7 +9,7 @@ metadata:
 
 # Định hướng UI web dùng chung
 
-Web dashboard là giao diện tác vụ cá nhân, ưu tiên dữ liệu dễ quét và thao tác gọn: một workspace phẳng, viền nhẹ, control nhỏ gọn; tránh card trang trí hoặc shadow nặng. Tailwind CSS v4 là lớp styling chuẩn cho UI mới và phần đã chuyển đổi: dùng các nhóm utility class dễ đọc tại layout/view, tái sử dụng component dùng chung cho pattern lặp lại và không bổ sung selector global legacy mới.
+Web dashboard là giao diện tác vụ cá nhân, ưu tiên dữ liệu dễ quét và thao tác gọn: một workspace phẳng, viền nhẹ, control nhỏ gọn; tránh card trang trí hoặc shadow nặng. Tailwind CSS v4 là lớp styling duy nhất cho 100% component và màn hình giao diện web: toàn bộ bố cục, data panel, bảng dữ liệu, dialog modal, form inline edit, KPI metrics, biểu đồ và các nút hành động đều dùng trực tiếp utility classes có hỗ trợ tiền tố `dark:` và responsive variants. File `apps/web/src/styles.css` được rút gọn sạch sẽ về cấu hình base Tailwind v4 mà không còn bất kỳ CSS class BEM/legacy toàn cục nào.
 
 Các primitive dùng chung trong `apps/web/src/shared/ui/` chịu trách nhiệm panel/bảng tái sử dụng. Trên desktop, bảng phải phủ hết chiều ngang bên trong panel; bảng dùng HTML semantic, căn phải số liệu, có trạng thái loading, rỗng và có dữ liệu. Trên màn hình di động hẹp, bảng hỗ trợ cuộn ngang mượt mà (`min-width: max-content` kết hợp `minWidth` của từng cột) để đảm bảo các thông tin quan trọng (Số tiền, Thời gian, Badge trạng thái) không bao giờ bị bóp méo hoặc cắt cụt.
 
@@ -23,4 +23,4 @@ Thanh điều hướng dùng chung (`apps/web/src/shared/ui/app-navigation.tsx`)
 
 Trên màn hình hẹp (<= 960px), shell trở lại cơ chế cuộn trang bình thường và giao diện tự động chuyển đổi thành Mobile Topbar sticky trên cùng kết hợp nút Hamburger Button. Khi bấm vào, Drawer Menu điều hướng trượt mượt mà từ bên trái kèm Backdrop làm mờ nền; tự động đóng khi chọn link, bấm backdrop hoặc bấm Escape.
 
-Dark mode được kích hoạt bằng `html[data-theme='dark']`; mọi utility dark của Tailwind phải dùng đúng data attribute này. Các bề mặt dùng chung — navigation desktop/mobile, workspace header, period toolbar và trang public/legal — bắt buộc có màu nền, viền, chữ, hover, active và focus phù hợp ở theme tối. Giữ trạng thái mục đang chọn dễ nhận biết và focus bàn phím màu xanh nhạt, đủ tương phản.
+Dark mode được kích hoạt bằng `html[data-theme='dark']`; mọi utility dark của Tailwind phải dùng đúng data attribute này thông qua `@custom-variant dark`. Toàn bộ các bề mặt giao diện — navigation desktop/mobile, workspace header, period toolbar, data panel, form edit, dialog, biểu đồ và trang public/legal — bắt buộc dùng utility classes với tiền tố `dark:` phù hợp (`dark:bg-*`, `dark:border-*`, `dark:text-*`, `dark:hover:*`, `dark:focus:*`). Giữ trạng thái mục đang chọn dễ nhận biết và focus bàn phím màu xanh nhạt, đủ tương phản.

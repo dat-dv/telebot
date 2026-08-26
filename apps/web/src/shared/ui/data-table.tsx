@@ -66,13 +66,26 @@ export function DataPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="data-panel" aria-label={title}>
-      <header className="data-panel__header">
-        <div>
-          <h2>{title}</h2>
-          {description && <p>{description}</p>}
+    <section
+      className="flex min-w-0 flex-col overflow-hidden rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      aria-label={title}
+    >
+      <header className="flex min-h-10 flex-wrap items-center justify-between gap-2.5 border-b border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-950/60 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:gap-2">
+        <div className="flex min-w-0 flex-col">
+          <h2 className="m-0 text-[13px] font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </h2>
+          {description && (
+            <p className="m-0 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              {description}
+            </p>
+          )}
         </div>
-        {(toolbar || counter) && <div className="data-panel__toolbar">{toolbar}</div>}
+        {(toolbar || counter) && (
+          <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:justify-between">
+            {toolbar}
+          </div>
+        )}
       </header>
       {children}
     </section>
@@ -122,10 +135,14 @@ export function TableColumnSettings<T extends DataTableRow>({
   }, [isOpen]);
 
   return (
-    <div className="table-column-settings" ref={containerRef}>
+    <div className="relative inline-flex" ref={containerRef}>
       <button
         type="button"
-        className={`table-column-settings__btn ${hiddenCount > 0 ? 'has-hidden' : ''}`}
+        className={`inline-flex h-6 min-h-6 items-center gap-1.5 rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
+          hiddenCount > 0
+            ? 'border-sky-500 text-sky-600 hover:bg-sky-50 dark:border-sky-400 dark:text-sky-400 dark:hover:bg-sky-950/50'
+            : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+        }`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={t('table.columnSettings')}
         aria-expanded={isOpen}
@@ -133,10 +150,8 @@ export function TableColumnSettings<T extends DataTableRow>({
         title={t('table.columnSettings')}
       >
         <svg
-          className="table-column-settings__icon"
+          className="size-3.5 shrink-0"
           viewBox="0 0 24 24"
-          width="14"
-          height="14"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -147,19 +162,25 @@ export function TableColumnSettings<T extends DataTableRow>({
           <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
-        <span className="table-column-settings__label">{t('table.columnVisibility')}</span>
+        <span>{t('table.columnVisibility')}</span>
         {hiddenCount > 0 && (
-          <span className="table-column-settings__badge">
+          <span className="rounded-[2px] bg-sky-100 px-1 text-[10px] font-semibold leading-3.5 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
             {t('table.columnsHiddenBadge', { count: hiddenCount })}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="table-column-settings__popover" role="dialog" aria-modal="true">
-          <header className="table-column-settings__popover-header">
-            <strong>{t('table.columnVisibility')}</strong>
-            <span className="table-column-settings__popover-count">
+        <div
+          className="absolute right-0 top-[calc(100%+4px)] z-50 flex min-w-[200px] max-w-[calc(100vw-32px)] flex-col rounded border border-slate-300 bg-white py-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          role="dialog"
+          aria-modal="true"
+        >
+          <header className="flex items-center justify-between border-b border-slate-100 px-2.5 pb-1.5 text-[11px] dark:border-slate-800">
+            <strong className="font-semibold text-slate-900 dark:text-slate-100">
+              {t('table.columnVisibility')}
+            </strong>
+            <span className="tabular-nums text-slate-500 dark:text-slate-400">
               {t('table.columnsCount', {
                 visible: visibleColumnIds.length,
                 total: columns.length,
@@ -167,7 +188,7 @@ export function TableColumnSettings<T extends DataTableRow>({
             </span>
           </header>
 
-          <ul className="table-column-settings__list">
+          <ul className="m-0 flex max-h-[220px] list-none flex-col overflow-y-auto p-1">
             {columns.map((column) => {
               const isChecked = visibleColumnIds.includes(column.id);
               const isRequired = column.hideable === false;
@@ -175,21 +196,21 @@ export function TableColumnSettings<T extends DataTableRow>({
               const isDisabled = isRequired || isLastVisible;
 
               return (
-                <li key={column.id} className="table-column-settings__item">
-                  <label className="table-column-settings__checkbox-label">
+                <li key={column.id} className="flex">
+                  <label className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-[11.5px] text-slate-700 transition-colors hover:bg-slate-50 select-none dark:text-slate-300 dark:hover:bg-slate-800/80">
                     <input
                       type="checkbox"
-                      className="table-column-settings__checkbox"
+                      className="cursor-pointer accent-slate-900 dark:accent-sky-500 disabled:cursor-not-allowed"
                       checked={isChecked}
                       disabled={isDisabled}
                       onChange={() => onToggleColumn(column.id)}
                     />
-                    <span className="table-column-settings__item-name">
+                    <span className="flex-1 text-slate-700 dark:text-slate-300">
                       {column.label ??
                         (typeof column.header === 'string' ? column.header : column.id)}
                     </span>
                     {isRequired && (
-                      <span className="table-column-settings__required-tag">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
                         {t('table.columnRequired')}
                       </span>
                     )}
@@ -199,17 +220,17 @@ export function TableColumnSettings<T extends DataTableRow>({
             })}
           </ul>
 
-          <footer className="table-column-settings__popover-footer">
+          <footer className="flex items-center justify-between gap-1.5 border-t border-slate-100 px-2.5 pt-1.5 pb-0.5 text-[10.5px] dark:border-slate-800">
             <button
               type="button"
-              className="table-column-settings__action-btn"
+              className="cursor-pointer rounded-[2px] border-0 bg-transparent px-1 py-0.5 text-[10.5px] font-medium text-sky-600 transition-colors hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-950/60 dark:hover:text-sky-300"
               onClick={onShowAllColumns}
             >
               {t('table.showAllColumns')}
             </button>
             <button
               type="button"
-              className="table-column-settings__action-btn"
+              className="cursor-pointer rounded-[2px] border-0 bg-transparent px-1 py-0.5 text-[10.5px] font-medium text-sky-600 transition-colors hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-950/60 dark:hover:text-sky-300"
               onClick={onResetColumns}
             >
               {t('table.resetColumns')}
@@ -247,7 +268,9 @@ export function DataTable<T extends DataTableRow>({
         minWidth: 56,
         width: 56,
         hideable: false,
-        cell: (_, index) => <span className="cell-muted">{index + 1}</span>,
+        cell: (_, index) => (
+          <span className="text-[11.5px] text-slate-500 dark:text-slate-400">{index + 1}</span>
+        ),
       },
       {
         id: 'id',
@@ -255,7 +278,11 @@ export function DataTable<T extends DataTableRow>({
         minWidth: 160,
         width: 220,
         hideable: false,
-        cell: (row) => <code className="data-table__id">{row.id}</code>,
+        cell: (row) => (
+          <code className="font-mono text-[11px] text-slate-600 whitespace-nowrap dark:text-slate-400">
+            {row.id}
+          </code>
+        ),
       },
     ],
     [t],
@@ -388,7 +415,10 @@ export function DataTable<T extends DataTableRow>({
         if (!left.occurrence) return 1;
         if (!right.occurrence) return -1;
         const direction = left.occurrence.ascending ? 1 : -1;
-        return (left.occurrence.timestamp - right.occurrence.timestamp) * direction || left.index - right.index;
+        return (
+          (left.occurrence.timestamp - right.occurrence.timestamp) * direction ||
+          left.index - right.index
+        );
       })
       .map(({ row }) => row);
   }, [rows]);
@@ -436,9 +466,9 @@ export function DataTable<T extends DataTableRow>({
   };
 
   return (
-    <div className="data-table-container">
+    <div className="relative flex w-full flex-col">
       {isToggleAllowed && (
-        <div className="data-table__controls">
+        <div className="flex items-center justify-end border-b border-slate-200 bg-slate-50 px-2 py-1 dark:border-slate-800 dark:bg-slate-950/40">
           <TableColumnSettings
             columns={allColumns}
             visibleColumnIds={visibleColumnIds}
@@ -449,8 +479,11 @@ export function DataTable<T extends DataTableRow>({
         </div>
       )}
 
-      <div className="data-table__scroll" aria-busy={loading}>
-        <table className="data-table" aria-label={ariaLabel}>
+      <div className="relative max-h-[520px] w-full min-w-0 overflow-auto" aria-busy={loading}>
+        <table
+          className="w-full min-w-full border-collapse text-left text-xs max-[640px]:min-w-max"
+          aria-label={ariaLabel}
+        >
           <colgroup>
             {visibleColumns.map((column) => (
               <col
@@ -468,9 +501,9 @@ export function DataTable<T extends DataTableRow>({
                 <th
                   key={column.id}
                   scope="col"
-                  className={`${column.align === 'right' ? 'is-right' : ''} ${
-                    allowColumnResize ? 'data-table__resizable-header' : ''
-                  }`.trim()}
+                  className={`sticky top-0 z-[2] h-7 border-r border-b border-r-slate-200 border-b-slate-300 bg-slate-100 px-2 text-[10.5px] font-bold tracking-wider text-slate-600 uppercase whitespace-nowrap last:border-r-0 dark:border-r-slate-800 dark:border-b-slate-700 dark:bg-slate-900 dark:text-slate-400 ${
+                    column.align === 'right' ? 'text-right' : 'text-left'
+                  } ${allowColumnResize ? 'relative' : ''}`.trim()}
                   style={{
                     minWidth: column.minWidth,
                     width: getColumnWidth(column),
@@ -480,7 +513,7 @@ export function DataTable<T extends DataTableRow>({
                   {allowColumnResize && (
                     <button
                       type="button"
-                      className="data-table__resize-handle"
+                      className="group absolute top-0 -right-1 z-[3] h-full w-2 cursor-col-resize touch-none border-0 bg-transparent p-0 after:absolute after:top-1.5 after:left-[3px] after:h-3.5 after:w-0.5 after:bg-sky-600 after:opacity-0 hover:after:opacity-100 focus-visible:after:opacity-100"
                       aria-label={`Resize ${typeof column.header === 'string' ? column.header : column.id} column`}
                       onPointerDown={(event) => handleResizeStart(event, column)}
                     />
@@ -492,21 +525,26 @@ export function DataTable<T extends DataTableRow>({
           <tbody>
             {loading ? (
               Array.from({ length: 4 }, (_, rowIndex) => (
-                <tr key={rowIndex} className="data-table__skeleton-row">
+                <tr key={rowIndex} className="border-b border-slate-100 dark:border-slate-800">
                   {visibleColumns.map((column) => (
-                    <td key={column.id}>
-                      <span />
+                    <td key={column.id} className="h-8 px-2 py-1 align-middle">
+                      <span className="block h-2.5 w-3/4 animate-pulse rounded-[2px] bg-slate-200 dark:bg-slate-800" />
                     </td>
                   ))}
                 </tr>
               ))
             ) : sortedRows.length > 0 ? (
               sortedRows.map((row, index) => (
-                <tr key={getRowKey(row, index)}>
+                <tr
+                  key={getRowKey(row, index)}
+                  className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                >
                   {visibleColumns.map((column) => (
                     <td
                       key={column.id}
-                      className={`${column.align === 'right' ? 'is-right' : ''} ${column.className ?? ''}`.trim()}
+                      className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
+                        column.align === 'right' ? 'text-right' : 'text-left'
+                      } ${column.className ?? ''}`.trim()}
                       style={{
                         minWidth: column.minWidth,
                         width: getColumnWidth(column),
@@ -518,7 +556,7 @@ export function DataTable<T extends DataTableRow>({
                 </tr>
               ))
             ) : (
-              <tr className="data-table__empty-row">
+              <tr className="h-20 text-center text-slate-400 italic">
                 <td colSpan={visibleColumns.length}>{emptyMessage}</td>
               </tr>
             )}
