@@ -52,6 +52,16 @@ Khi phát triển local, Next chạy tại `http://localhost:5173` và browser g
 
 Khi cần frontend local gọi API remote, đặt `NEXT_PUBLIC_API_URL=https://telebot.datintech.site` trong `apps/web/.env.local` và tạm đặt `CORS_ALLOW_ALL=true` trong ENV của API remote. Chế độ này phản chiếu origin thay vì dùng `*`, nên vẫn tương thích cookie refresh; phải đổi lại `false` sau khi thử nghiệm.
 
-## Docker
+## Docker & Tối Ưu Hóa Build Cache
 
 Dùng `docker compose up --build` tại root. Compose build API và static web qua `apps/api/Dockerfile` và `apps/web/Dockerfile`; web được phục vụ bởi Nginx tại `WEB_PORT` (mặc định 3001), đồng thời Nginx tự động reverse proxy các route `/api/*` (bao gồm Swagger UI `/api/docs` và OAuth callback `/api/oauth2callback`) sang container API backend (`http://api:3000`). PostgreSQL và Redis dùng Docker volumes riêng. Với kiến trúc này, Cloudflare Tunnel chỉ cần trỏ vào duy nhất cổng Web (`localhost:3001`).
+
+### Cơ chế tối ưu Docker Build trên Coolify:
+
+1. **Root `.dockerignore`**: Loại trừ `.git`, `node_modules`, `.next`, `dist`, logs, test artifacts và các file môi trường `.env*` khỏi build context, giúp upload context tức thì và tránh làm mất cache Docker do thay đổi file tạm.
+2. **Tách biệt multi-stage trong `apps/api/Dockerfile`**:
+   - `tessdata-downloader`: Tải dữ liệu ngôn ngữ Tesseract OCR độc lập.
+   - `whisper-builder`: Pin version tag `v1.7.4` của `whisper.cpp` và biên dịch `whisper-server`, tải `ggml-base.bin` trong một stage riêng.
+   - `builder`: Cài đặt dependencies và build TypeScript.
+   - 👉 Khi deploy thay đổi code TypeScript trên Coolify, Docker chỉ cần build lại stage `builder` (~10-15 giây) thay vì phải clone, biên dịch C++ và tải lại model (~5-8 phút).
+3. **BuildKit Cache Mounts**: Sử dụng `# syntax=docker/dockerfile:1` cùng `RUN --mount=type=cache,target=/root/.npm npm ci` để chia sẻ cache npm giữa các build.
