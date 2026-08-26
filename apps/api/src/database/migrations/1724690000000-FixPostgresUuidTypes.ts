@@ -72,33 +72,41 @@ export class FixPostgresUuidTypes1724690000000 implements MigrationInterface {
             );
           END IF;
 
-          -- 7. Fix debt_payment_allocations table columns
-          IF EXISTS (
-            SELECT 1 FROM information_schema.tables 
-            WHERE table_name = 'debt_payment_allocations'
-          ) THEN
-            IF EXISTS (
-              SELECT 1 FROM information_schema.columns 
-              WHERE table_name = 'debt_payment_allocations' AND column_name = 'id' AND data_type = 'character varying'
-            ) THEN
-              ALTER TABLE "debt_payment_allocations" ALTER COLUMN "id" TYPE uuid USING "id"::uuid;
-              ALTER TABLE "debt_payment_allocations" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();
-            END IF;
+          -- 7. Drop and recreate debt_payment_allocations cleanly with native uuid types
+          DROP TABLE IF EXISTS "debt_payment_allocations" CASCADE;
 
-            IF EXISTS (
-              SELECT 1 FROM information_schema.columns 
-              WHERE table_name = 'debt_payment_allocations' AND column_name = 'debt_id' AND data_type = 'character varying'
-            ) THEN
-              ALTER TABLE "debt_payment_allocations" ALTER COLUMN "debt_id" TYPE uuid USING "debt_id"::uuid;
-            END IF;
+          CREATE TABLE "debt_payment_allocations" (
+            "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+            "user_id" character varying NOT NULL,
+            "finance_transaction_id" uuid NOT NULL,
+            "debt_id" uuid NOT NULL,
+            "amount" integer NOT NULL,
+            "allocated_at" TIMESTAMP NOT NULL,
+            "note" character varying,
+            "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+            CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
+          );
 
-            IF EXISTS (
-              SELECT 1 FROM information_schema.columns 
-              WHERE table_name = 'debt_payment_allocations' AND column_name = 'finance_transaction_id' AND data_type = 'character varying'
-            ) THEN
-              ALTER TABLE "debt_payment_allocations" ALTER COLUMN "finance_transaction_id" TYPE uuid USING "finance_transaction_id"::uuid;
-            END IF;
-          END IF;
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_user_id" ON "debt_payment_allocations" ("user_id");
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_finance_transaction_id" ON "debt_payment_allocations" ("finance_transaction_id");
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_debt_id" ON "debt_payment_allocations" ("debt_id");
+        ELSE
+          -- Fallback for non-uuid schema
+          CREATE TABLE IF NOT EXISTS "debt_payment_allocations" (
+            "id" character varying NOT NULL DEFAULT gen_random_uuid()::text,
+            "user_id" character varying NOT NULL,
+            "finance_transaction_id" character varying NOT NULL,
+            "debt_id" character varying NOT NULL,
+            "amount" integer NOT NULL,
+            "allocated_at" TIMESTAMP NOT NULL,
+            "note" character varying,
+            "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+            CONSTRAINT "PK_debt_payment_allocations_id" PRIMARY KEY ("id")
+          );
+
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_user_id" ON "debt_payment_allocations" ("user_id");
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_finance_transaction_id" ON "debt_payment_allocations" ("finance_transaction_id");
+          CREATE INDEX IF NOT EXISTS "IDX_debt_payment_allocations_debt_id" ON "debt_payment_allocations" ("debt_id");
         END IF;
       END $$;
     `);
