@@ -20,6 +20,7 @@ import { MigrateLegacyPlaceContacts1724660000000 } from './migrations/1724660000
 import { CreateDebtPaymentAllocations1724670000000 } from './migrations/1724670000000-CreateDebtPaymentAllocations';
 import { AddParentDebtHierarchy1724680000000 } from './migrations/1724680000000-AddParentDebtHierarchy';
 import { FixPostgresUuidTypes1724690000000 } from './migrations/1724690000000-FixPostgresUuidTypes';
+import { FixPostgresPlaceAndContactUuidTypes1724700000000 } from './migrations/1724700000000-FixPostgresPlaceAndContactUuidTypes';
 
 // Load environment variables for TypeORM CLI
 loadDotenv({ path: fromProjectRoot('.env.local') });
@@ -56,6 +57,7 @@ export const AppDataSource = new DataSource({
     CreateDebtPaymentAllocations1724670000000,
     AddParentDebtHierarchy1724680000000,
     FixPostgresUuidTypes1724690000000,
+    FixPostgresPlaceAndContactUuidTypes1724700000000,
   ],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,

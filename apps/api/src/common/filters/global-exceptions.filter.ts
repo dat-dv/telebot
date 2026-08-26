@@ -71,9 +71,9 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
         message = 'Database constraint violation';
         error = 'Conflict';
       } else {
-        status = HttpStatus.BAD_REQUEST;
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
         message = 'Database query failed';
-        error = 'Bad Request';
+        error = 'Internal Server Error';
       }
     } else if (exception instanceof Error) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -95,8 +95,10 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       const stack = exception instanceof Error ? exception.stack : undefined;
+      const detail =
+        exception instanceof QueryFailedError ? ` - Details: ${exception.message}` : '';
       this.logger.error(
-        `[${method}] ${path} -> ${status} - ${typeof message === 'string' ? message : JSON.stringify(message)}`,
+        `[${method}] ${path} -> ${status} - ${typeof message === 'string' ? message : JSON.stringify(message)}${detail}`,
         stack,
       );
     } else {

@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
+import {
+  Between,
+  FindOptionsWhere,
+  In,
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import {
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_EXPENSE_CATEGORIES,
@@ -198,25 +207,31 @@ export class FinanceService {
     startAt?: string,
     endAt?: string,
   ): Promise<FinanceSummary> {
-    const query = this.transactionRepo
-      .createQueryBuilder('transaction')
-      .where('transaction.user_id = :userId', { userId: userId.toString() });
+    const where: FindOptionsWhere<FinanceTransactionEntity> = {
+      userId: userId.toString(),
+    };
 
-    if (startAt) {
+    if (startAt && endAt) {
+      const startDate = new Date(startAt);
+      const endDate = new Date(endAt);
+      if (Number.isNaN(startDate.getTime())) throw new Error('Mốc thời gian bắt đầu không hợp lệ.');
+      if (Number.isNaN(endDate.getTime())) throw new Error('Mốc thời gian kết thúc không hợp lệ.');
+      where.occurredAt = Between(startDate, endDate);
+    } else if (startAt) {
       const startDate = new Date(startAt);
       if (Number.isNaN(startDate.getTime())) throw new Error('Mốc thời gian bắt đầu không hợp lệ.');
-      query.andWhere('transaction.occurred_at >= :startAt', { startAt: startDate });
-    }
-    if (endAt) {
+      where.occurredAt = MoreThanOrEqual(startDate);
+    } else if (endAt) {
       const endDate = new Date(endAt);
       if (Number.isNaN(endDate.getTime())) throw new Error('Mốc thời gian kết thúc không hợp lệ.');
-      query.andWhere('transaction.occurred_at <= :endAt', { endAt: endDate });
+      where.occurredAt = LessThanOrEqual(endDate);
     }
 
-    const transactions = await query
-      .leftJoinAndSelect('transaction.place', 'place')
-      .orderBy('transaction.occurred_at', 'DESC')
-      .getMany();
+    const transactions = await this.transactionRepo.find({
+      where,
+      relations: { place: true },
+      order: { occurredAt: 'DESC' },
+    });
     const income = transactions
       .filter((transaction) => transaction.type === 'income')
       .reduce((total, transaction) => total + transaction.amount, 0);
@@ -254,11 +269,12 @@ export class FinanceService {
     if (startAt) {
       const startDate = new Date(startAt);
       if (!Number.isNaN(startDate.getTime())) {
-        const priorTransactions = await this.transactionRepo
-          .createQueryBuilder('transaction')
-          .where('transaction.user_id = :userId', { userId: userId.toString() })
-          .andWhere('transaction.occurred_at < :startAt', { startAt: startDate })
-          .getMany();
+        const priorTransactions = await this.transactionRepo.find({
+          where: {
+            userId: userId.toString(),
+            occurredAt: LessThan(startDate),
+          },
+        });
         const priorIncome = priorTransactions
           .filter((tx) => tx.type === 'income')
           .reduce((sum, tx) => sum + tx.amount, 0);
@@ -486,18 +502,20 @@ export class FinanceService {
     userId: number,
     type?: 'income' | 'expense',
   ): Promise<FinanceTransactionEntity[]> {
-    const query = this.transactionRepo
-      .createQueryBuilder('transaction')
-      .where('transaction.user_id = :userId', { userId: userId.toString() });
-    if (type) query.andWhere('transaction.type = :type', { type });
-    return query
-      .leftJoinAndSelect('transaction.place', 'place')
-      .leftJoinAndSelect('transaction.contact', 'contact')
-      .leftJoinAndSelect('transaction.allocations', 'allocations')
-      .leftJoinAndSelect('allocations.debt', 'debt')
-      .orderBy('transaction.occurred_at', 'DESC')
-      .take(200)
-      .getMany();
+    const where: FindOptionsWhere<FinanceTransactionEntity> = {
+      userId: userId.toString(),
+    };
+    if (type) where.type = type;
+    return this.transactionRepo.find({
+      where,
+      relations: {
+        place: true,
+        contact: true,
+        allocations: { debt: true },
+      },
+      order: { occurredAt: 'DESC' },
+      take: 200,
+    });
   }
 
   public getTransaction(userId: number, id: string): Promise<FinanceTransactionEntity | null> {
@@ -676,14 +694,17 @@ export class FinanceService {
     const normalizedName = this.normalizeIdentity(name);
     const normalizedAlias = alias ? this.normalizeIdentity(alias) : undefined;
     if (!normalizedName) return [];
-    const query = this.contactRepo
-      .createQueryBuilder('contact')
-      .where('contact.user_id = :userId', { userId: userId.toString() })
-      .andWhere('contact.normalized_name = :normalizedName', { normalizedName });
+    const where: FindOptionsWhere<DebtContactEntity> = {
+      userId: userId.toString(),
+      normalizedName,
+    };
     if (normalizedAlias) {
-      query.andWhere('contact.normalized_alias = :normalizedAlias', { normalizedAlias });
+      where.normalizedAlias = normalizedAlias;
     }
-    return query.orderBy('contact.created_at', 'ASC').getMany();
+    return this.contactRepo.find({
+      where,
+      order: { createdAt: 'ASC' },
+    });
   }
 
   public async listContacts(userId: number): Promise<DebtContactEntity[]> {

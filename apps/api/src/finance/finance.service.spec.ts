@@ -257,43 +257,29 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
   ];
 
   const transactionRepository = {
-    createQueryBuilder: () => {
-      let filterStart: Date | undefined;
-      let filterEnd: Date | undefined;
-      let filterPrior: Date | undefined;
-
-      const builder = {
-        where: () => builder,
-        andWhere: (clause: string, params: { startAt?: Date; endAt?: Date }) => {
-          if (clause.includes('< :startAt')) {
-            filterPrior = params.startAt;
-          } else if (clause.includes('>= :startAt')) {
-            filterStart = params.startAt;
-          } else if (clause.includes('<= :endAt')) {
-            filterEnd = params.endAt;
-          }
-          return builder;
-        },
-        leftJoinAndSelect: () => builder,
-        orderBy: () => builder,
-        getMany: () => {
-          let list = [...transactions];
-          const prior = filterPrior;
-          const start = filterStart;
-          const end = filterEnd;
-          if (prior) {
-            list = list.filter((t) => t.occurredAt < prior);
-          }
-          if (start) {
-            list = list.filter((t) => t.occurredAt >= start);
-          }
-          if (end) {
-            list = list.filter((t) => t.occurredAt <= end);
-          }
-          return Promise.resolve(list);
-        },
+    find: (opts?: {
+      where?: {
+        userId?: string;
+        occurredAt?: { _type?: string; _value?: unknown; value?: unknown };
       };
-      return builder;
+    }) => {
+      let list = [...transactions];
+      const occurred = opts?.where?.occurredAt;
+      if (occurred && typeof occurred === 'object') {
+        const type = occurred._type;
+        const val = occurred._value ?? occurred.value;
+        if (type === 'between' && Array.isArray(val)) {
+          const [start, end] = val as [Date, Date];
+          list = list.filter((t) => t.occurredAt >= start && t.occurredAt <= end);
+        } else if (type === 'lessThan' && val instanceof Date) {
+          list = list.filter((t) => t.occurredAt < val);
+        } else if (type === 'moreThanOrEqual' && val instanceof Date) {
+          list = list.filter((t) => t.occurredAt >= val);
+        } else if (type === 'lessThanOrEqual' && val instanceof Date) {
+          list = list.filter((t) => t.occurredAt <= val);
+        }
+      }
+      return Promise.resolve(list);
     },
   };
 
@@ -676,4 +662,100 @@ void test('FinanceService.combineDebts rejects debts with mismatched currencies'
     () => service.combineDebts(42, { debtIds: ['debt-1', 'debt-2'] }),
     /Chỉ có thể gộp các khoản nợ có cùng đơn vị tiền tệ/,
   );
+});
+
+void test('FinanceService.getSummary calculates income, expense, balance with find filter', async () => {
+  const transactions: FinanceTransactionEntity[] = [
+    {
+      id: 'tx-1',
+      userId: '42',
+      type: 'income',
+      amount: 15_000_000,
+      currency: 'VND',
+      category: 'Lương',
+      note: 'Lương',
+      occurredAt: new Date('2026-08-15T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-2',
+      userId: '42',
+      type: 'expense',
+      amount: 5_000_000,
+      currency: 'VND',
+      category: 'Chi phí',
+      note: 'Tiền trọ',
+      occurredAt: new Date('2026-08-16T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const transactionRepository = {
+    find: () => Promise.resolve(transactions),
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const summary = await service.getSummary(
+    42,
+    '2026-08-01T00:00:00.000Z',
+    '2026-08-31T23:59:59.999Z',
+  );
+  assert.equal(summary.income, 15_000_000);
+  assert.equal(summary.expense, 5_000_000);
+  assert.equal(summary.balance, 10_000_000);
+  assert.equal(summary.transactions.length, 2);
+});
+
+void test('FinanceService.listTransactions queries transactions with relations and order', async () => {
+  const mockTransactions: FinanceTransactionEntity[] = [
+    {
+      id: 'tx-1',
+      userId: '42',
+      type: 'expense',
+      amount: 50_000,
+      currency: 'VND',
+      category: 'Ăn uống',
+      note: 'Cơm trưa',
+      occurredAt: new Date('2026-08-20T12:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  let findCalledWith: unknown;
+  const transactionRepository = {
+    find: (opts: unknown) => {
+      findCalledWith = opts;
+      return Promise.resolve(mockTransactions);
+    },
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const list = await service.listTransactions(42, 'expense');
+  assert.equal(list.length, 1);
+  assert.equal(list[0]?.amount, 50_000);
+  assert.deepEqual((findCalledWith as { where: { userId: string; type: string } }).where, {
+    userId: '42',
+    type: 'expense',
+  });
 });
