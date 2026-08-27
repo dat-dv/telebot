@@ -92,7 +92,8 @@ export function DebtsTable({
     const list: DataTableColumn<IDebtListItem>[] = [];
 
     if (onToggleSelect) {
-      const isAllSelected = debts.length > 0 && debts.every((d) => selectedIds?.has(d.id));
+      const rootDebts = debts.filter((d) => !d.parentDebtId);
+      const isAllSelected = rootDebts.length > 0 && rootDebts.every((d) => selectedIds?.has(d.id));
       list.push({
         id: 'select',
         header: onToggleSelectAll ? (
@@ -227,7 +228,7 @@ export function DebtsTable({
               {hasChildren && (
                 <button
                   type="button"
-                  className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[10px] text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  className="inline-flex size-4.5 shrink-0 cursor-pointer items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     setExpandedIds((prev) => {
@@ -238,12 +239,24 @@ export function DebtsTable({
                     });
                   }}
                   title={isExpanded ? t('debts.collapseChildren') : t('debts.expandChildren')}
+                  aria-label={isExpanded ? t('debts.collapseChildren') : t('debts.expandChildren')}
                 >
-                  {isExpanded ? '▼' : '▶'}
+                  <svg
+                    className={`size-3 transition-transform duration-150 ${isExpanded ? 'rotate-90 text-sky-600 dark:text-sky-400' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
               )}
               {isChild && (
-                <span className="text-slate-400 select-none text-xs" aria-hidden="true">
+                <span className="text-slate-400 select-none text-xs font-mono" aria-hidden="true">
                   ↳
                 </span>
               )}
@@ -575,6 +588,8 @@ export function DebtsTable({
       emptyMessage={emptyMessage ?? t('dashboard.noDebts')}
       columns={columns}
       getRowKey={(item) => item.id}
+      getRowClassName={(item) => (item.parentDebtId ? 'bg-slate-50/70 dark:bg-slate-900/40' : '')}
+      disableSorting
       loading={loading}
     />
   );

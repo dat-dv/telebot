@@ -56,9 +56,10 @@ export function DebtsScreen() {
   const contactsList = useMemo(() => contactsQuery.data ?? [], [contactsQuery.data]);
 
   const stats = useMemo(() => {
+    const rootDebts = rawList.filter((d) => !d.parentDebtId);
     let active = 0;
     let settled = 0;
-    for (const d of rawList) {
+    for (const d of rootDebts) {
       if (getDebtStatus(d) === 'settled') {
         settled++;
       } else {
@@ -66,7 +67,7 @@ export function DebtsScreen() {
       }
     }
     return {
-      total: rawList.length,
+      total: rootDebts.length,
       active,
       settled,
     };
@@ -75,14 +76,18 @@ export function DebtsScreen() {
   const totalReceivable = useMemo(
     () =>
       rawList
-        .filter((d) => d.direction === 'receivable' && getDebtStatus(d) === 'active')
+        .filter(
+          (d) => !d.parentDebtId && d.direction === 'receivable' && getDebtStatus(d) === 'active',
+        )
         .reduce((sum, d) => sum + d.remainingAmount, 0),
     [rawList],
   );
   const totalPayable = useMemo(
     () =>
       rawList
-        .filter((d) => d.direction === 'payable' && getDebtStatus(d) === 'active')
+        .filter(
+          (d) => !d.parentDebtId && d.direction === 'payable' && getDebtStatus(d) === 'active',
+        )
         .reduce((sum, d) => sum + d.remainingAmount, 0),
     [rawList],
   );
@@ -93,11 +98,23 @@ export function DebtsScreen() {
       if (statusFilter !== 'all' && getDebtStatus(item) !== statusFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return (
+      const matchesSelf =
         item.counterparty.toLowerCase().includes(q) ||
         (item.counterpartyAlias && item.counterpartyAlias.toLowerCase().includes(q)) ||
-        (item.note && item.note.toLowerCase().includes(q))
-      );
+        (item.note && item.note.toLowerCase().includes(q));
+      if (matchesSelf) return true;
+      if (
+        item.children &&
+        item.children.some(
+          (c) =>
+            c.counterparty.toLowerCase().includes(q) ||
+            (c.counterpartyAlias && c.counterpartyAlias.toLowerCase().includes(q)) ||
+            (c.note && c.note.toLowerCase().includes(q)),
+        )
+      ) {
+        return true;
+      }
+      return false;
     });
   }, [rawList, directionFilter, statusFilter, search]);
 
@@ -215,6 +232,11 @@ export function DebtsScreen() {
     }
   };
 
+  const filteredRootDebts = useMemo(
+    () => filteredDebts.filter((d) => !d.parentDebtId),
+    [filteredDebts],
+  );
+
   const selectedDebts = useMemo(
     () => rawList.filter((d) => selectedIds.has(d.id)),
     [rawList, selectedIds],
@@ -230,14 +252,14 @@ export function DebtsScreen() {
   };
 
   const handleToggleSelectAll = () => {
-    if (selectedIds.size === filteredDebts.length) {
+    if (selectedIds.size === filteredRootDebts.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredDebts.map((d) => d.id)));
+      setSelectedIds(new Set(filteredRootDebts.map((d) => d.id)));
     }
   };
 
-  const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < filteredDebts.length;
+  const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < filteredRootDebts.length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -331,7 +353,7 @@ export function DebtsScreen() {
         <section className="flex flex-col gap-3" aria-label={t('debts.title')}>
           <DataPanel
             title={t('debts.title')}
-            counter={t('table.rowsCount', { count: filteredDebts.length })}
+            counter={t('table.rowsCount', { count: filteredRootDebts.length })}
             toolbar={
               <div className="flex flex-wrap items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
                 {selectedIds.size >= 2 && (
@@ -343,17 +365,17 @@ export function DebtsScreen() {
                     {t('debts.actions.combine', { count: selectedIds.size })}
                   </button>
                 )}
-                {filteredDebts.length > 0 && (
+                {filteredRootDebts.length > 0 && (
                   <button
                     type="button"
                     className={`inline-flex h-6 min-h-6 cursor-pointer items-center rounded-[3px] border px-2 text-[11px] font-medium transition-colors ${
-                      selectedIds.size === filteredDebts.length
+                      selectedIds.size === filteredRootDebts.length
                         ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-400 dark:bg-sky-950/50 dark:text-sky-300'
                         : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                     }`}
                     onClick={handleToggleSelectAll}
                   >
-                    {selectedIds.size === filteredDebts.length
+                    {selectedIds.size === filteredRootDebts.length
                       ? t('debts.deselectAll')
                       : t('debts.selectAll')}
                   </button>

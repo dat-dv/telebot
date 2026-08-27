@@ -134,6 +134,14 @@ export class ReportsController {
           placeId: item.placeId,
           placeName: item.place?.name,
           occurredAt: toIsoDate(item.occurredAt),
+          allocations: item.allocations?.map((alloc) => ({
+            id: alloc.id,
+            amount: alloc.amount,
+            debtId: alloc.debtId,
+            note: alloc.note,
+            counterparty: alloc.debt?.counterparty,
+            remainingAmount: alloc.debt?.remainingAmount,
+          })),
         })),
         debts: debts.map((item) => this.mapDebt(item)),
         calendar: calendar.map((item) => ({

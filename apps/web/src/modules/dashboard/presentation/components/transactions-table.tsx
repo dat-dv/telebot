@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { localeTag, type TransactionType } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
@@ -22,7 +22,19 @@ export type TransactionTableItem = {
     amount: number;
     debtId: string;
     note?: string;
+    counterparty?: string;
+    remainingAmount?: number;
   }>;
+  _isAllocationChild?: boolean;
+  _parentTransactionId?: string;
+  _allocation?: {
+    id: string;
+    amount: number;
+    debtId: string;
+    note?: string;
+    counterparty?: string;
+    remainingAmount?: number;
+  };
 };
 
 export type TransactionEditDraft = {
@@ -75,6 +87,32 @@ export function TransactionsTable({
 }: TransactionsTableProps) {
   const { locale, t } = useLocale();
   const money = useMoneyFormatter();
+  const [expandedAllocationIds, setExpandedAllocationIds] = useState<Set<string>>(new Set());
+
+  const flattenedTransactions = useMemo(() => {
+    const result: TransactionTableItem[] = [];
+    for (const tx of transactions) {
+      result.push(tx);
+      if (tx.allocations && tx.allocations.length > 0 && expandedAllocationIds.has(tx.id)) {
+        for (const alloc of tx.allocations) {
+          result.push({
+            id: `alloc-${alloc.id || alloc.debtId}-${tx.id}`,
+            type: tx.type,
+            category: alloc.counterparty
+              ? `${alloc.counterparty}`
+              : t('transactions.badge.allocatedChild'),
+            note: alloc.note || '',
+            amount: alloc.amount,
+            occurredAt: tx.occurredAt,
+            _isAllocationChild: true,
+            _parentTransactionId: tx.id,
+            _allocation: alloc,
+          });
+        }
+      }
+    }
+    return result;
+  }, [transactions, expandedAllocationIds, t]);
 
   const computedMaxAmount = useMemo(() => {
     if (typeof maxAmount === 'number' && maxAmount > 0) return maxAmount;
@@ -95,6 +133,13 @@ export function TransactionsTable({
         header: t('dashboard.columns.direction'),
         minWidth: '90px',
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return (
+              <span className="inline-flex items-center rounded-[2px] border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 select-none dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                {t('transactions.badge.allocatedChild')}
+              </span>
+            );
+          }
           if (editingId === item.id && editDraft && onChangeEditDraft) {
             return (
               <select
@@ -135,6 +180,18 @@ export function TransactionsTable({
         minWidth: '150px',
         hideable: false,
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return (
+              <div className="flex items-center gap-1.5 pl-3">
+                <span className="text-slate-400 select-none text-xs font-mono" aria-hidden="true">
+                  ↳
+                </span>
+                <span className="font-semibold text-slate-800 select-none dark:text-slate-200">
+                  {item.category}
+                </span>
+              </div>
+            );
+          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -173,6 +230,13 @@ export function TransactionsTable({
         header: t('dashboard.columns.note'),
         minWidth: '160px',
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return (
+              <span className="text-slate-500 select-none text-[11px] italic dark:text-slate-400">
+                {item.note || '—'}
+              </span>
+            );
+          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -197,8 +261,48 @@ export function TransactionsTable({
             );
           }
           const allocationCount = item.allocations?.length || 0;
+          const hasAllocations = allocationCount > 0;
+          const isExpanded = expandedAllocationIds.has(item.id);
           return (
             <div className="flex flex-wrap items-center gap-1.5">
+              {hasAllocations && (
+                <button
+                  type="button"
+                  className="inline-flex size-4.5 shrink-0 cursor-pointer items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedAllocationIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(item.id)) next.delete(item.id);
+                      else next.add(item.id);
+                      return next;
+                    });
+                  }}
+                  title={
+                    isExpanded
+                      ? t('transactions.collapseAllocations')
+                      : t('transactions.expandAllocations')
+                  }
+                  aria-label={
+                    isExpanded
+                      ? t('transactions.collapseAllocations')
+                      : t('transactions.expandAllocations')
+                  }
+                >
+                  <svg
+                    className={`size-3 transition-transform duration-150 ${isExpanded ? 'rotate-90 text-sky-600 dark:text-sky-400' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              )}
               <span
                 className={`text-slate-500 select-none dark:text-slate-400 ${
                   onStartEdit ? 'cursor-pointer' : ''
@@ -233,6 +337,9 @@ export function TransactionsTable({
         header: t('dashboard.columns.place'),
         minWidth: '170px',
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return <span className="text-slate-400 select-none text-[11px]">—</span>;
+          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -272,6 +379,15 @@ export function TransactionsTable({
         minWidth: '140px',
         hideable: false,
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return (
+              <div className="flex flex-col items-end select-none">
+                <span className="tabular-nums font-semibold text-sky-700 dark:text-sky-400">
+                  {money(item.amount)}
+                </span>
+              </div>
+            );
+          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -331,7 +447,7 @@ export function TransactionsTable({
         align: 'right',
         minWidth: '140px',
         cell: (item) => {
-          if (typeof item.runningBalance !== 'number') {
+          if (item._isAllocationChild || typeof item.runningBalance !== 'number') {
             return <span className="text-slate-400 select-none dark:text-slate-500">—</span>;
           }
           const isPos = item.runningBalance >= 0;
@@ -352,6 +468,9 @@ export function TransactionsTable({
         align: 'right',
         minWidth: '150px',
         cell: (item) => {
+          if (item._isAllocationChild) {
+            return <span className="text-slate-400 select-none text-[11px]">—</span>;
+          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -397,6 +516,24 @@ export function TransactionsTable({
         minWidth: '130px',
         hideable: false,
         cell: (item) => {
+          if (item._isAllocationChild && item._parentTransactionId) {
+            const parentTx = transactions.find((tx) => tx.id === item._parentTransactionId);
+            return (
+              <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+                {parentTx && onOpenAllocate && (
+                  <button
+                    type="button"
+                    className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center gap-1 rounded-[2px] border border-slate-200 bg-white px-1.5 text-[10.5px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    onClick={() => onOpenAllocate(parentTx)}
+                    title={t('transactions.allocation.editAllocations')}
+                  >
+                    <span>✏️</span>
+                    <span>{t('transactions.allocation.editAllocations')}</span>
+                  </button>
+                )}
+              </div>
+            );
+          }
           const isEditing = editingId === item.id;
           if (isEditing && editDraft && onSaveEdit && onCancelEdit) {
             const itemAllocatedSum = (item.allocations || []).reduce(
@@ -490,6 +627,7 @@ export function TransactionsTable({
     computedMaxAmount,
     editDraft,
     editingId,
+    expandedAllocationIds,
     isPending,
     locale,
     money,
@@ -502,16 +640,21 @@ export function TransactionsTable({
     categorySuggestions,
     placeSuggestions,
     t,
+    transactions,
   ]);
 
   return (
     <DataTable
       id={id}
       ariaLabel={ariaLabel ?? t('dashboard.transactions')}
-      rows={transactions}
+      rows={flattenedTransactions}
       emptyMessage={emptyMessage ?? t('dashboard.noTransactions')}
       columns={columns}
       getRowKey={(item) => item.id}
+      getRowClassName={(item) =>
+        item._isAllocationChild ? 'bg-slate-50/70 dark:bg-slate-900/40' : ''
+      }
+      disableSorting
       loading={loading}
     />
   );

@@ -377,6 +377,11 @@ const messages = {
     'transactions.allocation.cannotReduceBelowAllocated':
       'Số tiền giao dịch mới không được nhỏ hơn tổng số tiền đã phân bổ ({amount})',
     'transactions.allocation.noteOptional': 'Ghi chú phân bổ (tùy chọn)',
+    'transactions.expandAllocations': 'Mở rộng chi tiết phân bổ',
+    'transactions.collapseAllocations': 'Thu gọn chi tiết phân bổ',
+    'transactions.badge.allocatedChild': 'Phân bổ',
+    'transactions.allocation.viewDebt': 'Xem khoản nợ',
+    'transactions.allocation.editAllocations': 'Chỉnh sửa phân bổ',
     'debts.payments.linkedTransaction': 'Giao dịch liên kết',
     'category.debtRecovery': 'Thu hồi công nợ',
     'category.debtPayment': 'Trả công nợ',
@@ -923,6 +928,11 @@ const messages = {
     'transactions.allocation.cannotReduceBelowAllocated':
       'New transaction amount cannot be less than the total allocated amount ({amount})',
     'transactions.allocation.noteOptional': 'Allocation note (optional)',
+    'transactions.expandAllocations': 'Expand debt allocations',
+    'transactions.collapseAllocations': 'Collapse debt allocations',
+    'transactions.badge.allocatedChild': 'Allocation',
+    'transactions.allocation.viewDebt': 'View debt record',
+    'transactions.allocation.editAllocations': 'Edit allocations',
     'debts.payments.linkedTransaction': 'Linked Transaction',
     'category.debtRecovery': 'Debt Recovery',
     'category.debtPayment': 'Debt Repayment',
@@ -1504,6 +1514,14 @@ export interface ITransactionItem {
   placeName?: string;
   occurredAt: string;
   createdAt?: string;
+  allocations?: Array<{
+    id: string;
+    amount: number;
+    debtId: string;
+    note?: string;
+    counterparty?: string;
+    remainingAmount?: number;
+  }>;
 }
 
 export interface ICreateTransactionRequest {

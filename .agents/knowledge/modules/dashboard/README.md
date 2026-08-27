@@ -49,9 +49,10 @@ During inline transaction editing, Category is a controlled combobox rather than
   - Data table utilizes `DataTable` (`id="places"`), which automatically prepends non-hideable `stt` and `id` system columns, paired with domain columns: `name` (inline edit on double-click with `Enter`/`Escape`), `createdAt`, and `actions` (Edit, 2-step safe inline deletion).
   - Search toolbar and quick Add Place form (`+ Add place`).
   - Integrated into navigation drawer and sidebar under `DATA` (`nav.section.data`) with a dedicated location pin icon.
-- **Debt Transaction Allocation (`DebtAllocationModal`)**:
-  - On the transactions table, transactions can be linked to candidate active debts via an Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
-  - Fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).
+- **Debt Transaction Allocation & Inline Expandable Rows (`DebtAllocationModal` & `TransactionsTable`)**:
+  - On the transactions table, transactions with linked debt allocations display an interactive rotating Chevron dropdown button (`▶ / ▼` with `rotate-90`) alongside the allocation badge (`🔗 N allocations`).
+  - Clicking the dropdown button expands nested child rows directly beneath the parent transaction (`_isAllocationChild: true`), displaying the allocated counterparty, allocated amount, allocation note, branch marker (`↳`), and an edit button opening `DebtAllocationModal`.
+  - The Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).
   - Preserves traceability between cashflow events and debt payments.
   - All modal callbacks (`onClose`, `onSuccess`) and transaction table handlers are memoized via `useCallback` to prevent superfluous re-renders.
 

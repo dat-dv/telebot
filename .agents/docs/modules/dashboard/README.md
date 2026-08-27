@@ -38,9 +38,10 @@ metadata:
   - Bảng dữ liệu sử dụng `DataTable` (`id="places"`), tự động tích hợp 2 cột hệ thống bắt buộc `STT` và `ID`, đi cùng các cột nghiệp vụ: `Tên nơi chốn / Địa điểm` (hỗ trợ double-click inline edit, phím tắt `Enter`/`Escape`), `Thời gian tạo`, `Hoạt động` (Sửa, Xóa).
   - Hỗ trợ thêm nhanh nơi chốn mới qua nút `+ Thêm nơi chốn` trên toolbar, tìm kiếm theo thời gian thực và xác nhận xóa an toàn 2 bước inline.
   - Tích hợp vào thanh điều hướng Sidebar dưới mục **DỮ LIỆU** (`nav.section.data`) với icon định vị chuẩn.
-- **Phân bổ Giao dịch vào Công nợ (`DebtAllocationModal`)**:
-  - Trên bảng giao dịch thu chi, nút phân bổ mở cửa sổ `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`).
-  - Tải danh sách các khoản nợ khả dụng của liên hệ tương ứng qua `useDebtAllocationCandidatesQuery`, cho phép phân bổ số tiền giao dịch vào một hoặc nhiều khoản nợ, gọi `POST /api/debts/allocations` qua `useAllocateTransactionMutation`.
+- **Phân bổ Giao dịch vào Công nợ & Mở rộng Hàng con Inline (`DebtAllocationModal` & `TransactionsTable`)**:
+  - Trên bảng giao dịch thu chi (`TransactionsTable`), các giao dịch có phân bổ công nợ hiển thị icon nút bấm Chevron xoay (`▶ / ▼` với `rotate-90`) bên cạnh huy hiệu phân bổ (`🔗 N phân bổ`).
+  - Khi bấm mở rộng, các dòng con phân bổ hiển thị trực tiếp ngay dưới dòng chính (`_isAllocationChild: true`), thể hiện rõ ràng đối tác nợ, số tiền phân bổ, ghi chú phân bổ, ký hiệu rẽ nhánh `↳`, và nút sửa phân bổ trực tiếp.
+  - Cửa sổ `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) tải danh sách các khoản nợ khả dụng của liên hệ tương ứng qua `useDebtAllocationCandidatesQuery`, cho phép phân bổ số tiền giao dịch vào một hoặc nhiều khoản nợ, gọi `POST /api/debts/allocations` qua `useAllocateTransactionMutation`.
   - Toàn bộ callbacks (`onClose`, `onSuccess`) và các action handlers trên `TransactionsScreen` đều được bọc trong `useCallback` để đảm bảo tính ổn định của tham chiếu.
 
 ## Cơ chế chống treo render & Tối ưu hiệu năng Bảng dữ liệu

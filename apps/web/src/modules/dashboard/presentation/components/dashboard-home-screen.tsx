@@ -97,7 +97,8 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
     return data.tasks.filter((item) => item.status !== 'completed');
   }, [data.tasks]);
 
-  const attentionCount = data.debts.length + data.reminders.length + pendingTasks.length;
+  const rootDebts = useMemo(() => data.debts.filter((d) => !d.parentDebtId), [data.debts]);
+  const attentionCount = rootDebts.length + data.reminders.length + pendingTasks.length;
 
   const filteredTasks = useMemo(() => {
     if (!taskSearch.trim()) return pendingTasks;
@@ -392,7 +393,9 @@ function DashboardHomeContent({ data }: { data: DashboardData }) {
         <DataPanel
           title={t('dashboard.openDebts')}
           titleHref={APP_ROUTES.debts}
-          counter={t('table.rowsCount', { count: filteredDebts.length })}
+          counter={t('table.rowsCount', {
+            count: filteredDebts.filter((d) => !d.parentDebtId).length,
+          })}
           toolbar={
             <input
               type="search"

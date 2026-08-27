@@ -356,6 +356,8 @@ type DataTableProps<T extends DataTableRow> = {
   rows: T[];
   emptyMessage: string;
   getRowKey?: (row: T, index: number) => string | number;
+  getRowClassName?: (row: T, index: number) => string | undefined;
+  disableSorting?: boolean;
   loading?: boolean;
   allowColumnToggle?: boolean;
   allowColumnResize?: boolean;
@@ -599,6 +601,8 @@ export function DataTable<T extends DataTableRow>({
   rows,
   emptyMessage,
   getRowKey = (row) => row.id,
+  getRowClassName,
+  disableSorting = false,
   loading = false,
   allowColumnToggle,
   allowColumnResize = Boolean(id),
@@ -804,6 +808,7 @@ export function DataTable<T extends DataTableRow>({
   }, [allColumns, visibleColumnIds]);
 
   const sortedRows = useMemo(() => {
+    if (disableSorting) return rows;
     return rows
       .map((row, index) => ({ row, index, occurrence: getOccurrenceTime(row) }))
       .sort((left, right) => {
@@ -817,7 +822,7 @@ export function DataTable<T extends DataTableRow>({
         );
       })
       .map(({ row }) => row);
-  }, [rows]);
+  }, [rows, disableSorting]);
 
   const getColumnWidth = (column: DataTableColumn<T>) => columnWidths[column.id] ?? column.width;
 
@@ -943,27 +948,30 @@ export function DataTable<T extends DataTableRow>({
                 </tr>
               ))
             ) : sortedRows.length > 0 ? (
-              sortedRows.map((row, index) => (
-                <tr
-                  key={getRowKey(row, index)}
-                  className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                >
-                  {visibleColumns.map((column) => (
-                    <td
-                      key={column.id}
-                      className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
-                        column.align === 'right' ? 'text-right' : 'text-left'
-                      } ${column.className ?? ''}`.trim()}
-                      style={{
-                        minWidth: column.minWidth,
-                        width: getColumnWidth(column),
-                      }}
-                    >
-                      {column.cell(row, index)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              sortedRows.map((row, index) => {
+                const customClassName = getRowClassName ? getRowClassName(row, index) : '';
+                return (
+                  <tr
+                    key={getRowKey(row, index)}
+                    className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 ${customClassName || ''}`.trim()}
+                  >
+                    {visibleColumns.map((column) => (
+                      <td
+                        key={column.id}
+                        className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
+                          column.align === 'right' ? 'text-right' : 'text-left'
+                        } ${column.className ?? ''}`.trim()}
+                        style={{
+                          minWidth: column.minWidth,
+                          width: getColumnWidth(column),
+                        }}
+                      >
+                        {column.cell(row, index)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             ) : (
               <tr className="h-20 text-center text-slate-400 italic">
                 <td colSpan={visibleColumns.length}>{emptyMessage}</td>

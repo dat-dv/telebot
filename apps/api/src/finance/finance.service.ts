@@ -229,7 +229,7 @@ export class FinanceService {
 
     const transactions = await this.transactionRepo.find({
       where,
-      relations: { place: true },
+      relations: { place: true, allocations: { debt: true } },
       order: { occurredAt: 'DESC' },
     });
     const income = transactions
@@ -802,7 +802,7 @@ export class FinanceService {
 
   public async getActiveDebts(userId: number): Promise<DebtEntity[]> {
     return this.debtRepo.find({
-      where: { userId: userId.toString(), status: 'active' },
+      where: { userId: userId.toString(), status: 'active', parentDebtId: IsNull() },
       relations: { contact: true, payments: true },
       order: { occurredAt: 'DESC', createdAt: 'DESC', id: 'DESC' },
     });
