@@ -59,6 +59,7 @@ During inline transaction editing, Category is a controlled combobox rather than
 
 - `DataTable` (`src/shared/ui/data-table.tsx`) utilizes `allColumnsKey` string dependency tracking alongside functional state equality guards (`setVisibleColumnIds`, `setColumnWidths`). State updates from `localStorage` (`telebot:table-columns:*`, `telebot:table-widths:*`) only commit when values actually diverge from previous state, eliminating infinite render loops across dense views like `TransactionsScreen`.
 - `usePeriodFilter` memoizes its returned state object with `useMemo`, preventing downstream cascade renders when the active period date range is unchanged.
+- `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) utilizes static constant empty array references (`EMPTY_CANDIDATE_DEBTS`, `EMPTY_ALLOCATIONS`) as fallback values for query data hooks (`useCandidateDebtsQuery`, `useTransactionAllocationsQuery`), eliminating reference churn and re-render loops when query responses are pending or undefined.
 
 ## Integration seams
 

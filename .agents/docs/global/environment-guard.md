@@ -19,6 +19,10 @@ API và dashboard không tự đoán giá trị cấu hình. Nếu thiếu hoặ
 4. Chỉ bật flash-call khi có đủ `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` và `TELEGRAM_SESSION`; nếu không dùng, xóa cả ba key.
 5. Đặt `NEXT_PUBLIC_API_URL` là URL HTTP(S) đầy đủ của API trước khi chạy hoặc build dashboard.
 
+## Docker local
+
+Chạy stack local bằng `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build`. File override giữ secret trong `.env`, dùng `.env.local` cho local overrides, trỏ dashboard về `http://localhost:3000` và tắt Telegram long polling để không tranh consumer với production.
+
 ## Lỗi thường gặp
 
 - Số port/timeout/giới hạn ảnh-voice phải là số nguyên dương.

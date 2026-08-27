@@ -47,6 +47,7 @@ metadata:
 
 - **Chống vòng lặp re-render vô tận trong `DataTable`**: `DataTable` (`src/shared/ui/data-table.tsx`) sử dụng chuỗi khóa `allColumnsKey` làm dependency cho `useEffect` thay vì mảng đối tượng `allColumns`. Đồng thời tích hợp cơ chế so sánh giá trị cũ/mới (equality guard) trước khi cập nhật state `setVisibleColumnIds` và `setColumnWidths` từ `localStorage`. Trạng thái chỉ được ghi nhận lại khi có sự thay đổi thực sự, triệt tiêu 100% hiện tượng re-render vô tận làm đơ chuột hay khóa giao diện trên trang `/transactions`.
 - **Tối ưu hóa `usePeriodFilter`**: Object trả về của `usePeriodFilter` được bọc trong `useMemo` để giữ nguyên tham chiếu giữa các lượt render khi khoảng thời gian lọc không đổi.
+- **Ổn định tham chiếu fallback trong `DebtAllocationModal`**: `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) sử dụng các hằng số mảng tĩnh `EMPTY_CANDIDATE_DEBTS` và `EMPTY_ALLOCATIONS` làm fallback cho `useCandidateDebtsQuery` và `useTransactionAllocationsQuery`, loại bỏ hoàn toàn việc tạo mảng mới `[]` trên mỗi render khiến component bị render loop hoặc re-render dư thừa khi dữ liệu đang tải.
 
 ## Cấu hình production
 

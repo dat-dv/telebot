@@ -31,6 +31,19 @@ Lỗi không tái hiện được trên production vào thời điểm kiểm tr
 
 Điều này gợi ý lỗi có thể phụ thuộc thiết bị/Telegram WebView, phiên cũ hoặc điều kiện mạng tạm thời; chưa thể xác định nguyên nhân gốc chỉ từ dữ liệu hiện có.
 
+## Bổ sung tái hiện ngày 27/08/2026
+
+- Dùng liên kết đăng nhập mới của người dùng, mở `/transactions` thành công với bảng giao dịch hiện diện.
+- Nhấn menu **Vay & cho vay** không thay đổi URL trong 8 giây; nhấn Enter trên menu **Cài đặt** cũng không thay đổi URL.
+- Nút đổi giao diện vẫn nhận click và thay đổi trạng thái, nên React hydration và click handling nói chung vẫn hoạt động.
+- Không có lớp phủ nằm trên link menu: điểm giữa link trả về chính phần tử con `span` của anchor, `pointer-events: auto`.
+- Không có lỗi/cảnh báo JavaScript hoặc dấu hiệu React Scan trong DOM.
+- Điều hướng trực tiếp tới `/debts` hoạt động, hiển thị trang vay/cho vay với phiên còn hợp lệ.
+
+### Kết luận bổ sung
+
+Lỗi đã được tái hiện và chỉ ảnh hưởng tới điều hướng client-side của `next/link` trong thanh menu sau khi trang Transactions được mở. Route, phiên và dữ liệu backend không phải nguyên nhân. Nguyên nhân gốc trong cơ chế router vẫn chưa được xác nhận; mã menu hiện chỉ có handler `onClick={() => setIsOpen(false)}` ngoài hành vi của `Link`, là seam cần ưu tiên kiểm tra/sửa bằng regression test.
+
 ## Đề xuất bước tiếp theo
 
 1. Nếu lỗi xuất hiện lại, gửi ảnh màn hình kèm thời điểm và thiết bị/Telegram app đang dùng.

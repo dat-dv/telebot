@@ -34,6 +34,7 @@ services:
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     env_file:
+      - .env
       - ${ENV_FILE:-.env.local}
     environment:
       WHISPER_URL: http://127.0.0.1:8080

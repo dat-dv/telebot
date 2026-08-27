@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useId, useMemo } from 'react';
-import { localeTag, type ICandidateDebtItem } from '@telebot/contracts';
+import { localeTag, type ICandidateDebtItem, type IDebtAllocationItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import {
@@ -10,6 +10,9 @@ import {
   useAllocateTransactionMutation,
 } from '../../api/allocations-query';
 import type { TransactionTableItem } from './transactions-table';
+
+const EMPTY_CANDIDATE_DEBTS: ICandidateDebtItem[] = [];
+const EMPTY_ALLOCATIONS: IDebtAllocationItem[] = [];
 
 export interface DebtAllocationModalProps {
   isOpen: boolean;
@@ -30,9 +33,9 @@ export function DebtAllocationModal({
 
   const transactionId = transaction?.id || null;
 
-  const { data: candidates = [], isLoading: isLoadingCandidates } =
+  const { data: candidates = EMPTY_CANDIDATE_DEBTS, isLoading: isLoadingCandidates } =
     useCandidateDebtsQuery(transactionId);
-  const { data: existingAllocations = [], isLoading: isLoadingExisting } =
+  const { data: existingAllocations = EMPTY_ALLOCATIONS, isLoading: isLoadingExisting } =
     useTransactionAllocationsQuery(transactionId);
   const allocateMutation = useAllocateTransactionMutation();
 

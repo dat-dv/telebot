@@ -92,6 +92,16 @@ npm run start:prod
 docker-compose up -d --build
 ```
 
+### Chạy local với Docker
+
+Để chạy dashboard, API, PostgreSQL và Redis trên máy local mà không làm bot production long-polling, dùng override local:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+```
+
+Mở dashboard tại `http://localhost:3001`. Override local dùng các secret sẵn có trong `.env`, lấy các lựa chọn local trong `.env.local`, trỏ web tới API local và luôn đặt `TELEGRAM_LONG_POLLING_ENABLED=false`.
+
 ### 2. Xem logs & trạng thái
 
 ```bash
@@ -159,6 +169,7 @@ pm2 monit
 | Người lạ nhắn tin báo `Truy cập bị từ chối`                | Chưa được Admin mời qua link `/invite`.               | Admin gõ `/invite` lấy link gửi cho bạn, hoặc gõ `/allow <id>`.          |
 | Lỗi `Google OAuth credentials chưa được cấu hình`          | Thiếu `GOOGLE_CLIENT_ID` hoặc `GOOGLE_CLIENT_SECRET`. | Kiểm tra lại các biến môi trường trên Coolify hoặc file `.env`.          |
 | AI báo lỗi `Rate limit` hoặc `All model candidates failed` | Quota Gemini API Key bị hết hoặc sai Key.             | Kiểm tra biến `GEMINI_API_KEY` trên Google AI Studio.                    |
+
 ## 9. Khởi tạo PostgreSQL trống
 
 Với database PostgreSQL hoàn toàn mới, đặt `TYPEORM_SYNCHRONIZE=true` cho đúng một lần deploy để TypeORM tạo schema. Khi API khởi động thành công, đổi biến này thành `false` và deploy lại. Luôn giữ `DATABASE_URL` hợp lệ; API sẽ từ chối khởi động nếu thiếu cấu hình PostgreSQL.
