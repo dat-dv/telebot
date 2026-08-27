@@ -535,6 +535,11 @@ const messages = {
     'settings.preferences.themeTitle': 'Giao diện & Chủ đề',
     'settings.preferences.themeDescription': 'Chế độ Sáng / Tối (Light & Dark mode)',
     'settings.preferences.supported': 'Đã hỗ trợ',
+    'settings.preferences.reactScanTitle': 'React Scan',
+    'settings.preferences.reactScanDescription':
+      'Dò tìm render chậm ngay trên trình duyệt này. Chỉ bật khi cần kiểm tra hiệu năng.',
+    'settings.preferences.reactScanEnabled': 'Đang bật',
+    'settings.preferences.reactScanDisabled': 'Đang tắt',
     'public.brand': 'Telebot',
     'public.supportEmail': 'datdoan.dev@gmail.com',
     'public.updated': 'CẬP NHẬT: 24/08/2026',
@@ -1076,6 +1081,11 @@ const messages = {
     'settings.preferences.themeTitle': 'Interface & Theme',
     'settings.preferences.themeDescription': 'Light and Dark mode',
     'settings.preferences.supported': 'Supported',
+    'settings.preferences.reactScanTitle': 'React Scan',
+    'settings.preferences.reactScanDescription':
+      'Detect slow renders in this browser. Enable only while investigating performance.',
+    'settings.preferences.reactScanEnabled': 'Enabled',
+    'settings.preferences.reactScanDisabled': 'Disabled',
     'public.brand': 'Telebot',
     'public.supportEmail': 'datdoan.dev@gmail.com',
     'public.updated': 'UPDATED: 24/08/2026',

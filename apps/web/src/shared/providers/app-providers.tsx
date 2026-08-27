@@ -6,6 +6,7 @@ import { captureDashboardToken } from '@/modules/auth/client/auth-storage';
 import { ThemeProvider } from './theme-provider';
 import { LocaleProvider } from './locale-provider';
 import { MoneyVisibilityProvider } from './money-visibility-provider';
+import { ReactScanProvider } from './react-scan-provider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -25,12 +26,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   return (
-    <QueryClientProvider client={queryClient}>
-      <LocaleProvider>
-        <MoneyVisibilityProvider>
-          <ThemeProvider>{children}</ThemeProvider>
-        </MoneyVisibilityProvider>
-      </LocaleProvider>
-    </QueryClientProvider>
+    <ReactScanProvider>
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <MoneyVisibilityProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </MoneyVisibilityProvider>
+        </LocaleProvider>
+      </QueryClientProvider>
+    </ReactScanProvider>
   );
 }

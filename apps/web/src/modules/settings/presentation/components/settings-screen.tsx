@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { ICategoryItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { DataPanel, DataTable, type DataTableColumn } from '@/shared/ui/data-table';
+import { useReactScan } from '@/shared/providers/react-scan-provider';
 
 import {
   categoriesQueryKeys,
@@ -17,6 +18,7 @@ import {
 export function SettingsScreen() {
   const queryClient = useQueryClient();
   const { t } = useLocale();
+  const { isReactScanEnabled, setReactScanEnabled } = useReactScan();
 
   const [activeTab, setActiveTab] = useState<'categories' | 'preferences'>('categories');
   const [expenseSearch, setExpenseSearch] = useState('');
@@ -446,6 +448,32 @@ export function SettingsScreen() {
                 <span className="inline-flex items-center rounded-[2px] border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                   {t('settings.preferences.supported')}
                 </span>
+              </article>
+              <article className="flex items-center justify-between gap-4 py-3">
+                <div>
+                  <strong className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    {t('settings.preferences.reactScanTitle')}
+                  </strong>
+                  <p className="mt-1 text-[11.5px] text-slate-500 dark:text-slate-400">
+                    {t('settings.preferences.reactScanDescription')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isReactScanEnabled}
+                  aria-label={t('settings.preferences.reactScanTitle')}
+                  className={`inline-flex h-6 min-w-[76px] shrink-0 items-center justify-center rounded-[3px] border px-2 text-[11px] font-semibold transition-colors ${
+                    isReactScanEnabled
+                      ? 'border-violet-500 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-400 dark:bg-violet-950/50 dark:text-violet-300'
+                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
+                  onClick={() => setReactScanEnabled(!isReactScanEnabled)}
+                >
+                  {isReactScanEnabled
+                    ? t('settings.preferences.reactScanEnabled')
+                    : t('settings.preferences.reactScanDisabled')}
+                </button>
               </article>
             </div>
           </DataPanel>
