@@ -49,3 +49,15 @@ export async function combineDebts(
   >(API_ROUTES.debtsCombine, data, { signal });
   return response.data.data;
 }
+
+export async function deleteDebtPayment(
+  debtId: string,
+  paymentId: string,
+  signal?: AbortSignal,
+): Promise<{ deleted: boolean }> {
+  const response = await httpClient.delete<IApiResponse<{ deleted: boolean }>>(
+    `${API_ROUTES.debts}/${debtId}/payments/${paymentId}`,
+    { signal },
+  );
+  return response.data.data;
+}

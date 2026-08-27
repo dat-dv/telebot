@@ -9,7 +9,13 @@ import {
   type IDebtPaymentItem,
   type IUpdateDebtRequest,
 } from '@telebot/contracts';
-import { combineDebts, createDebtPayment, getDebts, updateDebt } from './debts-api';
+import {
+  combineDebts,
+  createDebtPayment,
+  deleteDebtPayment,
+  getDebts,
+  updateDebt,
+} from './debts-api';
 
 export const debtsQueryKeys = { list: () => ['debts'] as const };
 
@@ -35,6 +41,17 @@ export function useCreateDebtPaymentMutation() {
   const queryClient = useQueryClient();
   return useMutation<IDebtPaymentItem, Error, ICreateDebtPaymentRequest>({
     mutationFn: (data) => createDebtPayment(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteDebtPaymentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<{ deleted: boolean }, Error, { debtId: string; paymentId: string }>({
+    mutationFn: ({ debtId, paymentId }) => deleteDebtPayment(debtId, paymentId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });

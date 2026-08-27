@@ -520,6 +520,19 @@ export class FinanceController {
     };
   }
 
+  @Delete('debts/:id/payments/:paymentId')
+  @ApiOperation({ summary: 'Xóa đợt thanh toán nợ' })
+  async deleteDebtPayment(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+  ) {
+    if (!(await this.finance.deleteDebtPayment(this.userId(req), id, paymentId))) {
+      throw new NotFoundException();
+    }
+    return { data: { deleted: true } };
+  }
+
   @Delete('debts/:id')
   async deleteDebt(@Req() req: Request, @Param('id') id: string) {
     if (!(await this.finance.deleteDebt(this.userId(req), id))) throw new NotFoundException();

@@ -13,6 +13,7 @@ import { useContactsQuery } from '@/modules/contacts/api/contacts-query';
 import {
   debtsQueryKeys,
   useCreateDebtPaymentMutation,
+  useDeleteDebtPaymentMutation,
   useDebtsQuery,
   useUpdateDebtMutation,
 } from '../../api/debts-query';
@@ -46,6 +47,7 @@ export function DebtsScreen() {
   const contactsQuery = useContactsQuery();
   const updateMutation = useUpdateDebtMutation();
   const paymentMutation = useCreateDebtPaymentMutation();
+  const deletePaymentMutation = useDeleteDebtPaymentMutation();
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: debtsQueryKeys.list() });
@@ -227,6 +229,16 @@ export function DebtsScreen() {
         note: t('debts.actions.repay'),
       });
       showToast(t('debts.inlineEdit.saved'));
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDeletePayment = async (debtId: string, paymentId: string) => {
+    if (!window.confirm(t('debts.deletePayment.confirm'))) return;
+    try {
+      await deletePaymentMutation.mutateAsync({ debtId, paymentId });
+      showToast(t('debts.deletePayment.success'));
     } catch {
       // Error handled by mutation
     }
@@ -489,8 +501,13 @@ export function DebtsScreen() {
               onCancelEdit={handleCancelEdit}
               onSaveEdit={handleSaveEdit}
               onQuickSettle={handleQuickSettle}
+              onDeletePayment={handleDeletePayment}
               onCounterpartyChange={handleCounterpartyChange}
-              isPending={updateMutation.isPending || paymentMutation.isPending}
+              isPending={
+                updateMutation.isPending ||
+                paymentMutation.isPending ||
+                deletePaymentMutation.isPending
+              }
             />
           </DataPanel>
         </section>

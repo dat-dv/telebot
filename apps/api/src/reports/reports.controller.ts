@@ -228,6 +228,15 @@ export class ReportsController {
       updatedAt: toOptionalIsoDate(debt.updatedAt),
       childCount: debt.children?.length || 0,
       children: debt.children?.map((child: DebtEntity) => this.mapDebt(child)),
+      payments: debt.payments?.map((payment) => ({
+        id: payment.id,
+        debtId: payment.debtId,
+        amount: payment.amount,
+        paymentDate: toIsoDate(payment.paymentDate || payment.createdAt),
+        note: payment.note || undefined,
+        financeTransactionId: payment.financeTransactionId || undefined,
+        createdAt: toIsoDate(payment.createdAt),
+      })),
     };
   }
 

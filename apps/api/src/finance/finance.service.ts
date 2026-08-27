@@ -813,8 +813,8 @@ export class FinanceService {
       where: status ? { userId: userId.toString(), status } : { userId: userId.toString() },
       relations: {
         contact: true,
-        payments: true,
-        children: { contact: true, payments: true },
+        payments: { financeTransaction: true },
+        children: { contact: true, payments: { financeTransaction: true } },
         parentDebt: true,
       },
       order: {
@@ -1205,6 +1205,66 @@ export class FinanceService {
       where: { debtId, userId: userId.toString() },
       relations: { financeTransaction: true },
       order: { paymentDate: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  public async deleteDebtPayment(
+    userId: number,
+    debtId: string,
+    paymentId: string,
+  ): Promise<boolean> {
+    const uid = userId.toString();
+    return this.debtRepo.manager.transaction(async (manager) => {
+      const debtRepo = manager.getRepository(DebtEntity);
+      const debtPaymentRepo = manager.getRepository(DebtPaymentEntity);
+      const transactionRepo = manager.getRepository(FinanceTransactionEntity);
+
+      const payment = await debtPaymentRepo.findOne({
+        where: { id: paymentId, debtId, userId: uid },
+      });
+      if (!payment) return false;
+
+      const debt = await debtRepo.findOne({
+        where: { id: debtId, userId: uid },
+      });
+      if (debt) {
+        debt.remainingAmount = Math.min(debt.originalAmount, debt.remainingAmount + payment.amount);
+        if (debt.remainingAmount > 0) {
+          debt.status = 'active';
+          debt.settledAt = undefined;
+        }
+        await debtRepo.save(debt);
+
+        if (debt.parentDebtId) {
+          const parent = await debtRepo.findOne({
+            where: { id: debt.parentDebtId, userId: uid },
+            relations: { children: true },
+          });
+          if (parent && parent.children) {
+            parent.remainingAmount = parent.children.reduce(
+              (sum, c) => (c.id === debt.id ? sum + debt.remainingAmount : sum + c.remainingAmount),
+              0,
+            );
+            if (parent.remainingAmount > 0) {
+              parent.status = 'active';
+              parent.settledAt = undefined;
+            }
+            await debtRepo.save(parent);
+          }
+        }
+      }
+
+      if (payment.financeTransactionId) {
+        const tx = await transactionRepo.findOne({
+          where: { id: payment.financeTransactionId, userId: uid },
+        });
+        if (tx) {
+          await transactionRepo.remove(tx);
+        }
+      }
+
+      await debtPaymentRepo.remove(payment);
+      return true;
     });
   }
 
