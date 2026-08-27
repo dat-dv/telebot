@@ -68,12 +68,7 @@ export class TelegramUpdate {
             action.chatId,
             action.messageId,
             undefined,
-            this.uiService.formatResultBox(
-              'cancelled',
-              { changed: false },
-              action.referenceId,
-              true,
-            ),
+            this.uiService.formatCancelledBox(action.name, action.payload, action.referenceId),
             { parse_mode: 'HTML', ...this.uiService.buildNotificationActionsMarkup() },
           );
         } catch (error) {
@@ -1027,15 +1022,25 @@ ${googleStatus}
     if (!actionId || !userId) return;
     try {
       const receiptUrl = this.geminiService.getPendingReceiptUrl(actionId, userId);
-      const { name, result, referenceId } = await this.geminiService.confirmPendingAction(
-        actionId,
-        userId,
-      );
+      const pending = this.geminiService.getPendingAction?.(actionId, userId);
+      const initialPayload = pending?.payload || {};
+      const {
+        name,
+        payload: confirmedPayload,
+        result,
+        referenceId,
+      } = await this.geminiService.confirmPendingAction(actionId, userId);
+      const finalPayload = confirmedPayload || initialPayload;
       if (result.success !== true) await this.removePendingReceipt(userId, receiptUrl);
-      const resultBox = this.uiService.formatResultBox(name, result, referenceId);
-      this.conversationHistoryService.appendModelMessage(userId, resultBox);
+      const confirmedBox = this.uiService.formatConfirmedBox(
+        name,
+        finalPayload,
+        result,
+        referenceId,
+      );
+      this.conversationHistoryService.appendModelMessage(userId, confirmedBox);
       await ctx.answerCbQuery('Đã xác nhận và thực hiện.');
-      await ctx.editMessageText(resultBox, {
+      await ctx.editMessageText(confirmedBox, {
         parse_mode: 'HTML',
         ...this.uiService.buildNotificationActionsMarkup(),
       });
@@ -1051,14 +1056,18 @@ ${googleStatus}
     const userId = ctx.from?.id;
     if (!actionId || !userId) return;
     const receiptUrl = this.geminiService.getPendingReceiptUrl(actionId, userId);
+    const pending = this.geminiService.getPendingAction?.(actionId, userId);
+    const name = pending?.name || 'cancelled';
+    const payload = pending?.payload || { changed: false };
+    const referenceId = pending?.referenceId || 'CANCELLED';
     const cancelled = this.geminiService.cancelPendingAction(actionId, userId);
     if (cancelled) await this.removePendingReceipt(userId, receiptUrl);
     await ctx.answerCbQuery(cancelled ? 'Đã hủy thao tác.' : 'Yêu cầu không còn hiệu lực.');
     if (cancelled) {
-      await ctx.editMessageText(
-        this.uiService.formatResultBox('cancelled', { changed: false }, 'CANCELLED', true),
-        { parse_mode: 'HTML', ...this.uiService.buildNotificationActionsMarkup() },
-      );
+      await ctx.editMessageText(this.uiService.formatCancelledBox(name, payload, referenceId), {
+        parse_mode: 'HTML',
+        ...this.uiService.buildNotificationActionsMarkup(),
+      });
     } else {
       await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     }

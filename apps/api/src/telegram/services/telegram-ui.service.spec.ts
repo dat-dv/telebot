@@ -572,3 +572,80 @@ void test('formats allocate_transaction_to_debts confirmation and result box', (
   assert.match(result, /Đã phân bổ 2 khoản nợ/);
   assert.match(result, /Chưa phân bổ: 500\.000đ/);
 });
+
+void test('formats impact explanation for create_finance_transaction with createNewPlace', () => {
+  const service = new TelegramUiService();
+  const impact = service.formatImpactExplanation('create_finance_transaction', {
+    type: 'expense',
+    amount: 45000,
+    placeName: 'Quán Cô Ba',
+    createNewPlace: true,
+  });
+
+  assert.match(impact, /Tác động hệ thống/);
+  assert.match(impact, /Nếu Xác nhận/);
+  assert.match(impact, /Lưu nơi chốn mới <b>Quán Cô Ba<\/b>/);
+  assert.match(impact, /45\.000đ/);
+  assert.match(impact, /Nếu Hủy bỏ/);
+  assert.match(impact, /số dư ví giữ nguyên/);
+});
+
+void test('formats confirmed box with callout header, result summary, and original summary', () => {
+  const service = new TelegramUiService();
+  const confirmed = service.formatConfirmedBox(
+    'create_finance_transaction',
+    {
+      type: 'expense',
+      amount: 65000,
+      category: 'Ăn uống',
+      note: 'Cơm trưa',
+      placeName: 'Quán chay Vườn Lài',
+      occurredAt: '2026-08-24T12:30:00+07:00',
+    },
+    {
+      success: true,
+      transaction: {
+        id: 'tx-123',
+        type: 'expense',
+        amount: 65000,
+        amountText: '65.000đ',
+        category: 'Ăn uống',
+        note: 'Cơm trưa',
+        placeName: 'Quán chay Vườn Lài',
+        occurredAt: '2026-08-24T12:30:00+07:00',
+      },
+    },
+    'REQ-CONF001',
+  );
+
+  assert.match(confirmed, /ĐÃ XÁC NHẬN & THỰC HIỆN THÀNH CÔNG/);
+  assert.match(confirmed, /REQ-CONF001/);
+  assert.match(confirmed, /Kết quả đã ghi nhận/);
+  assert.match(confirmed, /Đã ghi sổ thu–chi/);
+  assert.match(confirmed, /65\.000đ/);
+  assert.match(confirmed, /Nội dung yêu cầu đã duyệt/);
+  assert.match(confirmed, /Cơm trưa/);
+  assert.match(confirmed, /Quán chay Vườn Lài/);
+});
+
+void test('formats cancelled box with safety assurance and preserved original summary', () => {
+  const service = new TelegramUiService();
+  const cancelled = service.formatCancelledBox(
+    'create_debt',
+    {
+      direction: 'receivable',
+      counterparty: 'Trí',
+      amount: 500000,
+      note: 'mượn tiền',
+    },
+    'REQ-CANC001',
+  );
+
+  assert.match(cancelled, /ĐÃ HỦY YÊU CẦU THAO TÁC/);
+  assert.match(cancelled, /REQ-CANC001/);
+  assert.match(cancelled, /Không có bất kỳ dữ liệu nào bị thay đổi/);
+  assert.match(cancelled, /Nội dung yêu cầu đã hủy/);
+  assert.match(cancelled, /Cho vay/);
+  assert.match(cancelled, /Trí/);
+  assert.match(cancelled, /500\.000đ/);
+});

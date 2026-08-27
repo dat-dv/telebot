@@ -8,16 +8,16 @@ AI-generated Markdown is normalized before delivery: HTML entities are decoded a
 
 Long-lived interactive list and information messages (today summary, task list, account status, admin user list, debt detail, and dashboard/report links) include a close action. It deletes the message when Telegram permits it; otherwise, it removes the inline keyboard so obsolete actions cannot be used. Confirmation dialogs retain cancel semantics, while reminder and calendar receipts retain their hide-controls action.
 
-When the user continues chatting, sends a new message (text, voice, photo), or issues a new command while a confirmation dialog is still open:
-- All pending confirmation actions and pending voice requests for that user are automatically cancelled.
-- The previous confirmation message in Telegram is automatically updated (via `editMessageText`) to `❌ Đã hủy thao tác.` (or `❌ Đã hủy yêu cầu từ voice.`) with inline confirmation buttons removed to prevent accidental taps.
-- If the user taps a button on an expired or cancelled confirmation message, the bot answers with an invalid notice and strips the obsolete inline buttons.
+## Confirmation Cards & Two-Way Impact Explanation
+Every confirmation dialog (`formatConfirmationBox`) is structured into four distinct visual sections:
+1. **Primary Business Details**: Structured summary with intuitive icons (income/expense amount, dates, places, notes, counterparts).
+2. **System Impact Explanation (`🎯 Tác động hệ thống:`)**: Explicit two-way explanation detailing exactly what happens upon confirmation (`• ✅ Nếu Xác nhận: ...`) and guaranteeing safety upon cancellation (`• ❌ Nếu Hủy bỏ: ...`).
+3. **Transparent Technical Details**: An escaped, formatted JSON preview (`<pre><code class="language-json">...</code></pre>`) under `🔍 Chi tiết kỹ thuật (Payload JSON...):` containing the final API mutation payload. UI-only `duplicateWarnings` are excluded.
+4. **Action Buttons**: `[✅ Xác nhận]` and `[❌ Hủy bỏ]`.
 
-Every confirmation card displays an escaped, formatted JSON preview (`<pre><code class="language-json">...</code></pre>`) of the final action payload before any mutation. This applies to finance, debts, tasks, calendar, reminders, invite/admin actions, and debt deletion. UI-only `duplicateWarnings` are excluded because they are not sent to the executing tool.
+## Post-Action Callout State (Context Preservation)
+Instead of replacing the confirmation message with a single generic result string, the message is updated into a persistent Callout Card that preserves original request context:
+- **Confirmed Execution (`formatConfirmedBox`)**: Renders a success banner (`✅ ĐÃ XÁC NHẬN & THỰC HIỆN THÀNH CÔNG`), a summary of newly recorded/updated entities (`✨ Kết quả đã ghi nhận:`), and the preserved original request summary (`📋 Nội dung yêu cầu đã duyệt:`).
+- **Cancelled Execution (`formatCancelledBox`)**: Renders a cancelled banner (`❌ ĐÃ HỦY YÊU CẦU THAO TÁC`), a safety assurance notice stating that no data was modified, and a summary of the cancelled request.
+- **Auto-Cancellation on New Intake**: When the user sends a new message (text, voice, photo) while a confirmation is pending, previous confirmation cards are auto-updated to the cancelled callout state, removing inline action buttons to prevent accidental clicks.
 
-Finance transaction confirmations (`create_finance_transaction`, `create_finance_transactions`) present structured fields (type, formatted VND amount, category, note, place name, and occurred/issued date) alongside that JSON preview and confirmation buttons before mutating records.
-
-Debt confirmations and results (`create_debt`, `record_debt_payment`, `update_debt_contact`) present user-facing structured cards with the common escaped JSON preview:
-- `create_debt` confirmation states direction clearly (*Cho vay (Người khác nợ bạn)* vs *Đi vay (Bạn nợ người khác)*), counterparty, alias, formatted VND amount, note, due date, and new contact notice before confirmation. Its JSON preview contains `direction`, `counterparty`, `amount`, `note`, and supplied optional values (`counterpartyAlias`, `dueAt`, `createNewContact`). The result card displays `Đã ghi khoản cho vay` or `Đã ghi khoản vay` with counterparty, alias, formatted amount, and note.
-- `record_debt_payment` confirmation displays payment amount, and result card shows remaining balance or settled status (*Đã tất toán*).
-- `update_debt_contact` confirmation and result cards display updated name and alias.

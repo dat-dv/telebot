@@ -116,6 +116,8 @@ void test('onTextMessage auto-cancels pending actions and edits the previous mes
     withTyping: async <T>(_ctx: unknown, action: () => Promise<T>) => action(),
     formatResultBox: (_name: string, _res: unknown, _ref: string, cancelled: boolean) =>
       cancelled ? '❌ Đã hủy thao tác.' : '',
+    formatCancelledBox: () => '❌ Đã hủy thao tác.',
+    formatConfirmedBox: () => '✅ Đã xác nhận & thực hiện thành công.',
     buildNotificationActionsMarkup: () => ({ reply_markup: {} }),
     sendSafeReply: () => Promise.resolve(),
   };

@@ -15,34 +15,37 @@ Response Telegram cần ưu tiên nội dung người dùng cần quyết địn
 
 Các nút ngắn, liên quan trực tiếp có thể cùng một hàng. Nút dài phải để hàng riêng để không bị tràn trên điện thoại. Khi có cùng một hành động ở nhiều phạm vi, nhãn phải nói rõ phạm vi: làm mới lịch hôm nay và làm mới lịch 7 ngày dùng hai callback riêng. Không đổi callback data và không đổi JSON fallback của hộp xác nhận, trừ callback mới cần thiết cho một phạm vi mới.
 
-Trước khi gửi Markdown do AI tạo, bot giải mã HTML entity và bỏ escape thừa trước dấu `&` trong URL. Vì vậy chuỗi như ` ` hoặc `\\&ctz` không được xuất hiện nguyên văn trong chat.
+Trước khi gửi Markdown do AI tạo, bot giải mã HTML entity và bỏ escape thừa trước dấu `&` trong URL. Vì vậy chuỗi như ` ` hoặc `\&ctz` không được xuất hiện nguyên văn trong chat.
 
 Các tin nhắn danh sách/thông tin có nút thao tác dài hạn — tổng kết hôm nay, danh sách việc, trạng thái tài khoản, danh sách người dùng, chi tiết công nợ và liên kết Dashboard/Báo cáo — phải có nút `❌ Đóng`. Khi bấm, bot ưu tiên xóa tin nhắn; nếu Telegram không cho phép xóa thì gỡ toàn bộ bàn phím inline để không còn thao tác cũ. Hộp xác nhận vẫn dùng `Hủy`; biên nhận Reminder và Calendar giữ `Ẩn nút` để không làm mất lịch sử thao tác.
 
-Khi người dùng đang có một hộp xác nhận (hoặc yêu cầu voice) mở nhưng không bấm nút mà gửi tin nhắn mới (text, voice, photo) hoặc gọi lệnh mới:
+## 1. Cấu Trúc Hộp Xác Nhận (Confirmation Cards) & Giải Thích Tác Động 2 Chiều
+Mọi hộp xác nhận (`formatConfirmationBox`) đều chia làm 4 khối trực quan rõ ràng:
+1. **Thông tin nghiệp vụ chính**: Thẻ tóm tắt chi tiết (loại thu/chi, số tiền format VND, nơi chốn, danh mục, thời gian phát sinh, đối tác công nợ, hạn chót).
+2. **Khối giải thích tác động hệ thống (`🎯 Tác động hệ thống:`)**: Nêu rõ ràng hành vi 2 chiều cho người dùng:
+   - `• ✅ Nếu Xác nhận`: Thao tác cụ thể sẽ diễn ra (ghi sổ, tạo nơi chốn mới, trừ nợ, đồng bộ Google Tasks/Calendar,...).
+   - `• ❌ Nếu Hủy bỏ`: Cam kết an toàn (không có dữ liệu nào bị thay đổi, số dư/danh bạ giữ nguyên).
+3. **Khối minh bạch kỹ thuật (`🔍 Chi tiết kỹ thuật (Payload JSON...):`)**: Khối `<pre><code class="language-json">...</code></pre>` chứa chính xác JSON payload gọi API (tuân thủ quy định `ai-tool-transparency-and-resolution.md`).
+4. **Mã yêu cầu & Nút bấm**: Mã định danh (ví dụ `🔖 Mã: REQ-XXXXXX`) kèm cặp nút `[✅ Xác nhận]` và `[❌ Hủy bỏ]`.
 
-- Hệ thống tự động hủy toàn bộ các yêu cầu xác nhận đang chờ của người dùng đó.
-- Tin nhắn xác nhận cũ trên Telegram được tự động cập nhật (edit message) thành `❌ Đã hủy thao tác.` (hoặc `❌ Đã hủy yêu cầu từ voice.`) và gỡ bỏ toàn bộ nút bấm inline để tránh bấm nhầm.
-- Nếu người dùng bấm vào nút của tin nhắn đã hết hạn hoặc bị hủy, bot thông báo không còn hiệu lực và xóa bỏ nút bấm inline bị treo.
+## 2. Trạng Thái Callout Sau Khi Phê Duyệt / Hủy Bỏ (Context Preservation)
+Sau khi người dùng tương tác hoặc khi tin nhắn bị hủy tự động:
+- **Xác nhận thành công (`formatConfirmedBox`)**: Cập nhật tin nhắn thành thẻ Callout xanh:
+  - Header: `✅ ĐÃ XÁC NHẬN & THỰC HIỆN THÀNH CÔNG`
+  - Mã tham chiếu `🔖 Mã: REQ-XXXXXX`
+  - Kết quả mới ghi nhận (`✨ Kết quả đã ghi nhận:`)
+  - Nội dung yêu cầu gốc đã duyệt (`📋 Nội dung yêu cầu đã duyệt:`) -> Người dùng dễ dàng đối chiếu, không bị mất ngữ cảnh giao dịch.
+- **Hủy bỏ thao tác (`formatCancelledBox`)**: Cập nhật tin nhắn thành thẻ Callout đỏ:
+  - Header: `❌ ĐÃ HỦY YÊU CẦU THAO TÁC`
+  - Lời bảo đảm an toàn dữ liệu (`🛡️ Yêu cầu đã được hủy an toàn. Không có bất kỳ dữ liệu nào bị thay đổi...`)
+  - Nội dung yêu cầu đã hủy (`📋 Nội dung yêu cầu đã hủy:`)
+- **Tự động hủy khi có tin nhắn mới**: Nếu người dùng đang có hộp xác nhận nhưng gửi tin nhắn mới (text/voice/ảnh), tin nhắn cũ tự động chuyển sang Callout đã hủy và gỡ bỏ inline buttons.
 
-Mọi hộp xác nhận đều hiển thị khối `Payload JSON` đã format và escape (`<pre><code class="language-json">...</code></pre>`) của đúng payload sẽ được thực thi trước khi người dùng bấm Xác nhận. Quy tắc này áp dụng cho thu–chi, công nợ, việc, lịch, lời nhắc, thao tác quản trị và xóa công nợ. `duplicateWarnings` chỉ phục vụ giao diện nên không có trong JSON vì không được gửi tới tool thực thi.
+## 3. Danh Mục Kiểm Tra (Verification Checklist)
 
-Hộp xác nhận thu–chi (`create_finance_transaction`, `create_finance_transactions`) hiển thị thẻ thông tin giao dịch trực quan (loại, số tiền VND, danh mục, nội dung, ngày phát sinh) cùng khối JSON payload xem trước. Mặc định mốc phát sinh là thời điểm hiện tại, trừ khi người dùng chỉ định thời gian quá khứ (input muộn).
+1. Mọi hộp xác nhận (18 công cụ) đều hiển thị đầy đủ 4 khối: Nghiệp vụ + Tác động hệ thống + Chi tiết kỹ thuật JSON + Nút bấm.
+2. Khối JSON payload render đúng cú pháp `language-json`, HTML entity được escape an toàn.
+3. Khi bấm Xác nhận, tin nhắn chuyển sang Callout thành công, giữ nguyên tóm tắt yêu cầu gốc và hiển thị kết quả mới.
+4. Khi bấm Hủy hoặc khi gửi tin nhắn mới làm hủy tự động, tin nhắn chuyển sang Callout hủy an toàn kèm tóm tắt yêu cầu đã hủy.
+5. Chạy `npm run test --workspace @telebot/api`, `npm run typecheck`, `npm run lint` và `npm run agent-system:validate` đều pass 100%.
 
-Hộp xác nhận và kết quả công nợ (`create_debt`, `record_debt_payment`, `update_debt_contact`) hiển thị thẻ giao diện trực quan và khối JSON payload dùng chung:
-
-- Hộp xác nhận `create_debt`: Nêu rõ chiều công nợ (_Cho vay (Người khác nợ bạn)_ hoặc _Đi vay (Bạn nợ người khác)_), tên đối tác, biệt danh, số tiền format VND, ghi chú, hạn trả và ghi chú thêm người mới vào danh bạ (nếu có). Khối JSON gồm `direction`, `counterparty`, `amount`, `note` và chỉ thêm `counterpartyAlias`, `dueAt`, `createNewContact` khi có giá trị.
-- Thẻ kết quả `create_debt`: Hiển thị rõ `Đã ghi khoản cho vay` hoặc `Đã ghi khoản vay` kèm đối tác, biệt danh, số tiền và ghi chú.
-- Hộp xác nhận & kết quả `record_debt_payment`: Thể hiện số tiền trả, đối tác và trạng thái còn lại hoặc tất toán (_Đã tất toán_).
-- Hộp xác nhận & kết quả `update_debt_contact`: Thể hiện tên và biệt danh mới được cập nhật.
-
-## Kiểm tra
-
-1. Danh sách task có hai nút hoàn tất ngắn trên một hàng và mỗi nút vẫn trỏ đúng `complete_task:<id>`.
-2. Kết quả hoàn thành task chỉ hiển thị trạng thái và tên việc, không in JSON kỹ thuật.
-3. Mọi hộp xác nhận đều có một khối `Payload JSON` thuộc `language-json`; JSON có ký tự HTML phải được escape và không chứa `duplicateWarnings`.
-4. Hộp xác nhận công nợ `create_debt` hiển thị rõ chiều công nợ, đối tác, số tiền, ghi chú và JSON payload preview; các trường tùy chọn chỉ xuất hiện khi có dữ liệu. Kết quả hiển thị đúng định dạng khoản vay/cho vay.
-5. Mở Calendar hoặc Reminder trên điện thoại: các nút ngắn được ghép hàng nhưng vẫn đọc đủ nhãn.
-6. Mở `/debts`, `/tasks`, `/status`, `/users` hoặc Dashboard/Báo cáo, bấm `❌ Đóng`: tin nhắn bị xóa hoặc không còn bàn phím inline nếu thao tác xóa bị Telegram từ chối.
-7. Mở `/today` và `/week`: mỗi nút làm mới phải nêu đúng phạm vi và chỉ tải lại đúng báo cáo đó. Menu phải hiển thị `💳 Công nợ đang mở`.
-8. Gửi phản hồi có ` ` và URL chứa `\\&`: chat phải hiển thị khoảng trắng và dấu `&` bình thường.

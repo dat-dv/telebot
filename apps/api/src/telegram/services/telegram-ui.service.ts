@@ -264,11 +264,11 @@ export class TelegramUiService {
         },
       ];
       const json = this.escapeHtml(JSON.stringify(multiAction, null, 2));
-      return `${message}\n\n📄 <b>Payloads JSON (${multiAction.length} thao tác API):</b>\n<pre><code class="language-json">${json}</code></pre>`;
+      return `${message}\n\n🔍 <b>Chi tiết kỹ thuật (Payload JSON - ${multiAction.length} thao tác API):</b>\n<pre><code class="language-json">${json}</code></pre>`;
     }
 
     const json = this.escapeHtml(JSON.stringify(actionPayload, null, 2));
-    return `${message}\n\n📄 <b>Payload JSON:</b>\n<pre><code class="language-json">${json}</code></pre>`;
+    return `${message}\n\n🔍 <b>Chi tiết kỹ thuật (Payload JSON):</b>\n<pre><code class="language-json">${json}</code></pre>`;
   }
 
   public formatConfirmationBox(
@@ -283,14 +283,123 @@ export class TelegramUiService {
     );
   }
 
+  public formatImpactExplanation(name: string, payload: Record<string, unknown>): string {
+    if (name === 'create_finance_transaction') {
+      const typeText = payload.type === 'income' ? 'khoản thu' : 'khoản chi';
+      const amountText =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'số tiền';
+      const placeText =
+        typeof payload.placeName === 'string' && payload.placeName.trim()
+          ? payload.placeName.trim()
+          : '';
+      if (payload.createNewPlace === true && placeText) {
+        return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lưu nơi chốn mới <b>${this.escapeHtml(placeText)}</b> vào danh bạ và ghi sổ ${typeText} <b>${this.escapeHtml(amountText)}</b> vào CSDL.\n• <b>❌ Nếu Hủy bỏ:</b> Hủy bỏ yêu cầu, không ghi sổ và không tạo nơi chốn, số dư ví giữ nguyên.`;
+      }
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Ghi sổ ${typeText} <b>${this.escapeHtml(amountText)}</b> vào CSDL và cập nhật số dư ví.\n• <b>❌ Nếu Hủy bỏ:</b> Hủy bỏ yêu cầu ghi sổ, số dư ví giữ nguyên 100%.`;
+    }
+    if (name === 'update_finance_transaction') {
+      const placeText =
+        typeof payload.placeName === 'string' && payload.placeName.trim()
+          ? payload.placeName.trim()
+          : '';
+      if (payload.createNewPlace === true && placeText) {
+        return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lưu nơi chốn mới <b>${this.escapeHtml(placeText)}</b> và cập nhật lại thông tin giao dịch thu–chi.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên giao dịch ban đầu, không thay đổi số dư.`;
+      }
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Cập nhật lại thông tin giao dịch và tự động cân chỉnh lại số dư ví.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên giao dịch ban đầu, không thay đổi số dư.`;
+    }
+    if (name === 'create_finance_transactions') {
+      const list = Array.isArray(payload.transactions) ? payload.transactions : [];
+      let total = 0;
+      for (const item of list) {
+        if (
+          item &&
+          typeof item === 'object' &&
+          typeof (item as Record<string, unknown>).amount === 'number'
+        ) {
+          total += (item as Record<string, unknown>).amount as number;
+        }
+      }
+      const totalText = this.formatMoney(total);
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Ghi sổ đồng loạt <b>${list.length} khoản</b> thu–chi vào CSDL (Tổng tiền: <b>${this.escapeHtml(totalText)}</b>).\n• <b>❌ Nếu Hủy bỏ:</b> Hủy bỏ toàn bộ danh sách, không có giao dịch nào được ghi nhận.`;
+    }
+    if (name === 'create_finance_place') {
+      const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'nơi chốn mới';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lưu địa điểm <b>${this.escapeHtml(placeName)}</b> vào danh bạ nơi chốn để tự động gợi ý khi ghi sổ.\n• <b>❌ Nếu Hủy bỏ:</b> Không lưu địa điểm vào danh bạ.`;
+    }
+    if (name === 'create_task') {
+      const title = typeof payload.title === 'string' ? payload.title.trim() : 'công việc';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Tạo công việc mới <b>${this.escapeHtml(title)}</b> trên Google Tasks kèm hạn chót và ghi chú.\n• <b>❌ Nếu Hủy bỏ:</b> Không tạo công việc trên Google Tasks.`;
+    }
+    if (name === 'create_tasks') {
+      const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Tạo đồng loạt <b>${tasks.length} công việc</b> mới trên Google Tasks.\n• <b>❌ Nếu Hủy bỏ:</b> Không tạo việc nào trên Google Tasks.`;
+    }
+    if (name === 'complete_task') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Đánh dấu hoàn thành (tick done) công việc trên Google Tasks.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên công việc ở trạng thái Cần làm.`;
+    }
+    if (name === 'create_calendar_event') {
+      const summary = typeof payload.summary === 'string' ? payload.summary.trim() : 'sự kiện';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Tạo sự kiện <b>${this.escapeHtml(summary)}</b> trên Google Calendar và kích hoạt 4 mốc chuông báo (60p, 30p, 10p, 0p).\n• <b>❌ Nếu Hủy bỏ:</b> Không tạo sự kiện trên Google Calendar.`;
+    }
+    if (name === 'delete_calendar_event') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Xóa vĩnh viễn sự kiện khỏi Google Calendar.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên sự kiện trên Google Calendar.`;
+    }
+    if (name === 'create_reminder') {
+      const notifyType =
+        payload.notifyType === 'call' ? 'cuộc gọi đổ chuông (CallMe)' : 'tin nhắn Telegram';
+      const title = typeof payload.title === 'string' ? payload.title.trim() : 'lời nhắc';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lên lịch tự động nhắc <b>${this.escapeHtml(title)}</b> qua ${notifyType} đúng giờ hẹn.\n• <b>❌ Nếu Hủy bỏ:</b> Không cài đặt lời nhắc này.`;
+    }
+    if (name === 'delete_reminder') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Hủy lịch hẹn và xóa lời nhắc khỏi hệ thống báo động.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên lời nhắc đang hoạt động.`;
+    }
+    if (name === 'update_reminder') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Cập nhật lại thời gian hoãn hoặc hình thức nhắc theo yêu cầu.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên cài đặt lời nhắc ban đầu.`;
+    }
+    if (name === 'create_debt') {
+      const isReceivable = payload.direction === 'receivable';
+      const actionText = isReceivable ? 'cho vay' : 'đi vay';
+      const amountText =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'số tiền';
+      const contactNote =
+        payload.createNewContact === true ? ' và lưu liên hệ mới vào danh bạ' : '';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Ghi nhận khoản ${actionText} <b>${this.escapeHtml(amountText)}</b> vào sổ nợ${contactNote}.\n• <b>❌ Nếu Hủy bỏ:</b> Không ghi sổ nợ, danh bạ giữ nguyên 100%.`;
+    }
+    if (name === 'record_debt_payment') {
+      const amountText =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'số tiền';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Ghi nhận đợt trả <b>${this.escapeHtml(amountText)}</b>, giảm trừ số nợ còn lại và tự động tất toán nếu hết nợ.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên số tiền nợ hiện tại.`;
+    }
+    if (name === 'allocate_transaction_to_debts') {
+      const rawAllocs = Array.isArray(payload.allocations) ? payload.allocations : [];
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Phân bổ giao dịch vào <b>${rawAllocs.length} khoản nợ</b> để giảm trừ công nợ.\n• <b>❌ Nếu Hủy bỏ:</b> Không phân bổ, giao dịch và các khoản nợ giữ nguyên độc lập.`;
+    }
+    if (name === 'update_debt_contact') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Cập nhật tên hiển thị / biệt danh của người liên quan trong toàn bộ các khoản nợ gắn với họ.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên thông tin cũ trong danh bạ.`;
+    }
+    if (name === 'delete_debt') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Xóa vĩnh viễn khoản công nợ này khỏi sổ theo dõi.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên khoản nợ trên sổ.`;
+    }
+    if (name === 'create_invite_link') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Tạo đường link mời thành viên mới có hiệu lực trong 24 giờ.\n• <b>❌ Nếu Hủy bỏ:</b> Không tạo link mời.`;
+    }
+    if (name === 'ban_user') {
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Khóa quyền truy cập của người dùng và thu hồi toàn bộ token kết nối.\n• <b>❌ Nếu Hủy bỏ:</b> Giữ nguyên quyền sử dụng của người dùng.`;
+    }
+    return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Thực thi thao tác <code>${this.escapeHtml(name)}</code> trên hệ thống.\n• <b>❌ Nếu Hủy bỏ:</b> Hủy bỏ yêu cầu, không thay đổi dữ liệu.`;
+  }
+
   private formatConfirmationContent(
     name: string,
     payload: Record<string, unknown>,
     referenceId: string,
   ): string {
+    const impact = this.formatImpactExplanation(name, payload);
+    const footer = `Mã: <code>${this.escapeHtml(referenceId)}</code>\nKiểm tra kỹ thông tin rồi bấm <b>Xác nhận</b> hoặc <b>Hủy bỏ</b>.`;
+
     if (name === 'create_finance_place') {
       const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'Chưa rõ';
-      return `⚠️ <b>XÁC NHẬN TẠO NƠI CHỐN</b>\n\n📍 Tên nơi chốn: <b>${this.escapeHtml(placeName)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu nơi chốn mới.`;
+      return `⚠️ <b>XÁC NHẬN TẠO NƠI CHỐN</b>\n\n📍 Tên nơi chốn: <b>${this.escapeHtml(placeName)}</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_finance_transaction') {
       const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
@@ -312,7 +421,7 @@ export class TelegramUiService {
 
       const actionHeader =
         payload.createNewPlace === true ? 'THU–CHI & TẠO NƠI CHỐN MỚI' : 'THU–CHI';
-      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ.`;
+      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n<b>${this.escapeHtml(type)}</b>\n💵 ${this.escapeHtml(amount)}\n🏷️ ${this.escapeHtml(category)}\n📝 ${this.escapeHtml(note)}${placeLine}${occurredAtLine}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'update_finance_transaction') {
       const type =
@@ -348,7 +457,7 @@ export class TelegramUiService {
         payload.createNewPlace === true
           ? 'CẬP NHẬT THU–CHI & TẠO NƠI CHỐN MỚI'
           : 'CẬP NHẬT THU–CHI';
-      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n${changeLines.join('\n') || 'Cập nhật thông tin giao dịch gần nhất'}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cập nhật.`;
+      return `⚠️ <b>XÁC NHẬN ${actionHeader}</b>\n\n${changeLines.join('\n') || 'Cập nhật thông tin giao dịch gần nhất'}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_finance_transactions') {
       const list = Array.isArray(payload.transactions)
@@ -379,7 +488,7 @@ export class TelegramUiService {
         ? `\n📅 Ngày phát sinh: <i>${this.escapeHtml(occurredAtFormatted)}</i>`
         : '';
 
-      return `⚠️ <b>XÁC NHẬN THU–CHI HÀNG LOẠT (${list.length} khoản)</b>\n\n${lines.join('\n')}\n\n💰 <b>Tổng tiền:</b> ${this.escapeHtml(this.formatMoney(total))}${dateSuffix}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi sổ tất cả.`;
+      return `⚠️ <b>XÁC NHẬN THU–CHI HÀNG LOẠT (${list.length} khoản)</b>\n\n${lines.join('\n')}\n\n💰 <b>Tổng tiền:</b> ${this.escapeHtml(this.formatMoney(total))}${dateSuffix}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_task' || name === 'create_tasks') {
       const tasks =
@@ -426,7 +535,7 @@ export class TelegramUiService {
         .filter(Boolean)
         .join('\n\n');
       const separator = tasks.length > 1 ? '\n\n' : '\n';
-      return `⚠️ <b>XÁC NHẬN THÊM VIỆC</b>\n\n${taskLines.join(separator)}${warningText ? `\n\n${warningText}\n\nBạn vẫn có thể xác nhận nếu đây là các việc riêng.` : ''}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thêm.`;
+      return `⚠️ <b>XÁC NHẬN THÊM VIỆC</b>\n\n${taskLines.join(separator)}${warningText ? `\n\n${warningText}\n\nBạn vẫn có thể xác nhận nếu đây là các việc riêng.` : ''}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_debt') {
       const isReceivable = payload.direction === 'receivable';
@@ -447,12 +556,12 @@ export class TelegramUiService {
       const dueLine = dueFormatted ? `\n⏳ Hạn trả: <i>${this.escapeHtml(dueFormatted)}</i>` : '';
       const contactLine =
         payload.createNewContact === true ? '\n👤 Danh bạ: <i>Lưu liên hệ mới vào danh bạ</i>' : '';
-      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để lưu vào sổ nợ.`;
+      return `⚠️ <b>XÁC NHẬN GHI NỢ / CHO VAY</b>\n\n<b>${this.escapeHtml(typeText)}</b>\n👤 Đối tác: <b>${this.escapeHtml(counterparty)}${this.escapeHtml(alias)}</b>\n💵 Số tiền: <b>${this.escapeHtml(amount)}</b>\n📝 Ghi chú: ${this.escapeHtml(note)}${dueLine}${contactLine}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'record_debt_payment') {
       const amount =
         typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
-      return `⚠️ <b>XÁC NHẬN TRẢ NỢ</b>\n\n💵 Số tiền trả: <b>${this.escapeHtml(amount)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để ghi nhận trả nợ.`;
+      return `⚠️ <b>XÁC NHẬN TRẢ NỢ</b>\n\n💵 Số tiền trả: <b>${this.escapeHtml(amount)}</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'allocate_transaction_to_debts') {
       const rawAllocs = Array.isArray(payload.allocations)
@@ -464,7 +573,7 @@ export class TelegramUiService {
       );
       const totalText = this.formatMoney(totalAmount);
       const count = rawAllocs.length;
-      return `⚠️ <b>XÁC NHẬN PHÂN BỔ CÔNG NỢ</b>\n\n🔗 Số khoản nợ: <b>${count}</b>\n💵 Tổng tiền phân bổ: <b>${this.escapeHtml(totalText)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thực hiện phân bổ.`;
+      return `⚠️ <b>XÁC NHẬN PHÂN BỔ CÔNG NỢ</b>\n\n🔗 Số khoản nợ: <b>${count}</b>\n💵 Tổng tiền phân bổ: <b>${this.escapeHtml(totalText)}</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'update_debt_contact') {
       const contactName = typeof payload.name === 'string' ? payload.name : 'Chưa rõ';
@@ -472,10 +581,10 @@ export class TelegramUiService {
         typeof payload.alias === 'string' && payload.alias.trim()
           ? ` (${payload.alias.trim()})`
           : '';
-      return `⚠️ <b>XÁC NHẬN CẬP NHẬT DANH BẠ NỢ</b>\n\n👤 Tên mới: <b>${this.escapeHtml(contactName)}${this.escapeHtml(alias)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cập nhật.`;
+      return `⚠️ <b>XÁC NHẬN CẬP NHẬT DANH BẠ NỢ</b>\n\n👤 Tên mới: <b>${this.escapeHtml(contactName)}${this.escapeHtml(alias)}</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'delete_debt') {
-      return `⚠️ <b>XÁC NHẬN XÓA KHOẢN CÔNG NỢ</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để xóa vĩnh viễn khoản công nợ này.`;
+      return `⚠️ <b>XÁC NHẬN XÓA KHOẢN CÔNG NỢ</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_calendar_event') {
       const summary = typeof payload.summary === 'string' ? payload.summary : 'Lịch hẹn mới';
@@ -491,10 +600,10 @@ export class TelegramUiService {
         typeof payload.location === 'string' && payload.location.trim()
           ? `\n📍 <i>${this.escapeHtml(payload.location.trim())}</i>`
           : '';
-      return `⚠️ <b>XÁC NHẬN TẠO LỊCH HẸN</b>\n\n📅 <b>${this.escapeHtml(summary)}</b>${timeLine}${desc}${loc}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để tạo trên Google Calendar.`;
+      return `⚠️ <b>XÁC NHẬN TẠO LỊCH HẸN</b>\n\n📅 <b>${this.escapeHtml(summary)}</b>${timeLine}${desc}${loc}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'delete_calendar_event') {
-      return `⚠️ <b>XÁC NHẬN XÓA SỰ KIỆN LỊCH</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để xóa sự kiện khỏi Google Calendar.`;
+      return `⚠️ <b>XÁC NHẬN XÓA SỰ KIỆN LỊCH</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_reminder') {
       const title = typeof payload.title === 'string' ? payload.title : 'Lời nhắc mới';
@@ -503,10 +612,10 @@ export class TelegramUiService {
         ? `\n⏰ Thời gian: <i>${this.escapeHtml(timeFormatted)}</i>`
         : '';
       const type = payload.notifyType === 'call' ? '📞 Gọi báo động' : '💬 Nhắn tin';
-      return `⚠️ <b>XÁC NHẬN CÀI LỜI NHẮC</b>\n\n🔔 <b>${this.escapeHtml(title)}</b>${timeLine}\n📱 Hình thức: ${this.escapeHtml(type)}\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để cài nhắc.`;
+      return `⚠️ <b>XÁC NHẬN CÀI LỜI NHẮC</b>\n\n🔔 <b>${this.escapeHtml(title)}</b>${timeLine}\n📱 Hình thức: ${this.escapeHtml(type)}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'delete_reminder') {
-      return `⚠️ <b>XÁC NHẬN HỦY LỜI NHẮC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để hủy lời nhắc này.`;
+      return `⚠️ <b>XÁC NHẬN HỦY LỜI NHẮC</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'update_reminder') {
       const action = payload.action;
@@ -515,20 +624,20 @@ export class TelegramUiService {
         action === 'snooze'
           ? `Hoãn thêm ${minutes} phút`
           : `Đổi hình thức sang ${payload.notifyType === 'call' ? 'gọi báo động' : 'nhắn tin'}`;
-      return `⚠️ <b>XÁC NHẬN CẬP NHẬT LỜI NHẮC</b>\n\n📝 Thao tác: <b>${this.escapeHtml(desc)}</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để áp dụng.`;
+      return `⚠️ <b>XÁC NHẬN CẬP NHẬT LỜI NHẮC</b>\n\n📝 Thao tác: <b>${this.escapeHtml(desc)}</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'complete_task') {
-      return `⚠️ <b>XÁC NHẬN HOÀN THÀNH VIỆC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để đánh dấu hoàn thành công việc.`;
+      return `⚠️ <b>XÁC NHẬN HOÀN THÀNH VIỆC</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_invite_link') {
-      return `⚠️ <b>XÁC NHẬN TẠO LINK MỜI</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để tạo link mời người dùng mới.`;
+      return `⚠️ <b>XÁC NHẬN TẠO LINK MỜI</b>\n\n${impact}\n\n${footer}`;
     }
     if (name === 'ban_user') {
       const targetUserId =
         typeof payload.targetUserId === 'string' ? payload.targetUserId : 'Chưa rõ';
-      return `⚠️ <b>XÁC NHẬN KHÓA QUYỀN NGƯỜI DÙNG</b>\n\n👤 ID: <code>${this.escapeHtml(targetUserId)}</code>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nBấm <b>Xác nhận</b> để thu hồi quyền truy cập.`;
+      return `⚠️ <b>XÁC NHẬN KHÓA QUYỀN NGƯỜI DÙNG</b>\n\n👤 ID: <code>${this.escapeHtml(targetUserId)}</code>\n\n${impact}\n\n${footer}`;
     }
-    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nMã: <code>${this.escapeHtml(referenceId)}</code>\nThao tác: <code>${this.escapeHtml(name)}</code>\nKiểm tra rồi bấm Xác nhận.`;
+    return `⚠️ <b>XÁC NHẬN THAO TÁC</b>\n\nThao tác: <code>${this.escapeHtml(name)}</code>\n\n${impact}\n\n${footer}`;
   }
 
   public formatResultBox(
@@ -717,6 +826,179 @@ export class TelegramUiService {
 
     const message = typeof result.message === 'string' ? result.message : 'Đã thực hiện thao tác.';
     return `✅ ${this.escapeHtml(message)}`;
+  }
+
+  public formatOriginalSummary(name: string, payload: Record<string, unknown>): string {
+    if (name === 'create_finance_place') {
+      const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'Chưa rõ';
+      return `• 📍 Nơi chốn: <b>${this.escapeHtml(placeName)}</b>`;
+    }
+    if (name === 'create_finance_transaction') {
+      const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
+      const amount =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
+      const category = typeof payload.category === 'string' ? payload.category : 'Khác';
+      const note = typeof payload.note === 'string' ? payload.note : 'Chưa có mô tả';
+      let placeLine = '';
+      if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
+        placeLine = ` · 📍 ${this.escapeHtml(payload.placeName.trim())}`;
+      }
+      const occurredAtFormatted = this.formatFinanceOccurredAt(payload.occurredAt);
+      const occurredAtLine = occurredAtFormatted
+        ? ` · 📅 ${this.escapeHtml(occurredAtFormatted)}`
+        : '';
+      return `• <b>${this.escapeHtml(type)}</b>: <b>${this.escapeHtml(amount)}</b> (${this.escapeHtml(category)})\n• Ghi chú: <i>${this.escapeHtml(note)}</i>${placeLine}${occurredAtLine}`;
+    }
+    if (name === 'update_finance_transaction') {
+      const changeLines: string[] = [];
+      if (payload.type) {
+        changeLines.push(
+          `• Phân loại: <b>${payload.type === 'income' ? 'Khoản thu' : 'Khoản chi'}</b>`,
+        );
+      }
+      if (typeof payload.amount === 'number') {
+        changeLines.push(`• Số tiền: 💵 <b>${this.formatMoney(payload.amount)}</b>`);
+      }
+      if (typeof payload.category === 'string') {
+        changeLines.push(`• Danh mục: 🏷️ <i>${this.escapeHtml(payload.category)}</i>`);
+      }
+      if (typeof payload.note === 'string') {
+        changeLines.push(`• Ghi chú: 📝 <i>${this.escapeHtml(payload.note)}</i>`);
+      }
+      if (typeof payload.placeName === 'string' && payload.placeName.trim()) {
+        changeLines.push(`• Địa điểm: 📍 <i>${this.escapeHtml(payload.placeName.trim())}</i>`);
+      }
+      return changeLines.join('\n') || '• Cập nhật thông tin giao dịch gần nhất';
+    }
+    if (name === 'create_finance_transactions') {
+      const list = Array.isArray(payload.transactions)
+        ? (payload.transactions as Array<Record<string, unknown>>)
+        : [];
+      const lines = list.slice(0, 5).map((item, idx) => {
+        const type = item.type === 'income' ? 'Thu' : 'Chi';
+        const amountNum = typeof item.amount === 'number' ? item.amount : 0;
+        const amountText = this.formatMoney(amountNum);
+        const note = typeof item.note === 'string' ? item.note : 'Chưa có mô tả';
+        return `${idx + 1}. ${this.escapeHtml(type)} ${this.escapeHtml(amountText)} · ${this.escapeHtml(note)}`;
+      });
+      const remaining = list.length - lines.length;
+      const moreText = remaining > 0 ? `\n...và ${remaining} khoản khác` : '';
+      return `${lines.join('\n')}${moreText}`;
+    }
+    if (name === 'create_task') {
+      const title = typeof payload.title === 'string' ? payload.title : 'Chưa rõ';
+      const notes =
+        typeof payload.notes === 'string' && payload.notes.trim()
+          ? ` · 📝 <i>${this.escapeHtml(payload.notes.trim())}</i>`
+          : '';
+      const dueFormatted = this.formatTaskDue(payload.due);
+      const due = dueFormatted ? ` · ⏳ <i>Hạn: ${this.escapeHtml(dueFormatted)}</i>` : '';
+      return `• <b>${this.escapeHtml(title)}</b>${notes}${due}`;
+    }
+    if (name === 'create_tasks') {
+      const tasks = Array.isArray(payload.tasks)
+        ? (payload.tasks as Array<Record<string, unknown>>)
+        : [];
+      return tasks
+        .slice(0, 4)
+        .map(
+          (t, idx) =>
+            `• #${idx + 1}: <b>${this.escapeHtml(typeof t.title === 'string' ? t.title : 'Việc')}</b>`,
+        )
+        .join('\n');
+    }
+    if (name === 'complete_task') {
+      return `• ID công việc: <code>${this.escapeHtml(typeof payload.taskId === 'string' ? payload.taskId : 'task')}</code>`;
+    }
+    if (name === 'create_calendar_event') {
+      const summary = typeof payload.summary === 'string' ? payload.summary : 'Lịch hẹn';
+      const timeFormatted = this.formatTaskDue(payload.startDateTime || payload.startDate);
+      const timeLine = timeFormatted ? ` · ⏰ ${this.escapeHtml(timeFormatted)}` : '';
+      return `• 📅 <b>${this.escapeHtml(summary)}</b>${timeLine}`;
+    }
+    if (name === 'delete_calendar_event') {
+      return `• ID sự kiện lịch: <code>${this.escapeHtml(typeof payload.eventId === 'string' ? payload.eventId : '')}</code>`;
+    }
+    if (name === 'create_reminder') {
+      const title = typeof payload.title === 'string' ? payload.title : 'Lời nhắc';
+      const timeFormatted = this.formatTaskDue(payload.remindAt);
+      const timeLine = timeFormatted ? ` · ⏰ ${this.escapeHtml(timeFormatted)}` : '';
+      return `• 🔔 <b>${this.escapeHtml(title)}</b>${timeLine}`;
+    }
+    if (name === 'delete_reminder') {
+      return `• ID lời nhắc: <code>${this.escapeHtml(typeof payload.reminderId === 'string' ? payload.reminderId : '')}</code>`;
+    }
+    if (name === 'update_reminder') {
+      const action = payload.action;
+      const minutes = typeof payload.minutes === 'number' ? payload.minutes : 15;
+      const desc = action === 'snooze' ? `Hoãn ${minutes} phút` : `Đổi hình thức nhắc`;
+      return `• Thao tác: <b>${this.escapeHtml(desc)}</b>`;
+    }
+    if (name === 'create_debt') {
+      const isReceivable = payload.direction === 'receivable';
+      const typeText = isReceivable ? 'Cho vay' : 'Đi vay';
+      const counterparty =
+        typeof payload.counterparty === 'string' ? payload.counterparty : 'Chưa rõ';
+      const amount =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
+      return `• <b>${typeText}</b>: 👤 <b>${this.escapeHtml(counterparty)}</b> · 💵 <b>${this.escapeHtml(amount)}</b>`;
+    }
+    if (name === 'record_debt_payment') {
+      const amount =
+        typeof payload.amount === 'number' ? this.formatMoney(payload.amount) : 'Chưa rõ';
+      return `• Số tiền trả: 💵 <b>${this.escapeHtml(amount)}</b>`;
+    }
+    if (name === 'allocate_transaction_to_debts') {
+      const rawAllocs = Array.isArray(payload.allocations) ? payload.allocations : [];
+      return `• Phân bổ vào <b>${rawAllocs.length} khoản nợ</b>`;
+    }
+    if (name === 'update_debt_contact') {
+      const contactName = typeof payload.name === 'string' ? payload.name : 'Chưa rõ';
+      return `• Tên danh bạ mới: 👤 <b>${this.escapeHtml(contactName)}</b>`;
+    }
+    if (name === 'delete_debt') {
+      return `• ID khoản nợ: <code>${this.escapeHtml(typeof payload.debtId === 'string' ? payload.debtId : '')}</code>`;
+    }
+    if (name === 'create_invite_link') {
+      return `• Thời hạn link mời: 24 giờ`;
+    }
+    if (name === 'ban_user') {
+      return `• ID người dùng: <code>${this.escapeHtml(typeof payload.targetUserId === 'string' ? payload.targetUserId : '')}</code>`;
+    }
+    return `• Thao tác: <code>${this.escapeHtml(name)}</code>`;
+  }
+
+  public formatResultSummary(name: string, result: Record<string, unknown>): string {
+    const rawResult = this.formatResultBox(name, result, '');
+    const cleanResult = rawResult.replace(/^✅\s*/, '').trim();
+    return `• ${cleanResult}`;
+  }
+
+  public formatConfirmedBox(
+    name: string,
+    payload: Record<string, unknown>,
+    result: Record<string, unknown>,
+    referenceId: string,
+  ): string {
+    if (result.success !== true) {
+      const error =
+        typeof result.error === 'string' ? result.error : 'Thao tác chưa thực hiện được.';
+      return `⚠️ <b>KHÔNG THỂ THỰC HIỆN THAO TÁC</b>\n🔖 Mã: <code>${this.escapeHtml(referenceId)}</code>\n\n❌ <b>Chi tiết lỗi:</b>\n${this.escapeHtml(error)}`;
+    }
+
+    const resultSummary = this.formatResultSummary(name, result);
+    const originalSummary = this.formatOriginalSummary(name, payload);
+
+    return `✅ <b>ĐÃ XÁC NHẬN & THỰC HIỆN THÀNH CÔNG</b>\n🔖 Mã: <code>${this.escapeHtml(referenceId)}</code>\n\n✨ <b>Kết quả đã ghi nhận:</b>\n${resultSummary}\n\n📋 <b>Nội dung yêu cầu đã duyệt:</b>\n${originalSummary}`;
+  }
+
+  public formatCancelledBox(
+    name: string,
+    payload: Record<string, unknown>,
+    referenceId: string,
+  ): string {
+    const originalSummary = this.formatOriginalSummary(name, payload);
+    return `❌ <b>ĐÃ HỦY YÊU CẦU THAO TÁC</b>\n🔖 Mã: <code>${this.escapeHtml(referenceId)}</code>\n\n🛡️ <i>Yêu cầu đã được hủy an toàn. Không có bất kỳ dữ liệu nào bị thay đổi trên hệ thống của bạn.</i>\n\n📋 <b>Nội dung yêu cầu đã hủy:</b>\n${originalSummary}`;
   }
 
   private escapeHtml(value: string): string {
