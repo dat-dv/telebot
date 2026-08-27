@@ -40,7 +40,7 @@ metadata:
   - Tích hợp vào thanh điều hướng Sidebar dưới mục **DỮ LIỆU** (`nav.section.data`) với icon định vị chuẩn.
 - **Phân bổ Giao dịch vào Công nợ & Mở rộng Hàng con Inline (`DebtAllocationModal` & `TransactionsTable`)**:
   - Trên bảng giao dịch thu chi (`TransactionsTable`), các giao dịch có phân bổ công nợ hiển thị icon nút bấm Chevron xoay (`▶ / ▼` với `rotate-90`) bên cạnh huy hiệu phân bổ (`🔗 N phân bổ`).
-  - Khi bấm mở rộng, các dòng con phân bổ hiển thị trực tiếp ngay dưới dòng chính (`_isAllocationChild: true`), thể hiện rõ ràng đối tác nợ, số tiền phân bổ, ghi chú phân bổ, ký hiệu rẽ nhánh `↳`, và nút sửa phân bổ trực tiếp.
+  - Khi bấm mở rộng, hệ thống hiển thị Sub-panel thụt lề 1 cấp (`renderExpandedRow`, `colSpan={columns.length}`) ngay dưới giao dịch cha, hiển thị bảng mini các khoản phân bổ (Đối tác nợ, số tiền phân bổ, ghi chú) và nút sửa phân bổ trực tiếp.
   - Cửa sổ `DebtAllocationModal` (`apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) tải danh sách các khoản nợ khả dụng của liên hệ tương ứng qua `useDebtAllocationCandidatesQuery`, cho phép phân bổ số tiền giao dịch vào một hoặc nhiều khoản nợ, gọi `POST /api/debts/allocations` qua `useAllocateTransactionMutation`.
   - Toàn bộ callbacks (`onClose`, `onSuccess`) và các action handlers trên `TransactionsScreen` đều được bọc trong `useCallback` để đảm bảo tính ổn định của tham chiếu.
 

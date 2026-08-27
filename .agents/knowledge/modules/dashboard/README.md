@@ -50,8 +50,7 @@ During inline transaction editing, Category is a controlled combobox rather than
   - Search toolbar and quick Add Place form (`+ Add place`).
   - Integrated into navigation drawer and sidebar under `DATA` (`nav.section.data`) with a dedicated location pin icon.
 - **Debt Transaction Allocation & Inline Expandable Rows (`DebtAllocationModal` & `TransactionsTable`)**:
-  - On the transactions table, transactions with linked debt allocations display an interactive rotating Chevron dropdown button (`▶ / ▼` with `rotate-90`) alongside the allocation badge (`🔗 N allocations`).
-  - Clicking the dropdown button expands nested child rows directly beneath the parent transaction (`_isAllocationChild: true`), displaying the allocated counterparty, allocated amount, allocation note, branch marker (`↳`), and an edit button opening `DebtAllocationModal`.
+  - Clicking the dropdown button expands a dedicated master-detail Sub-panel (`renderExpandedRow`, `colSpan={columns.length}`) indented beneath the parent transaction, displaying an allocations sub-grid with counterparty, amount, note, and an edit button opening `DebtAllocationModal`.
   - The Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).
   - Preserves traceability between cashflow events and debt payments.
   - All modal callbacks (`onClose`, `onSuccess`) and transaction table handlers are memoized via `useCallback` to prevent superfluous re-renders.

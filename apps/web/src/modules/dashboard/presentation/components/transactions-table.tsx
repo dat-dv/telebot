@@ -1,48 +1,20 @@
-'use client';
-
-import { useMemo, useState } from 'react';
-import { localeTag, type TransactionType } from '@telebot/contracts';
+import { useMemo, useState, type ReactNode } from 'react';
+import { localeTag, type TransactionType, type ITransactionItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 import { CategoryAutocomplete } from '@/shared/ui/category-autocomplete';
 
-export type TransactionTableItem = {
-  id: string;
-  type: TransactionType;
-  category: string;
-  note?: string;
-  amount: number;
+export type TransactionTableItem = ITransactionItem & {
   runningBalance?: number;
-  placeId?: string | null;
-  placeName?: string | null;
-  occurredAt: string;
-  allocations?: Array<{
-    id: string;
-    amount: number;
-    debtId: string;
-    note?: string;
-    counterparty?: string;
-    remainingAmount?: number;
-  }>;
-  _isAllocationChild?: boolean;
-  _parentTransactionId?: string;
-  _allocation?: {
-    id: string;
-    amount: number;
-    debtId: string;
-    note?: string;
-    counterparty?: string;
-    remainingAmount?: number;
-  };
 };
 
 export type TransactionEditDraft = {
   type: TransactionType;
   category: string;
   note: string;
-  amount: string;
   placeName: string;
+  amount: string;
   occurredAt: string;
 };
 
@@ -64,6 +36,7 @@ export type TransactionsTableProps = {
   onOpenAllocate?: (item: TransactionTableItem) => void;
   onChangeEditDraft?: React.Dispatch<React.SetStateAction<TransactionEditDraft>>;
   isPending?: boolean;
+  extraHeaderActions?: ReactNode;
 };
 
 export function TransactionsTable({
@@ -89,31 +62,6 @@ export function TransactionsTable({
   const money = useMoneyFormatter();
   const [expandedAllocationIds, setExpandedAllocationIds] = useState<Set<string>>(new Set());
 
-  const flattenedTransactions = useMemo(() => {
-    const result: TransactionTableItem[] = [];
-    for (const tx of transactions) {
-      result.push(tx);
-      if (tx.allocations && tx.allocations.length > 0 && expandedAllocationIds.has(tx.id)) {
-        for (const alloc of tx.allocations) {
-          result.push({
-            id: `alloc-${alloc.id || alloc.debtId}-${tx.id}`,
-            type: tx.type,
-            category: alloc.counterparty
-              ? `${alloc.counterparty}`
-              : t('transactions.badge.allocatedChild'),
-            note: alloc.note || '',
-            amount: alloc.amount,
-            occurredAt: tx.occurredAt,
-            _isAllocationChild: true,
-            _parentTransactionId: tx.id,
-            _allocation: alloc,
-          });
-        }
-      }
-    }
-    return result;
-  }, [transactions, expandedAllocationIds, t]);
-
   const computedMaxAmount = useMemo(() => {
     if (typeof maxAmount === 'number' && maxAmount > 0) return maxAmount;
     return Math.max(...transactions.map((item) => item.amount), 1);
@@ -133,13 +81,6 @@ export function TransactionsTable({
         header: t('dashboard.columns.direction'),
         minWidth: '90px',
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return (
-              <span className="inline-flex items-center rounded-[2px] border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 select-none dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
-                {t('transactions.badge.allocatedChild')}
-              </span>
-            );
-          }
           if (editingId === item.id && editDraft && onChangeEditDraft) {
             return (
               <select
@@ -162,10 +103,6 @@ export function TransactionsTable({
             <span
               className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
                 onStartEdit ? 'cursor-pointer' : ''
-              } ${
-                item.type === 'income'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
               onDoubleClick={() => onStartEdit?.(item)}
             >
@@ -180,18 +117,6 @@ export function TransactionsTable({
         minWidth: '150px',
         hideable: false,
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return (
-              <div className="flex items-center gap-1.5 pl-3">
-                <span className="text-slate-400 select-none text-xs font-mono" aria-hidden="true">
-                  ↳
-                </span>
-                <span className="font-semibold text-slate-800 select-none dark:text-slate-200">
-                  {item.category}
-                </span>
-              </div>
-            );
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -204,7 +129,9 @@ export function TransactionsTable({
                 ariaLabel={t('dashboard.columns.category')}
                 autoFocus
                 value={editDraft.category}
-                onChange={(category) => onChangeEditDraft((prev) => ({ ...prev, category }))}
+                onChange={(category: string) =>
+                  onChangeEditDraft((prev) => ({ ...prev, category }))
+                }
                 onConfirm={() => void onSaveEdit(item.id)}
                 onCancel={onCancelEdit}
                 options={categorySuggestions}
@@ -230,13 +157,6 @@ export function TransactionsTable({
         header: t('dashboard.columns.note'),
         minWidth: '160px',
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return (
-              <span className="text-slate-500 select-none text-[11px] italic dark:text-slate-400">
-                {item.note || '—'}
-              </span>
-            );
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -337,9 +257,6 @@ export function TransactionsTable({
         header: t('dashboard.columns.place'),
         minWidth: '170px',
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return <span className="text-slate-400 select-none text-[11px]">—</span>;
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -351,7 +268,9 @@ export function TransactionsTable({
               <CategoryAutocomplete
                 ariaLabel={t('dashboard.columns.place')}
                 value={editDraft.placeName}
-                onChange={(placeName) => onChangeEditDraft((prev) => ({ ...prev, placeName }))}
+                onChange={(placeName: string) =>
+                  onChangeEditDraft((prev) => ({ ...prev, placeName }))
+                }
                 onConfirm={() => void onSaveEdit(item.id)}
                 onCancel={onCancelEdit}
                 options={placeSuggestions}
@@ -379,15 +298,6 @@ export function TransactionsTable({
         minWidth: '140px',
         hideable: false,
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return (
-              <div className="flex flex-col items-end select-none">
-                <span className="tabular-nums font-semibold text-sky-700 dark:text-sky-400">
-                  {money(item.amount)}
-                </span>
-              </div>
-            );
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -447,7 +357,7 @@ export function TransactionsTable({
         align: 'right',
         minWidth: '140px',
         cell: (item) => {
-          if (item._isAllocationChild || typeof item.runningBalance !== 'number') {
+          if (typeof item.runningBalance !== 'number') {
             return <span className="text-slate-400 select-none dark:text-slate-500">—</span>;
           }
           const isPos = item.runningBalance >= 0;
@@ -468,9 +378,6 @@ export function TransactionsTable({
         align: 'right',
         minWidth: '150px',
         cell: (item) => {
-          if (item._isAllocationChild) {
-            return <span className="text-slate-400 select-none text-[11px]">—</span>;
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -516,28 +423,10 @@ export function TransactionsTable({
         minWidth: '130px',
         hideable: false,
         cell: (item) => {
-          if (item._isAllocationChild && item._parentTransactionId) {
-            const parentTx = transactions.find((tx) => tx.id === item._parentTransactionId);
-            return (
-              <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-                {parentTx && onOpenAllocate && (
-                  <button
-                    type="button"
-                    className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center gap-1 rounded-[2px] border border-slate-200 bg-white px-1.5 text-[10.5px] font-medium text-slate-700 whitespace-nowrap transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                    onClick={() => onOpenAllocate(parentTx)}
-                    title={t('transactions.allocation.editAllocations')}
-                  >
-                    <span>✏️</span>
-                    <span>{t('transactions.allocation.editAllocations')}</span>
-                  </button>
-                )}
-              </div>
-            );
-          }
           const isEditing = editingId === item.id;
           if (isEditing && editDraft && onSaveEdit && onCancelEdit) {
             const itemAllocatedSum = (item.allocations || []).reduce(
-              (sum, a) => sum + Number(a.amount || 0),
+              (sum: number, a: { amount: number }) => sum + Number(a.amount || 0),
               0,
             );
             const enteredAmount = Number(editDraft.amount) || 0;
@@ -640,20 +529,89 @@ export function TransactionsTable({
     categorySuggestions,
     placeSuggestions,
     t,
-    transactions,
   ]);
+
+  // Master-Detail 1-Level Indented Sub-panel Renderer for Allocations
+  const renderExpandedRow = (item: TransactionTableItem) => {
+    if (!item.allocations || item.allocations.length === 0) return null;
+
+    return (
+      <div className="space-y-2 py-2 pl-12 pr-4">
+        <div className="overflow-hidden rounded border border-sky-200/80 bg-sky-50/20 shadow-xs dark:border-sky-900/60 dark:bg-sky-950/20">
+          <header className="flex items-center justify-between border-b border-sky-100/80 bg-sky-50/50 px-3 py-1.5 text-xs font-semibold text-sky-800 dark:border-sky-900/50 dark:bg-sky-950/50 dark:text-sky-300">
+            <div className="flex items-center gap-1.5">
+              <span>🔗</span>
+              <span>
+                {t('transactions.allocation.badgeAllocated', { count: item.allocations.length })}
+              </span>
+            </div>
+            {onOpenAllocate && (
+              <button
+                type="button"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-[2px] border border-sky-200 bg-white px-2 py-0.5 text-[10.5px] font-medium text-sky-700 transition-colors hover:bg-sky-50 dark:border-sky-800 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800"
+                onClick={() => onOpenAllocate(item)}
+              >
+                <span>✏️</span>
+                <span>{t('transactions.allocation.editAllocations')}</span>
+              </button>
+            )}
+          </header>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-sky-200/50 bg-sky-100/30 text-[10.5px] font-semibold uppercase tracking-wider text-sky-800 dark:border-sky-800/40 dark:bg-sky-900/30 dark:text-sky-300">
+                  <th scope="col" className="w-10 px-2.5 py-1 text-right">
+                    #
+                  </th>
+                  <th scope="col" className="px-2.5 py-1">
+                    {t('dashboard.columns.counterparty')}
+                  </th>
+                  <th scope="col" className="px-2.5 py-1 text-right">
+                    {t('dashboard.columns.amount')}
+                  </th>
+                  <th scope="col" className="px-2.5 py-1">
+                    {t('dashboard.columns.note')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sky-100/60 dark:divide-sky-900/40">
+                {item.allocations.map((alloc, idx: number) => (
+                  <tr
+                    key={alloc.id || idx}
+                    className="transition-colors hover:bg-sky-100/20 dark:hover:bg-sky-900/20"
+                  >
+                    <td className="px-2.5 py-1.5 text-right font-mono text-sky-700/60 dark:text-sky-400/60">
+                      {idx + 1}
+                    </td>
+                    <td className="px-2.5 py-1.5 font-medium text-slate-800 dark:text-slate-200">
+                      {alloc.counterparty || t('transactions.badge.allocatedChild')}
+                    </td>
+                    <td className="px-2.5 py-1.5 text-right font-semibold tabular-nums text-sky-700 dark:text-sky-300">
+                      {money(alloc.amount)}
+                    </td>
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                      {alloc.note || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <DataTable
       id={id}
       ariaLabel={ariaLabel ?? t('dashboard.transactions')}
-      rows={flattenedTransactions}
+      rows={transactions}
       emptyMessage={emptyMessage ?? t('dashboard.noTransactions')}
       columns={columns}
       getRowKey={(item) => item.id}
-      getRowClassName={(item) =>
-        item._isAllocationChild ? 'bg-slate-50/70 dark:bg-slate-900/40' : ''
-      }
+      isRowExpanded={(item) => expandedAllocationIds.has(item.id)}
+      renderExpandedRow={renderExpandedRow}
       disableSorting
       loading={loading}
     />

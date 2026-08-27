@@ -1,14 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { localeTag, type IDebtListItem } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 import { useMoneyFormatter } from '@/shared/providers/money-visibility-provider';
 import { DataTable, type DataTableColumn } from '@/shared/ui/data-table';
 
-export type DebtTableItem = IDebtListItem & {
-  _isPaymentChild?: boolean;
-  _parentDebt?: IDebtListItem;
-  _payment?: import('@telebot/contracts').IDebtPaymentItem;
-};
+export type DebtTableItem = IDebtListItem;
 
 export type DebtEditDraft = {
   direction: 'receivable' | 'payable';
@@ -71,88 +67,51 @@ export function DebtsTable({
 }: DebtsTableProps) {
   const { locale, t } = useLocale();
   const money = useMoneyFormatter();
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [expandedPaymentDebtIds, setExpandedPaymentDebtIds] = useState<Set<string>>(new Set());
+  const [expandedDebtIds, setExpandedDebtIds] = useState<Set<string>>(new Set());
 
-  const flattenedRows = useMemo<DebtTableItem[]>(() => {
-    // Top level items (either roots without parentDebtId, or standalone items)
+  // Only display root level debts in main table to prevent STT numbering pollution
+  const rootRows = useMemo<IDebtListItem[]>(() => {
     const roots = debts.filter((d) => !d.parentDebtId);
-    const baseList = roots.length > 0 ? roots : debts;
+    return roots.length > 0 ? roots : debts;
+  }, [debts]);
 
-    const result: DebtTableItem[] = [];
-
-    const appendPaymentRows = (debt: IDebtListItem, isChildOfCombinedDebt = false) => {
-      if (debt.payments && debt.payments.length > 0 && expandedPaymentDebtIds.has(debt.id)) {
-        for (const payment of debt.payments) {
-          result.push({
-            ...debt,
-            id: `payment-${payment.id}`,
-            _isPaymentChild: true,
-            _parentDebt: debt,
-            _payment: payment,
-            parentDebtId: isChildOfCombinedDebt ? debt.parentDebtId || debt.id : undefined,
-          });
-        }
-      }
-    };
-
-    for (const item of baseList) {
-      result.push(item);
-
-      if (item.children && item.children.length > 0 && expandedIds.has(item.id)) {
-        for (const child of item.children) {
-          result.push(child);
-          appendPaymentRows(child, true);
-        }
-      }
-
-      appendPaymentRows(item, false);
-    }
-    return result;
-  }, [debts, expandedIds, expandedPaymentDebtIds]);
-
-  const columns = useMemo<DataTableColumn<DebtTableItem>[]>(() => {
-    const hasActions = Boolean(
-      onStartEdit || onSaveEdit || onQuickSettle || onDelete || onDeletePayment,
-    );
-    const date = (value?: string) =>
+  const date = useCallback(
+    (value?: string) =>
       value
         ? new Intl.DateTimeFormat(localeTag(locale), { dateStyle: 'short' }).format(new Date(value))
-        : t('common.notSet');
+        : '',
+    [locale],
+  );
 
-    const list: DataTableColumn<DebtTableItem>[] = [];
+  const columns = useMemo<DataTableColumn<IDebtListItem>[]>(() => {
+    const hasActions = Boolean(onStartEdit || onSaveEdit || onQuickSettle || onDelete);
 
-    if (onToggleSelect) {
-      const rootDebts = debts.filter((d) => !d.parentDebtId);
-      const isAllSelected = rootDebts.length > 0 && rootDebts.every((d) => selectedIds?.has(d.id));
+    const list: DataTableColumn<IDebtListItem>[] = [];
+
+    if (onToggleSelect && selectedIds) {
       list.push({
         id: 'select',
-        header: onToggleSelectAll ? (
+        header: (
           <input
             type="checkbox"
             className="size-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
-            checked={isAllSelected}
-            onChange={onToggleSelectAll}
+            checked={rootRows.length > 0 && selectedIds.size === rootRows.length}
+            onChange={() => onToggleSelectAll?.()}
             aria-label={t('debts.selectAll')}
           />
-        ) : (
-          ''
         ),
-        minWidth: '40px',
-        width: '40px',
+        minWidth: 40,
+        width: 40,
         hideable: false,
-        cell: (item) => {
-          if (item._isPaymentChild) return null;
-          return (
-            <input
-              type="checkbox"
-              className="size-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
-              checked={selectedIds?.has(item.id) ?? false}
-              onChange={() => onToggleSelect(item.id)}
-              aria-label={`Select ${item.counterparty}`}
-            />
-          );
-        },
+        cell: (item) => (
+          <input
+            type="checkbox"
+            className="size-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-950"
+            checked={selectedIds.has(item.id)}
+            onChange={() => onToggleSelect(item.id)}
+            aria-label={item.counterparty}
+          />
+        ),
       });
     }
 
@@ -161,26 +120,19 @@ export function DebtsTable({
         id: 'status',
         header: t('debts.columns.status'),
         minWidth: '100px',
-        width: '100px',
+        width: 100,
         hideable: false,
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return (
-              <span className="inline-flex items-center rounded-[2px] border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 select-none dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                {t('debts.badge.paymentChild')}
-              </span>
-            );
-          }
-          const isSettled = getDebtStatus(item) === 'settled';
+          const status = getDebtStatus(item);
           return (
             <span
               className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
-                isSettled
+                status === 'settled'
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                   : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
             >
-              {isSettled ? t('debts.status.settled') : t('debts.status.active')}
+              {status === 'settled' ? t('debts.status.settled') : t('debts.status.active')}
             </span>
           );
         },
@@ -190,15 +142,6 @@ export function DebtsTable({
         header: t('dashboard.columns.direction'),
         minWidth: '100px',
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return (
-              <span className="text-[10.5px] font-medium text-slate-500 select-none dark:text-slate-400">
-                {item.direction === 'receivable'
-                  ? t('category.debtRecovery')
-                  : t('category.debtPayment')}
-              </span>
-            );
-          }
           if (editingId === item.id && editDraft && onChangeEditDraft) {
             return (
               <select
@@ -221,16 +164,20 @@ export function DebtsTable({
             <span
               className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
                 onStartEdit ? 'cursor-pointer' : ''
-              } ${
-                item.direction === 'receivable'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
               onDoubleClick={() => onStartEdit?.(item)}
             >
-              {item.direction === 'receivable'
-                ? t('table.filter.receivable')
-                : t('table.filter.payable')}
+              <span
+                className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
+                  item.direction === 'receivable'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                }`}
+              >
+                {item.direction === 'receivable'
+                  ? t('table.filter.receivable')
+                  : t('table.filter.payable')}
+              </span>
             </span>
           );
         },
@@ -241,26 +188,6 @@ export function DebtsTable({
         minWidth: '200px',
         hideable: false,
         cell: (item) => {
-          if (item._isPaymentChild) {
-            const isNestedUnderChild = Boolean(item._parentDebt?.parentDebtId);
-            return (
-              <div className={`flex items-center gap-1.5 ${isNestedUnderChild ? 'pl-8' : 'pl-4'}`}>
-                <span
-                  className="text-emerald-600 select-none text-xs font-mono dark:text-emerald-400"
-                  aria-hidden="true"
-                >
-                  ↳
-                </span>
-                <span
-                  className="font-medium text-slate-700 select-none dark:text-slate-300"
-                  title={item._payment?.note}
-                >
-                  {item._payment?.note || t('debts.badge.paymentChild')}
-                </span>
-              </div>
-            );
-          }
-
           if (
             editingId === item.id &&
             editDraft &&
@@ -287,38 +214,32 @@ export function DebtsTable({
             );
           }
 
-          const hasChildren =
-            Boolean(item.childCount && item.childCount > 0) ||
-            Boolean(item.children && item.children.length > 0);
+          const hasChildren = Boolean(item.children && item.children.length > 0);
           const hasPayments = Boolean(item.payments && item.payments.length > 0);
-          const isChild = Boolean(item.parentDebtId);
-          const isExpandedChildren = expandedIds.has(item.id);
-          const isExpandedPayments = expandedPaymentDebtIds.has(item.id);
+          const hasSubDetails = hasChildren || hasPayments;
+          const isExpanded = expandedDebtIds.has(item.id);
 
           return (
-            <div className={`flex items-center gap-1.5 ${isChild ? 'pl-4' : ''}`}>
-              {hasChildren && (
+            <div className="flex items-center gap-1.5">
+              {/* EXACTLY 1 single dropdown toggle button */}
+              {hasSubDetails && (
                 <button
                   type="button"
                   className="inline-flex size-4.5 shrink-0 cursor-pointer items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setExpandedIds((prev) => {
+                    setExpandedDebtIds((prev) => {
                       const next = new Set(prev);
                       if (next.has(item.id)) next.delete(item.id);
                       else next.add(item.id);
                       return next;
                     });
                   }}
-                  title={
-                    isExpandedChildren ? t('debts.collapseChildren') : t('debts.expandChildren')
-                  }
-                  aria-label={
-                    isExpandedChildren ? t('debts.collapseChildren') : t('debts.expandChildren')
-                  }
+                  title={isExpanded ? t('debts.collapseChildren') : t('debts.expandChildren')}
+                  aria-label={isExpanded ? t('debts.collapseChildren') : t('debts.expandChildren')}
                 >
                   <svg
-                    className={`size-3 transition-transform duration-150 ${isExpandedChildren ? 'rotate-90 text-sky-600 dark:text-sky-400' : ''}`}
+                    className={`size-3 transition-transform duration-150 ${isExpanded ? 'rotate-90 text-sky-600 dark:text-sky-400' : ''}`}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -332,50 +253,6 @@ export function DebtsTable({
                 </button>
               )}
 
-              {hasPayments && (
-                <button
-                  type="button"
-                  className="inline-flex size-4.5 shrink-0 cursor-pointer items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpandedPaymentDebtIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(item.id)) next.delete(item.id);
-                      else next.add(item.id);
-                      return next;
-                    });
-                  }}
-                  title={
-                    isExpandedPayments
-                      ? t('debts.collapsePayments')
-                      : t('debts.expandPayments', { count: item.payments?.length ?? 0 })
-                  }
-                  aria-label={
-                    isExpandedPayments
-                      ? t('debts.collapsePayments')
-                      : t('debts.expandPayments', { count: item.payments?.length ?? 0 })
-                  }
-                >
-                  <svg
-                    className={`size-3 transition-transform duration-150 ${isExpandedPayments ? 'rotate-90 text-emerald-700 dark:text-emerald-300' : ''}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              )}
-
-              {isChild && (
-                <span className="text-slate-400 select-none text-xs font-mono" aria-hidden="true">
-                  ↳
-                </span>
-              )}
               <span
                 className={`font-semibold text-slate-900 select-none dark:text-slate-100 ${
                   onStartEdit ? 'cursor-pointer' : ''
@@ -386,19 +263,16 @@ export function DebtsTable({
                 {item.counterparty}
                 {item.counterpartyAlias ? ` · ${item.counterpartyAlias}` : ''}
               </span>
+
               {hasChildren && (
                 <span className="inline-flex items-center rounded-[2px] border border-sky-200 bg-sky-50 px-1 py-0.2 text-[9.5px] font-medium text-sky-700 select-none dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
                   {t('debts.badge.parent', {
-                    count: item.childCount || item.children?.length || 0,
+                    count: item.children?.length || 0,
                   })}
                 </span>
               )}
-              {isChild && (
-                <span className="inline-flex items-center rounded-[2px] border border-slate-200 bg-slate-100 px-1 py-0.2 text-[9.5px] font-medium text-slate-600 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-                  {t('debts.badge.child')}
-                </span>
-              )}
-              {hasPayments && (
+
+              {!hasChildren && hasPayments && (
                 <span className="inline-flex items-center rounded-[2px] border border-emerald-200 bg-emerald-50 px-1 py-0.2 text-[9.5px] font-medium text-emerald-700 select-none dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                   {t('debts.badge.paymentInstallment', { count: item.payments?.length ?? 0 })}
                 </span>
@@ -413,9 +287,6 @@ export function DebtsTable({
         align: 'right',
         minWidth: '140px',
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return <span className="text-slate-400 select-none">—</span>;
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -462,14 +333,6 @@ export function DebtsTable({
         minWidth: '140px',
         hideable: false,
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return (
-              <span className="tabular-nums font-semibold text-emerald-700 select-none dark:text-emerald-400">
-                - {money(item._payment?.amount ?? 0)}
-              </span>
-            );
-          }
-
           if (
             editingId === item.id &&
             editDraft &&
@@ -499,26 +362,44 @@ export function DebtsTable({
           }
 
           const paidTotal = item.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+          const paidPct =
+            item.originalAmount > 0
+              ? Math.min(Math.round((paidTotal / item.originalAmount) * 100), 100)
+              : 0;
+          const progressTitle =
+            paidTotal > 0
+              ? t('debts.paidProgressWithCount', {
+                  amount: money(paidTotal),
+                  count: item.payments?.length ?? 0,
+                })
+              : undefined;
 
           return (
-            <div className="flex flex-col items-end">
+            <div
+              className={`flex flex-col items-end justify-center select-none ${
+                onStartEdit ? 'cursor-pointer' : ''
+              }`}
+              onDoubleClick={() => onStartEdit?.(item)}
+              title={progressTitle}
+            >
               <strong
-                className={`tabular-nums select-none ${onStartEdit ? 'cursor-pointer' : ''} ${
-                  item.direction === 'receivable'
-                    ? 'text-emerald-700 dark:text-emerald-400'
-                    : 'text-amber-700 dark:text-amber-400'
+                className={`tabular-nums ${
+                  item.remainingAmount === 0
+                    ? 'font-normal text-slate-400 dark:text-slate-500'
+                    : item.direction === 'receivable'
+                      ? 'text-emerald-700 dark:text-emerald-400'
+                      : 'text-amber-700 dark:text-amber-400'
                 }`}
-                onDoubleClick={() => onStartEdit?.(item)}
               >
                 {money(item.remainingAmount)}
               </strong>
-              {paidTotal > 0 && (
-                <span className="text-[9.5px] font-normal text-emerald-600 select-none dark:text-emerald-400">
-                  {t('debts.paidProgressWithCount', {
-                    amount: money(paidTotal),
-                    count: item.payments?.length ?? 0,
-                  })}
-                </span>
+              {paidTotal > 0 && item.remainingAmount > 0 && (
+                <div className="mt-0.5 h-1 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                    style={{ width: `${paidPct}%` }}
+                  />
+                </div>
               )}
             </div>
           );
@@ -539,9 +420,6 @@ export function DebtsTable({
         header: t('dashboard.columns.dueDate'),
         minWidth: '130px',
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return <span className="text-slate-400 select-none">—</span>;
-          }
           if (
             editingId === item.id &&
             editDraft &&
@@ -570,7 +448,7 @@ export function DebtsTable({
               }`}
               onDoubleClick={() => onStartEdit?.(item)}
             >
-              {date(item.dueAt)}
+              {date(item.dueAt) || t('common.notSet')}
             </span>
           );
         },
@@ -579,47 +457,17 @@ export function DebtsTable({
         id: 'settledAt',
         header: t('debts.columns.settledAt'),
         minWidth: '120px',
-        cell: (item) => {
-          if (item._isPaymentChild) {
-            return (
-              <span className="text-[11.5px] font-medium text-emerald-700 select-none dark:text-emerald-400">
-                {date(item._payment?.paymentDate || item._payment?.createdAt)}
-              </span>
-            );
-          }
-          return (
-            <span className="text-[11.5px] text-slate-500 select-none dark:text-slate-400">
-              {item.settledAt ? date(item.settledAt) : '—'}
-            </span>
-          );
-        },
+        cell: (item) => (
+          <span className="text-[11.5px] text-slate-500 select-none dark:text-slate-400">
+            {item.settledAt ? date(item.settledAt) : '—'}
+          </span>
+        ),
       },
       {
         id: 'note',
         header: t('dashboard.columns.note'),
         minWidth: '150px',
         cell: (item) => {
-          if (item._isPaymentChild) {
-            return (
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="text-slate-600 select-none dark:text-slate-300"
-                  title={item._payment?.note}
-                >
-                  {item._payment?.note || '—'}
-                </span>
-                {item._payment?.financeTransactionId && (
-                  <span
-                    className="inline-flex items-center rounded-[2px] border border-sky-200 bg-sky-50 px-1 py-0.2 text-[9px] font-medium text-sky-700 select-none dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
-                    title={t('debts.payments.linkedTransaction')}
-                  >
-                    🔗 {t('debts.payments.linkedTransaction')}
-                  </span>
-                )}
-              </div>
-            );
-          }
-
           if (
             editingId === item.id &&
             editDraft &&
@@ -665,26 +513,6 @@ export function DebtsTable({
         minWidth: '140px',
         hideable: false,
         cell: (item) => {
-          if (item._isPaymentChild) {
-            if (onDeletePayment && item._payment && item._parentDebt) {
-              const pDebt = item._parentDebt;
-              const pItem = item._payment;
-              return (
-                <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
-                  <button
-                    type="button"
-                    className="inline-flex h-[22px] min-h-[22px] shrink-0 cursor-pointer items-center rounded-[2px] border border-rose-200 bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700 whitespace-nowrap transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/70"
-                    onClick={() => void onDeletePayment(pDebt.id, pItem.id)}
-                    title={t('common.cancel')}
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            }
-            return null;
-          }
-
           const isEditing = editingId === item.id;
           if (isEditing && editDraft && onSaveEdit && onCancelEdit) {
             return (
@@ -758,41 +586,228 @@ export function DebtsTable({
 
     return list;
   }, [
-    debts,
+    date,
     editDraft,
     editingId,
-    expandedIds,
-    expandedPaymentDebtIds,
+    expandedDebtIds,
     isPending,
-    locale,
     money,
     onCancelEdit,
     onChangeEditDraft,
     onCounterpartyChange,
     onDelete,
-    onDeletePayment,
     onQuickSettle,
     onSaveEdit,
     onStartEdit,
     onToggleSelect,
     onToggleSelectAll,
+    rootRows.length,
     selectedIds,
     t,
   ]);
+
+  // Master-Detail 1-Level Indented Sub-panel Renderer
+  const renderExpandedRow = (item: IDebtListItem) => {
+    const hasChildren = Boolean(item.children && item.children.length > 0);
+    const hasPayments = Boolean(item.payments && item.payments.length > 0);
+    if (!hasChildren && !hasPayments) return null;
+
+    return (
+      <div className="space-y-3 py-2 pl-12 pr-4">
+        {/* Combined Child Debts Table */}
+        {hasChildren && item.children && (
+          <div className="overflow-hidden rounded border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-950">
+            <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-sky-600 dark:text-sky-400">↳</span>
+                <span>{t('debts.badge.parent', { count: item.children.length })}</span>
+              </div>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
+                    <th scope="col" className="w-10 px-2.5 py-1 text-right">
+                      #
+                    </th>
+                    <th scope="col" className="px-2.5 py-1">
+                      {t('dashboard.columns.counterparty')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1 text-right">
+                      {t('dashboard.columns.original')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1 text-right">
+                      {t('dashboard.columns.remaining')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1">
+                      {t('dashboard.columns.dueDate')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1">
+                      {t('dashboard.columns.note')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {item.children.map((child, idx) => {
+                    const childPaid = child.originalAmount - child.remainingAmount;
+                    const childPaidPct =
+                      child.originalAmount > 0
+                        ? Math.min(Math.round((childPaid / child.originalAmount) * 100), 100)
+                        : 0;
+                    const childProgressTitle =
+                      childPaid > 0
+                        ? t('debts.paidProgress', {
+                            amount: money(childPaid),
+                          })
+                        : undefined;
+
+                    return (
+                      <tr
+                        key={child.id}
+                        className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/50"
+                      >
+                        <td className="px-2.5 py-1.5 text-right font-mono text-slate-400">
+                          {idx + 1}
+                        </td>
+                        <td className="px-2.5 py-1.5 font-medium text-slate-800 dark:text-slate-200">
+                          {child.counterparty}
+                          {child.counterpartyAlias && (
+                            <span className="ml-1 text-[10px] text-slate-400">
+                              ({child.counterpartyAlias})
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                          {money(child.originalAmount)}
+                        </td>
+                        <td
+                          className="px-2.5 py-1.5 text-right tabular-nums"
+                          title={childProgressTitle}
+                        >
+                          <div className="flex flex-col items-end justify-center">
+                            <span
+                              className={
+                                child.remainingAmount === 0
+                                  ? 'font-normal text-slate-400'
+                                  : 'font-semibold text-amber-700 dark:text-amber-400'
+                              }
+                            >
+                              {money(child.remainingAmount)}
+                            </span>
+                            {childPaid > 0 && child.remainingAmount > 0 && (
+                              <div className="mt-0.5 h-1 w-14 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div
+                                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                                  style={{ width: `${childPaidPct}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-2.5 py-1.5 text-slate-500 dark:text-slate-400">
+                          {date(child.dueAt) || '—'}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-slate-500 dark:text-slate-400">
+                          {child.note || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Payment History Table */}
+        {hasPayments && item.payments && (
+          <div className="overflow-hidden rounded border border-emerald-200/80 bg-emerald-50/20 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-950/20">
+            <header className="flex items-center justify-between border-b border-emerald-100/80 bg-emerald-50/50 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
+              <div className="flex items-center gap-1.5">
+                <span>💸</span>
+                <span>{t('debts.badge.paymentInstallment', { count: item.payments.length })}</span>
+              </div>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-emerald-200/50 bg-emerald-100/30 text-[10.5px] font-semibold uppercase tracking-wider text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    <th scope="col" className="w-12 px-2.5 py-1 text-right">
+                      {t('table.ordinal')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1 text-right">
+                      {t('dashboard.columns.amount')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1">
+                      {t('debts.columns.settledAt')}
+                    </th>
+                    <th scope="col" className="px-2.5 py-1">
+                      {t('dashboard.columns.note')}
+                    </th>
+                    {onDeletePayment && (
+                      <th scope="col" className="w-16 px-2.5 py-1 text-right">
+                        {t('dashboard.columns.action')}
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-emerald-100/60 dark:divide-emerald-900/40">
+                  {item.payments.map((p, idx) => (
+                    <tr
+                      key={p.id}
+                      className="transition-colors hover:bg-emerald-100/20 dark:hover:bg-emerald-900/20"
+                    >
+                      <td className="px-2.5 py-1.5 text-right font-mono text-emerald-700/60 dark:text-emerald-400/60">
+                        {idx + 1}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        - {money(p.amount)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                        {date(p.paymentDate || p.createdAt)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                        <span>{p.note || t('debts.badge.paymentChild')}</span>
+                        {p.financeTransactionId && (
+                          <span className="ml-2 inline-flex items-center rounded bg-sky-100 px-1 py-0.2 text-[9.5px] font-medium text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                            🔗 {t('debts.payments.linkedTransaction')}
+                          </span>
+                        )}
+                      </td>
+                      {onDeletePayment && (
+                        <td className="px-2.5 py-1.5 text-right">
+                          <button
+                            type="button"
+                            className="inline-flex size-5 items-center justify-center rounded border border-rose-200 bg-white text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-400"
+                            onClick={() => void onDeletePayment(item.id, p.id)}
+                            title={t('common.cancel')}
+                            aria-label={t('common.cancel')}
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <DataTable
       id={id}
       ariaLabel={ariaLabel ?? t('dashboard.openDebts')}
-      rows={flattenedRows}
+      rows={rootRows}
       emptyMessage={emptyMessage ?? t('dashboard.noDebts')}
       columns={columns}
       getRowKey={(item) => item.id}
-      getRowClassName={(item) => {
-        if (item._isPaymentChild) return 'bg-emerald-50/30 dark:bg-emerald-950/20';
-        if (item.parentDebtId) return 'bg-slate-50/70 dark:bg-slate-900/40';
-        return '';
-      }}
+      isRowExpanded={(item) => expandedDebtIds.has(item.id)}
+      renderExpandedRow={renderExpandedRow}
       disableSorting
       loading={loading}
     />

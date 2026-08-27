@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment, type ReactNode } from 'react';
 import type { TranslationKey } from '@telebot/contracts';
 import { useLocale } from '@/shared/providers/locale-provider';
 
@@ -357,6 +357,8 @@ type DataTableProps<T extends DataTableRow> = {
   emptyMessage: string;
   getRowKey?: (row: T, index: number) => string | number;
   getRowClassName?: (row: T, index: number) => string | undefined;
+  renderExpandedRow?: (row: T, index: number) => ReactNode;
+  isRowExpanded?: (row: T, index: number) => boolean;
   disableSorting?: boolean;
   loading?: boolean;
   allowColumnToggle?: boolean;
@@ -602,6 +604,8 @@ export function DataTable<T extends DataTableRow>({
   emptyMessage,
   getRowKey = (row) => row.id,
   getRowClassName,
+  renderExpandedRow,
+  isRowExpanded,
   disableSorting = false,
   loading = false,
   allowColumnToggle,
@@ -950,26 +954,39 @@ export function DataTable<T extends DataTableRow>({
             ) : sortedRows.length > 0 ? (
               sortedRows.map((row, index) => {
                 const customClassName = getRowClassName ? getRowClassName(row, index) : '';
+                const rowKey = getRowKey(row, index);
+                const isExpanded = isRowExpanded ? isRowExpanded(row, index) : false;
                 return (
-                  <tr
-                    key={getRowKey(row, index)}
-                    className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 ${customClassName || ''}`.trim()}
-                  >
-                    {visibleColumns.map((column) => (
-                      <td
-                        key={column.id}
-                        className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
-                          column.align === 'right' ? 'text-right' : 'text-left'
-                        } ${column.className ?? ''}`.trim()}
-                        style={{
-                          minWidth: column.minWidth,
-                          width: getColumnWidth(column),
-                        }}
-                      >
-                        {column.cell(row, index)}
-                      </td>
-                    ))}
-                  </tr>
+                  <Fragment key={rowKey}>
+                    <tr
+                      className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 ${customClassName || ''}`.trim()}
+                    >
+                      {visibleColumns.map((column) => (
+                        <td
+                          key={column.id}
+                          className={`h-8 border-r border-b border-r-slate-50 border-b-slate-100 px-2 py-1 align-middle text-xs tabular-nums text-slate-700 last:border-r-0 dark:border-r-slate-900/60 dark:border-b-slate-800 dark:text-slate-300 ${
+                            column.align === 'right' ? 'text-right' : 'text-left'
+                          } ${column.className ?? ''}`.trim()}
+                          style={{
+                            minWidth: column.minWidth,
+                            width: getColumnWidth(column),
+                          }}
+                        >
+                          {column.cell(row, index)}
+                        </td>
+                      ))}
+                    </tr>
+                    {isExpanded && renderExpandedRow && (
+                      <tr className="bg-slate-50/70 transition-colors dark:bg-slate-900/50">
+                        <td
+                          colSpan={visibleColumns.length}
+                          className="border-b border-slate-200 p-0 dark:border-slate-800"
+                        >
+                          {renderExpandedRow(row, index)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })
             ) : (
