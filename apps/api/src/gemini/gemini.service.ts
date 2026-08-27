@@ -255,7 +255,12 @@ export class GeminiService {
   public async confirmPendingAction(
     actionId: string,
     userId: number,
-  ): Promise<{ referenceId: string; name: string; result: Record<string, unknown> }> {
+  ): Promise<{
+    referenceId: string;
+    name: string;
+    payload: Record<string, unknown>;
+    result: Record<string, unknown>;
+  }> {
     const pending = this.pendingActions.get(actionId);
     if (!pending || pending.userId !== userId || pending.expiresAt < Date.now()) {
       this.pendingActions.delete(actionId);
@@ -269,7 +274,12 @@ export class GeminiService {
       userId,
       botUsername: pending.botUsername,
     });
-    return { referenceId: pending.referenceId, name: pending.name, result };
+    return {
+      referenceId: pending.referenceId,
+      name: pending.name,
+      payload: pending.payload,
+      result,
+    };
   }
 
   private async addTaskDuplicateWarnings(
@@ -305,6 +315,12 @@ export class GeminiService {
       this.logger.warn(`Could not check Google Tasks duplicates: ${message}`);
       return payload;
     }
+  }
+
+  public getPendingAction(actionId: string, userId: number): PendingToolAction | undefined {
+    const pending = this.pendingActions.get(actionId);
+    if (!pending || pending.userId !== userId) return undefined;
+    return pending;
   }
 
   public cancelPendingAction(actionId: string, userId: number): boolean {

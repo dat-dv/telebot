@@ -14,6 +14,8 @@ import {
   useDeleteCategoryMutation,
   useUpdateCategoryMutation,
 } from '../../api/categories-query';
+import { useDashboardQuery } from '@/modules/dashboard/api/dashboard-query';
+import { AdjustBalanceModal } from '@/modules/dashboard/presentation/components/adjust-balance-modal';
 
 export function SettingsScreen() {
   const queryClient = useQueryClient();
@@ -35,8 +37,10 @@ export function SettingsScreen() {
   const [editName, setEditName] = useState('');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
   const [, startTransition] = useTransition();
 
+  const dashboard = useDashboardQuery();
   const categoriesQuery = useCategoriesQuery();
   const createMutation = useCreateCategoryMutation();
   const updateMutation = useUpdateCategoryMutation();
@@ -449,6 +453,24 @@ export function SettingsScreen() {
                   {t('settings.preferences.supported')}
                 </span>
               </article>
+              <article className="flex items-center justify-between gap-4 border-b border-slate-200 py-3 dark:border-slate-800">
+                <div>
+                  <strong className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    {t('settings.preferences.walletManagementTitle')}
+                  </strong>
+                  <p className="mt-1 text-[11.5px] text-slate-500 dark:text-slate-400">
+                    {t('settings.preferences.walletManagementDescription')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdjustBalanceOpen(true)}
+                  className="inline-flex h-6 min-w-[76px] shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[3px] border border-indigo-300 bg-indigo-50 px-2 text-[11px] font-semibold text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-900/60"
+                >
+                  <span>⚖️</span>
+                  {t('transactions.balanceAdjust.actionButton')}
+                </button>
+              </article>
               <article className="flex items-center justify-between gap-4 py-3">
                 <div>
                   <strong className="text-xs font-semibold text-slate-900 dark:text-slate-100">
@@ -479,6 +501,14 @@ export function SettingsScreen() {
           </DataPanel>
         </section>
       )}
+
+      {/* Adjust Balance Modal */}
+      <AdjustBalanceModal
+        isOpen={isAdjustBalanceOpen}
+        currentBalance={dashboard.data?.finance.balance ?? 0}
+        onClose={() => setIsAdjustBalanceOpen(false)}
+        onSuccess={(msg) => msg && showToast(msg)}
+      />
     </>
   );
 }

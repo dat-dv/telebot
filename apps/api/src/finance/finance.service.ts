@@ -647,6 +647,34 @@ export class FinanceService {
   public async deleteTransaction(userId: number, id: string): Promise<boolean> {
     const transaction = await this.getTransaction(userId, id);
     if (!transaction) return false;
+
+    const uid = userId.toString();
+    const existingAllocs = await this.allocationRepo.find({
+      where: { financeTransactionId: id, userId: uid },
+    });
+
+    if (existingAllocs.length > 0) {
+      const debtIds = Array.from(new Set(existingAllocs.map((a) => a.debtId)));
+      const debts = await this.debtRepo.find({
+        where: { id: In(debtIds), userId: uid },
+      });
+      const debtMap = new Map(debts.map((d) => [d.id, d]));
+
+      for (const alloc of existingAllocs) {
+        const debt = debtMap.get(alloc.debtId);
+        if (debt) {
+          debt.remainingAmount += alloc.amount;
+        }
+      }
+
+      if (debts.length > 0) {
+        await this.debtRepo.save(debts);
+      }
+
+      await this.allocationRepo.delete({ financeTransactionId: id, userId: uid });
+      await this.debtPaymentRepo.delete({ financeTransactionId: id, userId: uid });
+    }
+
     await this.transactionRepo.remove(transaction);
     return true;
   }

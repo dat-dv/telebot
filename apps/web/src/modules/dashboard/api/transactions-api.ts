@@ -1,10 +1,23 @@
 import {
   API_ROUTES,
   type IApiResponse,
+  type ICreateTransactionRequest,
   type ITransactionItem,
   type IUpdateTransactionRequest,
 } from '@telebot/contracts';
 import { httpClient } from '@/shared/api/http-client';
+
+export async function createTransaction(
+  data: ICreateTransactionRequest,
+  signal?: AbortSignal,
+): Promise<ITransactionItem> {
+  const response = await httpClient.post<IApiResponse<ITransactionItem>>(
+    API_ROUTES.transactions,
+    data,
+    { signal },
+  );
+  return response.data.data;
+}
 
 export async function updateTransaction(
   id: string,

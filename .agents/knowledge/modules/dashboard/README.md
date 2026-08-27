@@ -49,6 +49,20 @@ During inline transaction editing, Category is a controlled combobox rather than
   - Data table utilizes `DataTable` (`id="places"`), which automatically prepends non-hideable `stt` and `id` system columns, paired with domain columns: `name` (inline edit on double-click with `Enter`/`Escape`), `createdAt`, and `actions` (Edit, 2-step safe inline deletion).
   - Search toolbar and quick Add Place form (`+ Add place`).
   - Integrated into navigation drawer and sidebar under `DATA` (`nav.section.data`) with a dedicated location pin icon.
+- **Transaction Deletion & Balance Impact Modal (`DeleteTransactionModal`)**:
+  - Replaces native browser `window.confirm` dialogs on `TransactionsScreen` with a dedicated, accessible confirmation modal (`DeleteTransactionModal`).
+  - Renders complete transaction summary (type, category, place, amount, occurredAt, note) alongside color-coded cashflow balance impact callouts:
+    * **Expense deletion**: Emerald refund card informing the user that wallet cashflow balance will increase (`+amount`).
+    * **Income deletion**: Amber/rose deduction card informing the user that wallet cashflow balance will decrease (`-amount`).
+    * **Allocated transactions**: Alert warning that deleting the transaction will restore unpaid balances on linked debts.
+  - Supports keyboard Escape, backdrop dismiss, and disabled states during mutation pending.
+- **Wallet Balance Adjustment & Reconciliation Modal (`AdjustBalanceModal`)**:
+  - Provides a dedicated modal accessible from Dashboard Home Quick Actions, the Transactions Screen toolbar, and Settings Preferences (`apps/web/src/modules/dashboard/presentation/components/adjust-balance-modal.tsx`).
+  - Allows users to enter their actual real-world wallet/bank balance (`targetAmount`).
+  - Automatically calculates the difference between current ledger balance and target balance:
+    * **Positive difference (`diff > 0`)**: Creates an `income` transaction categorized under `Điều chỉnh số dư` (`category.balanceAdjustment`).
+    * **Negative difference (`diff < 0`)**: Creates an `expense` transaction categorized under `Điều chỉnh số dư`.
+  - Automatically formats the adjustment note (`Cân chỉnh số dư ví: {current} ➔ {target}`) with customizable override, datetime picker, error boundaries, and reactive query invalidation across dashboard, transactions, and analytics keys.
 - **Debt Transaction Allocation & Inline Expandable Rows (`DebtAllocationModal` & `TransactionsTable`)**:
   - Clicking the dropdown button expands a dedicated master-detail Sub-panel (`renderExpandedRow`, `colSpan={columns.length}`) indented beneath the parent transaction, displaying an allocations sub-grid with counterparty, amount, note, and an edit button opening `DebtAllocationModal`.
   - The Allocation Modal (`DebtAllocationModal`, `apps/web/src/modules/dashboard/presentation/components/debt-allocation-modal.tsx`) fetches candidate debts matching the transaction's contact and direction (`useDebtAllocationCandidatesQuery`), splits/allocates transaction amounts across debts, and calls `POST /api/debts/allocations` (`useAllocateTransactionMutation`).

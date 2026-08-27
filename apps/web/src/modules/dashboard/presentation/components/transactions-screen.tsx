@@ -15,6 +15,8 @@ import {
   type TransactionTableItem,
 } from './transactions-table';
 import { DebtAllocationModal } from './debt-allocation-modal';
+import { DeleteTransactionModal } from './delete-transaction-modal';
+import { AdjustBalanceModal } from './adjust-balance-modal';
 import { usePeriodFilter } from '@/shared/hooks/use-period-filter';
 import { PeriodFilterToolbar } from '@/shared/ui/period-filter-toolbar';
 import { TrendSummaryStrip } from '@/shared/ui/trend-summary-strip';
@@ -46,6 +48,8 @@ export function TransactionsScreen() {
   const [allocatingTransaction, setAllocatingTransaction] = useState<TransactionTableItem | null>(
     null,
   );
+  const [deletingTransaction, setDeletingTransaction] = useState<TransactionTableItem | null>(null);
+  const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
   const [editDraft, setEditDraft] = useState<TransactionEditDraft>({
     type: 'expense',
     category: '',
@@ -234,11 +238,21 @@ export function TransactionsScreen() {
     [editDraft, updateMutation, showToast, t],
   );
 
-  const handleDelete = useCallback(
+  const handleOpenDelete = useCallback(
+    (id: string) => {
+      const target = rawList.find((item) => item.id === id);
+      if (target) {
+        setDeletingTransaction(target);
+      }
+    },
+    [rawList],
+  );
+
+  const handleConfirmDelete = useCallback(
     async (id: string) => {
-      if (!window.confirm(t('transactions.delete.confirm'))) return;
       try {
         await deleteMutation.mutateAsync(id);
+        setDeletingTransaction(null);
         showToast(t('transactions.delete.success'));
       } catch {
         // Error handled by mutation
@@ -313,6 +327,14 @@ export function TransactionsScreen() {
               >
                 {t('table.filter.expense')}
               </button>
+              <button
+                type="button"
+                onClick={() => setIsAdjustBalanceOpen(true)}
+                className="inline-flex h-6 min-h-6 cursor-pointer items-center gap-1 rounded-[3px] border border-indigo-300 bg-indigo-50 px-2 text-[11px] font-semibold text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-900/60"
+              >
+                <span>⚖️</span>
+                {t('transactions.balanceAdjust.actionButton')}
+              </button>
               <input
                 type="search"
                 className="h-6 min-h-6 w-44 rounded-[3px] border border-slate-300 bg-white px-2 text-[11.5px] text-slate-900 outline-none focus:border-sky-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 max-[640px]:w-full"
@@ -337,7 +359,7 @@ export function TransactionsScreen() {
             onStartEdit={handleStartEdit}
             onCancelEdit={handleCancelEdit}
             onSaveEdit={handleSaveEdit}
-            onDelete={handleDelete}
+            onDelete={handleOpenDelete}
             onOpenAllocate={setAllocatingTransaction}
             categorySuggestions={categorySuggestions}
             placeSuggestions={placeSuggestions}
@@ -351,6 +373,21 @@ export function TransactionsScreen() {
         transaction={allocatingTransaction}
         onClose={handleCloseAllocate}
         onSuccess={handleAllocateSuccess}
+      />
+
+      <DeleteTransactionModal
+        isOpen={Boolean(deletingTransaction)}
+        transaction={deletingTransaction}
+        onClose={() => setDeletingTransaction(null)}
+        onConfirm={handleConfirmDelete}
+        isPending={deleteMutation.isPending}
+      />
+
+      <AdjustBalanceModal
+        isOpen={isAdjustBalanceOpen}
+        currentBalance={dashboard.data?.finance.balance ?? 0}
+        onClose={() => setIsAdjustBalanceOpen(false)}
+        onSuccess={(msg) => msg && showToast(msg)}
       />
     </>
   );

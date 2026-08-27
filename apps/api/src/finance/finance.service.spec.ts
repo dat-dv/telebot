@@ -868,3 +868,95 @@ void test('FinanceService.updateTransaction blocks reducing amount below total a
   const updated = await service.updateTransaction(42, 'tx-alloc-2', { amount: 800_000 });
   assert.equal(updated?.amount, 800_000);
 });
+
+void test('FinanceService.deleteTransaction restores debt remaining amount when deleting transaction with allocations', async () => {
+  const mockTx: Partial<FinanceTransactionEntity> = {
+    id: 'tx-del-1',
+    userId: '42',
+    type: 'expense',
+    amount: 1_000_000,
+    category: 'Trả nợ',
+    note: 'Giao dịch trả nợ',
+  };
+
+  const mockAllocations: Partial<DebtPaymentAllocationEntity>[] = [
+    {
+      id: 'alloc-1',
+      userId: '42',
+      financeTransactionId: 'tx-del-1',
+      debtId: 'debt-1',
+      amount: 400_000,
+    },
+    {
+      id: 'alloc-2',
+      userId: '42',
+      financeTransactionId: 'tx-del-1',
+      debtId: 'debt-2',
+      amount: 300_000,
+    },
+  ];
+
+  const mockDebts: Partial<DebtEntity>[] = [
+    { id: 'debt-1', userId: '42', remainingAmount: 600_000 },
+    { id: 'debt-2', userId: '42', remainingAmount: 200_000 },
+  ];
+
+  let removedTx: unknown = null;
+  let savedDebts: unknown = null;
+  let deletedAllocCriteria: unknown = null;
+  let deletedPaymentCriteria: unknown = null;
+
+  const transactionRepository = {
+    findOne: () => Promise.resolve(mockTx as FinanceTransactionEntity),
+    remove: (entity: unknown) => {
+      removedTx = entity;
+      return Promise.resolve(entity);
+    },
+  };
+
+  const debtRepository = {
+    find: () => Promise.resolve(mockDebts as DebtEntity[]),
+    save: (entities: unknown) => {
+      savedDebts = entities;
+      return Promise.resolve(entities);
+    },
+  };
+
+  const allocationRepository = {
+    find: () => Promise.resolve(mockAllocations as DebtPaymentAllocationEntity[]),
+    delete: (criteria: unknown) => {
+      deletedAllocCriteria = criteria;
+      return Promise.resolve({ affected: 2 });
+    },
+  };
+
+  const debtPaymentRepository = {
+    delete: (criteria: unknown) => {
+      deletedPaymentCriteria = criteria;
+      return Promise.resolve({ affected: 2 });
+    },
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    debtRepository as never,
+    {} as never,
+    debtPaymentRepository as never,
+    allocationRepository as never,
+    {} as never,
+    {} as never,
+  );
+
+  const result = await service.deleteTransaction(42, 'tx-del-1');
+  assert.equal(result, true);
+  assert.deepEqual(removedTx, mockTx);
+
+  // Remaining amounts should be restored: 600k + 400k = 1M, 200k + 300k = 500k
+  const debt1 = (savedDebts as DebtEntity[])?.find((d) => d.id === 'debt-1');
+  const debt2 = (savedDebts as DebtEntity[])?.find((d) => d.id === 'debt-2');
+  assert.equal(debt1?.remainingAmount, 1_000_000);
+  assert.equal(debt2?.remainingAmount, 500_000);
+
+  assert.deepEqual(deletedAllocCriteria, { financeTransactionId: 'tx-del-1', userId: '42' });
+  assert.deepEqual(deletedPaymentCriteria, { financeTransactionId: 'tx-del-1', userId: '42' });
+});

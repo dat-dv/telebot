@@ -1,10 +1,28 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ITransactionItem, IUpdateTransactionRequest } from '@telebot/contracts';
+import type {
+  ICreateTransactionRequest,
+  ITransactionItem,
+  IUpdateTransactionRequest,
+} from '@telebot/contracts';
 import { dashboardQueryKeys } from './dashboard-query';
 import { placesQueryKeys } from './places-query';
-import { deleteTransaction, updateTransaction } from './transactions-api';
+import { createTransaction, deleteTransaction, updateTransaction } from './transactions-api';
+
+export function useCreateTransactionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<ITransactionItem, Error, ICreateTransactionRequest>({
+    mutationFn: (data) => createTransaction(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.detail() });
+      void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      void queryClient.invalidateQueries({ queryKey: ['finance-analytics'] });
+      void queryClient.invalidateQueries({ queryKey: placesQueryKeys.all });
+    },
+  });
+}
 
 export function useUpdateTransactionMutation() {
   const queryClient = useQueryClient();

@@ -38,6 +38,19 @@ metadata:
   - Bảng dữ liệu sử dụng `DataTable` (`id="places"`), tự động tích hợp 2 cột hệ thống bắt buộc `STT` và `ID`, đi cùng các cột nghiệp vụ: `Tên nơi chốn / Địa điểm` (hỗ trợ double-click inline edit, phím tắt `Enter`/`Escape`), `Thời gian tạo`, `Hoạt động` (Sửa, Xóa).
   - Hỗ trợ thêm nhanh nơi chốn mới qua nút `+ Thêm nơi chốn` trên toolbar, tìm kiếm theo thời gian thực và xác nhận xóa an toàn 2 bước inline.
   - Tích hợp vào thanh điều hướng Sidebar dưới mục **DỮ LIỆU** (`nav.section.data`) với icon định vị chuẩn.
+- **Xóa Giao dịch & Modal Cảnh báo Biến động Số dư (`DeleteTransactionModal`)**:
+  * Khi người dùng bấm nút Xóa (✕) trên bảng Thu chi, thay vì sử dụng popup `window.confirm` thô sơ của trình duyệt, hệ thống mở modal chuyên nghiệp `DeleteTransactionModal`.
+  * Modal hiển thị thông tin chi tiết giao dịch (Loại Thu/Chi, Danh mục, Nơi chốn, Số tiền, Thời gian, Ghi chú) kèm khối cảnh báo trực quan về tác động số dư dòng tiền:
+    - Với khoản **Chi**: Cảnh báo màu xanh ngọc: *Cộng hoàn lại vào số dư ví: `+amount`* (vì khoản tiền không còn bị chi ra, số dư thực tế tăng lên).
+    - Với khoản **Thu**: Cảnh báo màu hổ phách/đỏ: *Khấu trừ giảm khỏi số dư ví: `-amount`* (vì khoản tiền thu vào bị hủy, số dư thực tế giảm đi).
+    - Với giao dịch có phân bổ công nợ: Hiển thị cảnh báo màu đỏ về việc khôi phục số nợ chưa trả cho các khoản nợ liên quan.
+  * Hỗ trợ phím tắt `Escape`, bấm backdrop để đóng an toàn và hiển thị loading spinner khi đang gọi API xóa.
+- **Modal Cân chỉnh & Bù trừ Số dư ví (`AdjustBalanceModal`)**:
+  * Cung cấp giao diện cân chỉnh số dư ví nhanh chóng, truy cập được từ nút `Cân chỉnh số dư` (⚖️) trên thanh Quick Links trang chủ, thanh công cụ DataPanel của Sổ giao dịch (`/transactions`) và tab Tùy chọn trong Cài đặt (`/settings`).
+  * Người dùng nhập số dư thực tế hiện tại trong tài khoản/ví. Hệ thống tự động đối soát với số dư lũy kế trên sổ:
+    - **Chênh lệch tăng (`diff > 0`)**: Tự động sinh giao dịch `income` danh mục `Điều chỉnh số dư` (`category.balanceAdjustment`).
+    - **Chênh lệch giảm (`diff < 0`)**: Tự động sinh giao dịch `expense` danh mục `Điều chỉnh số dư`.
+  * Tự động tạo ghi chú mô tả trực quan (`Cân chỉnh số dư ví: {current} ➔ {target}`) cho phép chỉnh sửa, chọn ngày giờ áp dụng và tự động invalidate toàn bộ cache React Query liên quan (`dashboardQueryKeys.detail()`, `['transactions']`, `['expenses']`, `['finance-analytics']`).
 - **Phân bổ Giao dịch vào Công nợ & Mở rộng Hàng con Inline (`DebtAllocationModal` & `TransactionsTable`)**:
   - Trên bảng giao dịch thu chi (`TransactionsTable`), các giao dịch có phân bổ công nợ hiển thị icon nút bấm Chevron xoay (`▶ / ▼` với `rotate-90`) bên cạnh huy hiệu phân bổ (`🔗 N phân bổ`).
   - Khi bấm mở rộng, hệ thống hiển thị Sub-panel thụt lề 1 cấp (`renderExpandedRow`, `colSpan={columns.length}`) ngay dưới giao dịch cha, hiển thị bảng mini các khoản phân bổ (Đối tác nợ, số tiền phân bổ, ghi chú) và nút sửa phân bổ trực tiếp.
