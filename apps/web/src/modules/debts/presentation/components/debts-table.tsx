@@ -164,20 +164,16 @@ export function DebtsTable({
             <span
               className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
                 onStartEdit ? 'cursor-pointer' : ''
+              } ${
+                item.direction === 'receivable'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
               onDoubleClick={() => onStartEdit?.(item)}
             >
-              <span
-                className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
-                  item.direction === 'receivable'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                    : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                }`}
-              >
-                {item.direction === 'receivable'
-                  ? t('table.filter.receivable')
-                  : t('table.filter.payable')}
-              </span>
+              {item.direction === 'receivable'
+                ? t('table.filter.receivable')
+                : t('table.filter.payable')}
             </span>
           );
         },

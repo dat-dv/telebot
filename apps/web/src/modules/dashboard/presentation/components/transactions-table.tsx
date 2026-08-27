@@ -103,6 +103,10 @@ export function TransactionsTable({
             <span
               className={`inline-flex items-center rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold select-none ${
                 onStartEdit ? 'cursor-pointer' : ''
+              } ${
+                item.type === 'income'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
               onDoubleClick={() => onStartEdit?.(item)}
             >
