@@ -216,10 +216,6 @@ export function CalendarGrid({
         aria-label={t('dashboard.calendar')}
       >
         {cells.map((cell) => {
-          const maxVisibleEvents = 2;
-          const visibleEvents = cell.events.slice(0, maxVisibleEvents);
-          const hiddenCount = cell.events.length - maxVisibleEvents;
-
           return (
             <button
               type="button"
@@ -257,7 +253,7 @@ export function CalendarGrid({
               </div>
 
               <div className="flex flex-col gap-0.5 overflow-hidden">
-                {visibleEvents.map((event) => (
+                {cell.events.map((event) => (
                   <div
                     key={event.id}
                     className="flex items-center gap-1 overflow-hidden rounded-[3px] border border-blue-200 bg-blue-50 px-1 py-0.5 text-[11px] text-blue-800 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-200 dark:hover:border-blue-700 dark:hover:bg-blue-900"
@@ -273,11 +269,6 @@ export function CalendarGrid({
                     <span className="truncate">{event.title}</span>
                   </div>
                 ))}
-                {hiddenCount > 0 && (
-                  <div className="pl-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                    {t('calendar.moreEvents', { count: hiddenCount })}
-                  </div>
-                )}
               </div>
             </button>
           );

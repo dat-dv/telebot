@@ -649,3 +649,48 @@ void test('formats cancelled box with safety assurance and preserved original su
   assert.match(cancelled, /Trí/);
   assert.match(cancelled, /500\.000đ/);
 });
+
+void test('formats create_debt_contact confirmation box and result box', () => {
+  const service = new TelegramUiService();
+  const confirmation = service.formatConfirmationBox(
+    'create_debt_contact',
+    {
+      name: 'Đức CMC',
+      alias: 'Đức',
+      descriptor: 'số 90 Quảng Hiền, Bảy Hiền, Hồ Chí Minh',
+      phoneNumber: '0901234567',
+    },
+    'REQ-CONTACT-01',
+  );
+
+  assert.match(confirmation, /XÁC NHẬN TẠO NGƯỜI LIÊN QUAN/);
+  assert.match(confirmation, /Đức CMC/);
+  assert.match(confirmation, /Biệt danh: <i>Đức<\/i>/);
+  assert.match(confirmation, /số 90 Quảng Hiền, Bảy Hiền, Hồ Chí Minh/);
+  assert.match(confirmation, /0901234567/);
+  assert.match(confirmation, /REQ-CONTACT-01/);
+  assert.match(confirmation, /Lưu người liên quan <b>Đức CMC<\/b> vào danh bạ công nợ/);
+
+  const resultBox = service.formatResultBox(
+    'create_debt_contact',
+    {
+      success: true,
+      contact: {
+        id: 'contact-uuid-1',
+        name: 'Đức CMC',
+        alias: 'Đức',
+      },
+    },
+    'REQ-CONTACT-01',
+  );
+
+  assert.match(resultBox, /Đã tạo người liên quan/);
+  assert.match(resultBox, /Đức CMC \(Đức\)/);
+
+  const originalSummary = service.formatOriginalSummary('create_debt_contact', {
+    name: 'Đức CMC',
+    descriptor: 'số 90 Quảng Hiền, Bảy Hiền, Hồ Chí Minh',
+  });
+  assert.match(originalSummary, /Người liên quan: <b>Đức CMC<\/b>/);
+  assert.match(originalSummary, /số 90 Quảng Hiền, Bảy Hiền, Hồ Chí Minh/);
+});

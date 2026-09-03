@@ -82,26 +82,21 @@ export function CategoryDonutChart({
     );
   }
 
-  // Top 5 and others
-  const top5 = expenseCategories.slice(0, 5);
-  const remaining = expenseCategories.slice(5);
-  const remainingAmount = remaining.reduce((acc, c) => acc + c.amount, 0);
+  const slices: SliceItem[] = expenseCategories.map((c, i) => ({
+    label: c.category,
+    amount: c.amount,
+    percentage: sum > 0 ? (c.amount / sum) * 100 : 0,
+    color: c.color || PALETTE[i % PALETTE.length],
+  }));
 
-  const slices: SliceItem[] = [
-    ...top5.map((c, i) => ({
-      label: c.category,
-      amount: c.amount,
-      percentage: sum > 0 ? (c.amount / sum) * 100 : 0,
-      color: c.color || PALETTE[i % PALETTE.length],
-    })),
-  ];
-
-  if (remainingAmount > 0) {
+  const categoryTotal = expenseCategories.reduce((acc, c) => acc + c.amount, 0);
+  const diff = sum - categoryTotal;
+  if (diff > 0.5) {
     slices.push({
       label: t('common.allCategories'),
-      amount: remainingAmount,
-      percentage: sum > 0 ? (remainingAmount / sum) * 100 : 0,
-      color: PALETTE[5 % PALETTE.length],
+      amount: diff,
+      percentage: sum > 0 ? (diff / sum) * 100 : 0,
+      color: PALETTE[slices.length % PALETTE.length],
     });
   }
 
@@ -156,46 +151,50 @@ export function CategoryDonutChart({
           <span>{t('analytics.topCategories')}</span>
           <span className="tabular-nums">{money(sum)}</span>
         </div>
-        {slices.map((slice, idx) => (
-          <div
-            key={slice.label}
-            className={`group flex cursor-pointer flex-col gap-0.5 rounded px-1.5 py-0.5 text-xs transition-colors ${
-              hoveredIdx === idx
-                ? 'bg-slate-100 dark:bg-slate-800'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-            onMouseEnter={() => setHoveredIdx(idx)}
-            onMouseLeave={() => setHoveredIdx(null)}
-          >
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-1.5 truncate">
-                <span
-                  className="size-2 shrink-0 rounded-xs"
-                  style={{ backgroundColor: slice.color }}
+        <div className="flex max-h-[220px] flex-col gap-1.5 overflow-y-auto pr-1">
+          {slices.map((slice, idx) => (
+            <div
+              key={slice.label}
+              className={`group flex cursor-pointer flex-col gap-0.5 rounded px-1.5 py-0.5 text-xs transition-colors ${
+                hoveredIdx === idx
+                  ? 'bg-slate-100 dark:bg-slate-800'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              }`}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+            >
+              <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5 truncate">
+                  <span
+                    className="size-2 shrink-0 rounded-xs"
+                    style={{ backgroundColor: slice.color }}
+                  />
+                  <span className="truncate font-medium text-slate-700 dark:text-slate-300">
+                    {slice.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {money(slice.amount)}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    ({slice.percentage.toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+              {/* Progress track */}
+              <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(slice.percentage, 100)}%`,
+                    backgroundColor: slice.color,
+                  }}
                 />
-                <span className="truncate font-medium text-slate-700 dark:text-slate-300">
-                  {slice.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {money(slice.amount)}
-                </span>
-                <span className="text-[10px] text-slate-400">({slice.percentage.toFixed(1)}%)</span>
               </div>
             </div>
-            {/* Progress track */}
-            <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${Math.min(slice.percentage, 100)}%`,
-                  backgroundColor: slice.color,
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

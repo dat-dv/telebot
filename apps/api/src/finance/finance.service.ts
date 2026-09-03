@@ -295,22 +295,28 @@ export class FinanceService {
 
     const categoryMap = new Map<
       string,
-      { amount: number; count: number; type: 'income' | 'expense' }
+      { category: string; amount: number; count: number; type: 'income' | 'expense' }
     >();
     for (const tx of summary.transactions) {
-      const cat = tx.category || 'Khác';
-      const existing = categoryMap.get(cat) || { amount: 0, count: 0, type: tx.type };
+      const cat = tx.category?.trim() || 'Khác';
+      const key = `${tx.type}:${cat}`;
+      const existing = categoryMap.get(key) || {
+        category: cat,
+        amount: 0,
+        count: 0,
+        type: tx.type,
+      };
       existing.amount += tx.amount;
       existing.count += 1;
-      categoryMap.set(cat, existing);
+      categoryMap.set(key, existing);
     }
 
-    const categories: IAnalyticsCategoryBreakdown[] = Array.from(categoryMap.entries())
-      .map(([category, data]) => {
+    const categories: IAnalyticsCategoryBreakdown[] = Array.from(categoryMap.values())
+      .map((data) => {
         const totalForType = data.type === 'income' ? summary.income : summary.expense;
         const percentage = totalForType > 0 ? (data.amount / totalForType) * 100 : 0;
         return {
-          category,
+          category: data.category,
           type: data.type,
           amount: data.amount,
           count: data.count,

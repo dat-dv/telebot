@@ -17,13 +17,13 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
 - Mỗi nơi chốn thuộc một người dùng và không thể trùng tên sau khi chuẩn hóa bỏ dấu/chữ hoa-thường.
 - `finance_transactions.place_id` là liên kết tùy chọn. Xóa nơi chốn chỉ gỡ liên kết, không xóa phát sinh.
 - API Nơi chốn: `GET/POST/PATCH/DELETE /api/places`. Tất cả endpoint đều xác thực dashboard token và giới hạn theo đúng người dùng sở hữu.
-- API Báo cáo & Phân tích: `GET /api/finance/analytics` nhận tham số `startAt`, `endAt`, `grain` (`day`, `week`, `month`, `quarter`, `year`, `all`) để tính toán tổng hợp toàn bộ dữ liệu dòng tiền (Thu, Chi, Số dư, Tỷ lệ tích lũy %), chuỗi phân bổ theo mốc thời gian (Trend buckets), cơ cấu chi tiêu theo danh mục (Category breakdown %) và tình hình công nợ theo đối tác (Debt breakdown).
+- API Báo cáo & Phân tích: `GET /api/finance/analytics` nhận tham số `startAt`, `endAt`, `grain` (`day`, `week`, `month`, `quarter`, `year`, `all`) để tính toán tổng hợp toàn bộ dữ liệu dòng tiền (Thu, Chi, Số dư, Tỷ lệ tích lũy %), chuỗi phân bổ theo mốc thời gian (Trend buckets), cơ cấu chi tiêu theo danh mục (Category breakdown % gom nhóm theo key `${type}:${category}` để phân tách độc lập giữa Thu và Chi) và tình hình công nợ theo đối tác (Debt breakdown).
 - **Cân chỉnh & Bù trừ số dư ví**: Hệ thống hỗ trợ cân chỉnh số dư ví thông qua giao dịch chuẩn với danh mục hệ thống `Điều chỉnh số dư` (`category.balanceAdjustment`). Khi số dư thực tế tăng, hệ thống ghi nhận giao dịch `Thu`; khi số dư thực tế giảm, hệ thống ghi nhận giao dịch `Chi`, giúp bảo toàn dòng tiền và khớp số dư thực tế ngay tức thì.
 - Khi tạo hoặc sửa giao dịch qua `/api/transactions`, gửi `placeId` đã chọn hoặc `placeName` để hệ thống tìm/tạo nơi chốn. Gửi `placeId: null` để bỏ liên kết.
 
 ## Dashboard và Gemini
 
-- Trang **Báo cáo & Phân tích** (`/analytics`) gọi `GET /api/finance/analytics` để trực quan hóa biểu đồ dòng tiền (Cashflow trend), cơ cấu chi tiêu (Category donut), và phân bổ công nợ (Debt structure).
+- Trang **Báo cáo & Phân tích** (`/analytics`) gọi `GET /api/finance/analytics` để trực quan hóa biểu đồ dòng tiền (Cashflow trend), cơ cấu chi tiêu (Category donut hiển thị đầy đủ 100% tất cả danh mục chi tiêu kèm thanh cuộn, không cắt xén top 5), và phân bổ công nợ (Debt structure).
 - Bảng **Thu chi** có cột **Hoạt động** tinh gọn (chỉ gồm nút **Sửa** và **Xóa**, chiều rộng 130px). Nút Xóa kích hoạt modal xác nhận `DeleteTransactionModal` hiển thị thông tin giao dịch, cảnh báo tác động số dư ví (+ đối với Chi, - đối với Thu) và cảnh báo khôi phục nợ phân bổ, thay thế cho popup `window.confirm` thô sơ của trình duyệt. Với giao dịch đã có phân bổ công nợ, hiển thị badge nhỏ gọn `🔗 <N> phân bổ` tại ô Ghi chú để mở nhanh modal phân bổ. Ở chế độ sửa trực tiếp (inline edit), cung cấp nút lối tắt `🔗` mở modal phân bổ.
 - **Tính năng Phân bổ Giao dịch vào Công nợ & Validation toàn diện**:
   * Cho phép người dùng gắn trực tiếp số tiền của một giao dịch thu/chi có sẵn vào một hoặc nhiều khoản công nợ đang mở (Thu phân bổ cho Phải thu, Chi phân bổ cho Phải trả).
@@ -40,6 +40,7 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
   * Nếu nơi chốn đã có: Gemini truyền `placeId` vào payload cập nhật/ghi sổ giao dịch.
   * Nếu nơi chốn chưa có: Gemini truyền `createNewPlace: true` và `placeName`. Telegram UI hiển thị hộp thoại xác nhận đa thao tác (1. Tạo nơi chốn mới, 2. Ghi/cập nhật giao dịch) kèm toàn bộ khối JSON payload của từng thao tác gọi API để người dùng kiểm tra minh bạch trước khi bấm Xác nhận.
   * Tạo riêng địa điểm độc lập sử dụng `create_finance_place`.
+  * Tạo riêng người liên quan độc lập trong danh bạ công nợ sử dụng công cụ `create_debt_contact` (tra cứu trước bằng `resolve_debt_contact`, tôn trọng tên hiển thị đầy đủ không bắt buộc tách biệt danh và không yêu cầu phải tạo khoản nợ kèm theo).
 
 ## Kiểm thử
 

@@ -26,6 +26,7 @@ import { RecordDebtPaymentTool } from './tools/record-debt-payment.tool';
 import { ResolveDebtContactTool } from './tools/resolve-debt-contact.tool';
 import { UpdateDebtContactTool } from './tools/update-debt-contact.tool';
 import { ResolveFinancePlaceTool } from './tools/resolve-finance-place.tool';
+import { CreateDebtContactTool } from './tools/create-debt-contact.tool';
 import { CreateFinancePlaceTool } from './tools/create-finance-place.tool';
 import { UpdateReminderTool } from './tools/update-reminder.tool';
 import { ListCandidateDebtsTool } from './tools/list-candidate-debts.tool';
@@ -157,6 +158,7 @@ export class GeminiService {
     'create_finance_transactions',
     'update_finance_transaction',
     'create_finance_place',
+    'create_debt_contact',
     'create_debt',
     'record_debt_payment',
     'update_debt_contact',
@@ -192,6 +194,7 @@ export class GeminiService {
     private readonly resolveDebtContactTool: ResolveDebtContactTool,
     private readonly updateDebtContactTool: UpdateDebtContactTool,
     private readonly resolveFinancePlaceTool: ResolveFinancePlaceTool,
+    private readonly createDebtContactTool: CreateDebtContactTool,
     private readonly createFinancePlaceTool: CreateFinancePlaceTool,
     private readonly updateReminderTool: UpdateReminderTool,
     private readonly listCandidateDebtsTool: ListCandidateDebtsTool,
@@ -230,6 +233,7 @@ export class GeminiService {
       this.resolveDebtContactTool,
       this.updateDebtContactTool,
       this.resolveFinancePlaceTool,
+      this.createDebtContactTool,
       this.createFinancePlaceTool,
       this.updateReminderTool,
       this.listCandidateDebtsTool,

@@ -16,7 +16,7 @@ Module `apps/web/src/modules/calendar` cung cấp giao diện quản lý lịch 
 - **Giao diện & Trải nghiệm (UI/UX)**:
   - Giao diện được xây dựng 100% bằng Tailwind CSS utility classes, tương thích đầy đủ chế độ sáng/tối (`dark:`) và thiết kế phẳng hiện đại.
   - Hỗ trợ chuyển đổi linh hoạt giữa chế độ **Lưới tháng** (`CalendarGrid` tại `presentation/components/calendar-grid.tsx`, re-exported qua `view/calendar-grid.tsx`) và **Bảng danh sách** (`DataTable`). Ở Bảng danh sách, cột **Mô tả** có độ rộng gọn và tự xuống hàng; người dùng có thể kéo mép phải của header để đổi độ rộng từng cột. Độ rộng đã kéo được lưu cục bộ theo bảng trên trình duyệt.
-  - Lưới tháng 7 cột (Thứ 2 đến Chủ Nhật) với đánh dấu ngày hôm nay, ngày được chọn, badge số lượng sự kiện, pill sự kiện kèm giờ và xem chi tiết sự kiện theo ngày đã chọn.
+  - Lưới tháng 7 cột (Thứ 2 đến Chủ Nhật) với đánh dấu ngày hôm nay, ngày được chọn, badge số lượng sự kiện, hiển thị đầy đủ toàn bộ thẻ sự kiện kèm giờ (không cắt ẩn), và xem chi tiết sự kiện theo ngày đã chọn.
   - Thanh công cụ điều hướng tháng (Tháng trước, Tháng sau, Hôm nay, Tên tháng/năm tự động theo locale).
   - Cho phép chỉnh sửa inline (tiêu đề, địa điểm, mô tả, giờ bắt đầu/kết thúc) và xóa sự kiện trực tiếp.
 - **Tích hợp API & Dữ liệu**:

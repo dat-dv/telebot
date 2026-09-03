@@ -353,6 +353,97 @@ void test('FinanceService.getAnalyticsReport computes cumulative balance and ope
   });
 });
 
+void test('FinanceService.getAnalyticsReport separates income and expense with identical categories', async () => {
+  const transactions: FinanceTransactionEntity[] = [
+    {
+      id: 'tx-1',
+      userId: '42',
+      type: 'income',
+      amount: 10_000_000,
+      currency: 'VND',
+      category: 'Khác',
+      note: 'Thu nhập khác',
+      occurredAt: new Date('2026-08-01T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-2',
+      userId: '42',
+      type: 'expense',
+      amount: 550_000,
+      currency: 'VND',
+      category: 'Khác',
+      note: 'Chi tiêu khác',
+      occurredAt: new Date('2026-08-05T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'tx-3',
+      userId: '42',
+      type: 'expense',
+      amount: 227_000,
+      currency: 'VND',
+      category: 'Ăn uống',
+      note: 'Cơm trưa',
+      occurredAt: new Date('2026-08-10T10:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const transactionRepository = {
+    find: () => Promise.resolve(transactions),
+  };
+  const debtQuery = {
+    leftJoinAndSelect: () => debtQuery,
+    where: () => debtQuery,
+    getMany: () => Promise.resolve([]),
+  };
+  const debtRepository = {
+    find: () => Promise.resolve([]),
+    createQueryBuilder: () => debtQuery,
+  };
+
+  const service = new FinanceService(
+    transactionRepository as never,
+    debtRepository as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  const report = await service.getAnalyticsReport(
+    42,
+    '2026-08-01T00:00:00.000Z',
+    '2026-08-31T23:59:59.999Z',
+    'month',
+  );
+
+  assert.equal(report.summary.expense, 777_000);
+  assert.equal(report.summary.income, 10_000_000);
+
+  const expenseCategories = report.categories.filter((c) => c.type === 'expense');
+  const incomeCategories = report.categories.filter((c) => c.type === 'income');
+
+  assert.equal(expenseCategories.length, 2);
+  assert.equal(incomeCategories.length, 1);
+
+  const expenseKhac = expenseCategories.find((c) => c.category === 'Khác');
+  const expenseAnUong = expenseCategories.find((c) => c.category === 'Ăn uống');
+  const incomeKhac = incomeCategories.find((c) => c.category === 'Khác');
+
+  assert.equal(expenseKhac?.amount, 550_000);
+  assert.equal(expenseKhac?.percentage, 70.8);
+  assert.equal(expenseAnUong?.amount, 227_000);
+  assert.equal(expenseAnUong?.percentage, 29.2);
+  assert.equal(incomeKhac?.amount, 10_000_000);
+  assert.equal(incomeKhac?.percentage, 100);
+});
+
 void test('allocateTransactionToDebts allocates funds to multiple debts atomically', async () => {
   const mockTransaction: Partial<FinanceTransactionEntity> = {
     id: 'tx-1',

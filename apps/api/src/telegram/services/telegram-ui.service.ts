@@ -326,6 +326,13 @@ export class TelegramUiService {
       const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'nơi chốn mới';
       return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lưu địa điểm <b>${this.escapeHtml(placeName)}</b> vào danh bạ nơi chốn để tự động gợi ý khi ghi sổ.\n• <b>❌ Nếu Hủy bỏ:</b> Không lưu địa điểm vào danh bạ.`;
     }
+    if (name === 'create_debt_contact') {
+      const contactName =
+        typeof payload.name === 'string' && payload.name.trim()
+          ? payload.name.trim()
+          : 'người liên quan mới';
+      return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Lưu người liên quan <b>${this.escapeHtml(contactName)}</b> vào danh bạ công nợ để quản lý và gắn khoản nợ sau này.\n• <b>❌ Nếu Hủy bỏ:</b> Không lưu người liên quan vào danh bạ.`;
+    }
     if (name === 'create_task') {
       const title = typeof payload.title === 'string' ? payload.title.trim() : 'công việc';
       return `🎯 <b>Tác động hệ thống:</b>\n• <b>✅ Nếu Xác nhận:</b> Tạo công việc mới <b>${this.escapeHtml(title)}</b> trên Google Tasks kèm hạn chót và ghi chú.\n• <b>❌ Nếu Hủy bỏ:</b> Không tạo công việc trên Google Tasks.`;
@@ -400,6 +407,23 @@ export class TelegramUiService {
     if (name === 'create_finance_place') {
       const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'Chưa rõ';
       return `⚠️ <b>XÁC NHẬN TẠO NƠI CHỐN</b>\n\n📍 Tên nơi chốn: <b>${this.escapeHtml(placeName)}</b>\n\n${impact}\n\n${footer}`;
+    }
+    if (name === 'create_debt_contact') {
+      const contactName =
+        typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : 'Chưa rõ';
+      const alias =
+        typeof payload.alias === 'string' && payload.alias.trim()
+          ? `\n🏷️ Biệt danh: <i>${this.escapeHtml(payload.alias.trim())}</i>`
+          : '';
+      const descriptor =
+        typeof payload.descriptor === 'string' && payload.descriptor.trim()
+          ? `\n📝 Mô tả / Địa chỉ: <i>${this.escapeHtml(payload.descriptor.trim())}</i>`
+          : '';
+      const phone =
+        typeof payload.phoneNumber === 'string' && payload.phoneNumber.trim()
+          ? `\n📞 SĐT: <i>${this.escapeHtml(payload.phoneNumber.trim())}</i>`
+          : '';
+      return `⚠️ <b>XÁC NHẬN TẠO NGƯỜI LIÊN QUAN</b>\n\n👤 Tên: <b>${this.escapeHtml(contactName)}</b>${alias}${descriptor}${phone}\n\n${impact}\n\n${footer}`;
     }
     if (name === 'create_finance_transaction') {
       const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
@@ -678,6 +702,13 @@ export class TelegramUiService {
       const placeName = typeof place?.name === 'string' ? place.name : '';
       return `✅ <b>Đã tạo nơi chốn</b> · 📍 ${this.escapeHtml(placeName)}`;
     }
+    if (name === 'create_debt_contact') {
+      const contact = result.contact as Record<string, unknown> | undefined;
+      const contactName = typeof contact?.name === 'string' ? contact.name : '';
+      const aliasText =
+        typeof contact?.alias === 'string' && contact.alias ? ` (${contact.alias})` : '';
+      return `✅ <b>Đã tạo người liên quan</b> · 👤 ${this.escapeHtml(contactName)}${this.escapeHtml(aliasText)}`;
+    }
     if (name === 'update_finance_transaction') {
       const tx = result.transaction as Record<string, unknown> | undefined;
       const typeText = tx?.type === 'income' ? 'Khoản thu' : 'Khoản chi';
@@ -832,6 +863,19 @@ export class TelegramUiService {
     if (name === 'create_finance_place') {
       const placeName = typeof payload.name === 'string' ? payload.name.trim() : 'Chưa rõ';
       return `• 📍 Nơi chốn: <b>${this.escapeHtml(placeName)}</b>`;
+    }
+    if (name === 'create_debt_contact') {
+      const contactName =
+        typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : 'Chưa rõ';
+      const aliasText =
+        typeof payload.alias === 'string' && payload.alias.trim()
+          ? ` (${payload.alias.trim()})`
+          : '';
+      const descText =
+        typeof payload.descriptor === 'string' && payload.descriptor.trim()
+          ? `\n• Mô tả / Địa chỉ: <i>${this.escapeHtml(payload.descriptor.trim())}</i>`
+          : '';
+      return `• 👤 Người liên quan: <b>${this.escapeHtml(contactName)}</b>${this.escapeHtml(aliasText)}${descText}`;
     }
     if (name === 'create_finance_transaction') {
       const type = payload.type === 'income' ? 'Khoản thu' : 'Khoản chi';
