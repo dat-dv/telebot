@@ -41,6 +41,7 @@ Module `apps/api/src/finance` quản lý các giao dịch thu–chi, danh bạ c
   * Nếu nơi chốn chưa có: Gemini truyền `createNewPlace: true` và `placeName`. Telegram UI hiển thị hộp thoại xác nhận đa thao tác (1. Tạo nơi chốn mới, 2. Ghi/cập nhật giao dịch) kèm toàn bộ khối JSON payload của từng thao tác gọi API để người dùng kiểm tra minh bạch trước khi bấm Xác nhận.
   * Tạo riêng địa điểm độc lập sử dụng `create_finance_place`.
   * Tạo riêng người liên quan độc lập trong danh bạ công nợ sử dụng công cụ `create_debt_contact` (tra cứu trước bằng `resolve_debt_contact`, tôn trọng tên hiển thị đầy đủ không bắt buộc tách biệt danh và không yêu cầu phải tạo khoản nợ kèm theo).
+  * Xử lý đa tool call song song: Khi Gemini phát nhiều tool call riêng lẻ cùng loại (`create_finance_transaction` hoặc `create_task`) cho tin nhắn chứa nhiều giao dịch/công việc, hàm `GeminiService.coalesceFunctionCalls` tự động gộp chúng thành 1 lệnh gọi hàng loạt duy nhất (`create_finance_transactions` hoặc `create_tasks`), bảo toàn toàn bộ danh sách, hiển thị đầy đủ trong payload JSON và ngăn chặn lỗi nuốt mất các giao dịch phía sau.
 
 ## Kiểm thử
 

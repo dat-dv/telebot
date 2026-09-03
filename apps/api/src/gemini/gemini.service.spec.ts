@@ -124,3 +124,194 @@ void test('GeminiService queues, attaches message, and cancels pending actions f
   assert.equal(cancelledUser200.length, 1);
   assert.equal(cancelledUser200[0].id, action2.id);
 });
+
+void test('GeminiService.coalesceFunctionCalls merges multiple create_finance_transaction calls into create_finance_transactions', async () => {
+  const { GeminiService } = await import('./gemini.service');
+  const dummyTool = {
+    name: 'dummy',
+    declaration: { name: 'dummy' },
+    execute: () => Promise.resolve({}),
+  };
+  const config = {
+    getOrThrow: () => 'val',
+  };
+  const service = new GeminiService(
+    config as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    {} as never,
+  );
+
+  const parallelCalls = [
+    {
+      name: 'create_finance_transaction',
+      args: { note: 'Ăn sáng', amount: 30000, type: 'expense' },
+    },
+    {
+      name: 'create_finance_transaction',
+      args: { note: 'Ăn trưa', amount: 50000, type: 'expense' },
+    },
+    {
+      name: 'create_finance_transaction',
+      args: { note: 'Ăn tối', amount: 70000, type: 'expense' },
+    },
+  ];
+
+  const coalesced = service.coalesceFunctionCalls(parallelCalls);
+  assert.equal(coalesced?.length, 1);
+  assert.equal(coalesced?.[0].name, 'create_finance_transactions');
+  const txArgs = coalesced?.[0].args as { transactions: Array<Record<string, unknown>> };
+  assert.equal(txArgs.transactions.length, 3);
+  assert.equal(txArgs.transactions[0].note, 'Ăn sáng');
+  assert.equal(txArgs.transactions[0].amount, 30000);
+  assert.equal(txArgs.transactions[1].note, 'Ăn trưa');
+  assert.equal(txArgs.transactions[1].amount, 50000);
+  assert.equal(txArgs.transactions[2].note, 'Ăn tối');
+  assert.equal(txArgs.transactions[2].amount, 70000);
+});
+
+void test('GeminiService.coalesceFunctionCalls merges multiple create_task calls into create_tasks', async () => {
+  const { GeminiService } = await import('./gemini.service');
+  const dummyTool = {
+    name: 'dummy',
+    declaration: { name: 'dummy' },
+    execute: () => Promise.resolve({}),
+  };
+  const config = {
+    getOrThrow: () => 'val',
+  };
+  const service = new GeminiService(
+    config as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    {} as never,
+  );
+
+  const parallelTaskCalls = [
+    {
+      name: 'create_task',
+      args: { title: 'Mua rau' },
+    },
+    {
+      name: 'create_task',
+      args: { title: 'Quét nhà' },
+    },
+  ];
+
+  const coalesced = service.coalesceFunctionCalls(parallelTaskCalls);
+  assert.equal(coalesced?.length, 1);
+  assert.equal(coalesced?.[0].name, 'create_tasks');
+  const taskArgs = coalesced?.[0].args as { tasks: Array<Record<string, unknown>> };
+  assert.equal(taskArgs.tasks.length, 2);
+  assert.equal(taskArgs.tasks[0].title, 'Mua rau');
+  assert.equal(taskArgs.tasks[1].title, 'Quét nhà');
+});
+
+void test('GeminiService.coalesceFunctionCalls preserves single tool call unchanged', async () => {
+  const { GeminiService } = await import('./gemini.service');
+  const dummyTool = {
+    name: 'dummy',
+    declaration: { name: 'dummy' },
+    execute: () => Promise.resolve({}),
+  };
+  const config = {
+    getOrThrow: () => 'val',
+  };
+  const service = new GeminiService(
+    config as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    dummyTool as never,
+    {} as never,
+  );
+
+  const singleCall = [
+    {
+      name: 'create_finance_transaction',
+      args: { note: 'Ăn sáng', amount: 30000, type: 'expense' },
+    },
+  ];
+
+  const coalesced = service.coalesceFunctionCalls(singleCall);
+  assert.deepEqual(coalesced, singleCall);
+});

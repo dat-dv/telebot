@@ -134,7 +134,7 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
      * title: Tên công việc ngắn gọn, rõ hành động.
      * notes: Ghi chú, mô tả chi tiết cách thực hiện hoặc checklist con (nếu có thông tin chi tiết trong câu nói).
      * due: Hạn chót định dạng RFC 3339 / ISO 8601 (VD: "2026-08-24T23:59:59.000Z"). Luôn diễn giải mốc thời gian người dùng nói (như "hôm nay", "ngày mai", "thứ 6") thành ISO string chính xác.
-   - Nếu người dùng nêu từ hai việc độc lập trở lên trong một danh sách (ví dụ: "mua cà phê và cam"), PHẢI gọi create_tasks với từng việc là một phần tử riêng (mỗi phần tử có title, notes, due tương ứng). Chỉ dùng create_task cho đúng một việc.
+    - Nếu người dùng nêu từ hai việc độc lập trở lên trong một danh sách (ví dụ: "mua cà phê và cam", "1. việc A, 2. việc B"), BẮT BUỘC CHỈ GỌI DUY NHẤT 1 LẦN \`create_tasks\` với mảng \`tasks\` chứa từng việc riêng (mỗi phần tử có title, notes, due tương ứng). TUYỆT ĐỐI CẤM gọi nhiều \`create_task\` song song! Chỉ dùng \`create_task\` cho đúng một việc đơn lẻ.
 
 4. ĐĂNG NHẬP GOOGLE (login_google):
    - Khi người dùng hỏi cách kết nối hoặc đổi tài khoản Google.
@@ -155,7 +155,9 @@ Bạn PHẢI luôn dựa vào mốc thời gian này để diễn giải chính 
      * Khi người dùng nhắn tin đính chính hoặc bổ sung thông tin (như mốc thời gian "Mua lúc 9h sáng", số tiền "Đổi thành 30k", danh mục "Sửa thành Ăn vặt", hoặc nơi chốn) sau khi vừa ghi sổ thu–chi hoặc yêu cầu sửa giao dịch cụ thể theo ID: BẮT BUỘC gọi \`update_finance_transaction\` để cập nhật (nếu không có ID thì bỏ trống để tự động lấy giao dịch gần nhất).
      * Khi người dùng bổ sung giờ như "Mua lúc 9h sáng" hoặc "Hồi 8h30", tính toán \`occurredAt\` theo ngày hôm đó lúc giờ tương ứng (ví dụ: "YYYY-MM-DDT09:00:00+07:00") và truyền vào \`occurredAt\`.
      * Tuyệt đối KHÔNG hiểu nhầm câu đính chính giờ của giao dịch vừa ghi thành lệnh tạo lời nhắc hay tạo lịch hẹn!
-   - GHI HÀNG LOẠT (TỪ 2 KHOẢN TRỞ LÊN): Khi người dùng nêu từ hai khoản thu/chi riêng biệt trong một câu (ví dụ: "1 ly cà phê 35k và 1 ly nước cam 40k", "sáng ăn phở 45k, chiều đổ xăng 50k, tối mua bánh 20k"), BẮT BUỘC gọi \`create_finance_transactions\` với mảng \`transactions\` chứa từng khoản tương ứng (mỗi khoản có type, amount, category, note, placeId hoặc placeName, occurredAt). Tuyệt đối không tự gộp chung thành một khoản và không bỏ sót món nào!
+    - GHI HÀNG LOẠT (TỪ 2 KHOẢN TRỞ LÊN): Khi người dùng nêu từ hai khoản thu/chi riêng biệt trong một câu (ví dụ: "1 ly cà phê 35k và 1 ly nước cam 40k", "Hôm nay đi ăn sáng hết 30k , sau đó đi ăn trưa hết 50k và đi ăn tối hết 70k"):
+      * BẮT BUỘC CHỈ GỌI DUY NHẤT 1 LẦN công cụ \`create_finance_transactions\` với mảng \`transactions\` chứa từng khoản tương ứng (mỗi khoản có type, amount, category, note, placeId hoặc placeName, occurredAt).
+      * TUYỆT ĐỐI CẤM phát ra nhiều tool call \`create_finance_transaction\` riêng lẻ song song trong cùng một tin nhắn! Tuyệt đối không tự gộp chung thành một khoản và không bỏ sót món nào!
    - MỐC THỜI GIAN PHÁT SINH / PHÁT HÀNH (occurredAt):
      * Mặc định: Khi người dùng không nêu ngày giờ cụ thể (ví dụ "ăn trưa 65k", "mua cafe 30k"), luôn truyền occurredAt theo ISO 8601 của thời điểm hiện tại (${nowIso}).
      * Nhập muộn (Input muộn): Khi người dùng nói thời điểm trong quá khứ (ví dụ "hôm qua ăn tối 150k", "hôm 20/08 đổ xăng 100k", "thứ 6 tuần trước nhận hoàn tiền 500k"), PHẢI tính toán và truyền occurredAt chính xác theo ISO 8601 của ngày/giờ đó.

@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, GenerativeModel, ChatSession, Content } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  GenerativeModel,
+  ChatSession,
+  Content,
+  FunctionCall,
+} from '@google/generative-ai';
 import { GeminiTool } from './tools/tool.interface';
 import { CreateCalendarTool } from './tools/create-calendar.tool';
 import { ListCalendarTool } from './tools/list-calendar.tool';
@@ -402,6 +408,85 @@ export class GeminiService {
     return { id, referenceId, name, payload: finalPayload };
   }
 
+  public coalesceFunctionCalls(
+    functionCalls: FunctionCall[] | undefined,
+  ): FunctionCall[] | undefined {
+    if (!functionCalls || functionCalls.length <= 1) {
+      return functionCalls;
+    }
+
+    const financeCalls = functionCalls.filter(
+      (c) => c.name === 'create_finance_transaction' || c.name === 'create_finance_transactions',
+    );
+    const taskCalls = functionCalls.filter(
+      (c) => c.name === 'create_task' || c.name === 'create_tasks',
+    );
+
+    let result = [...functionCalls];
+
+    if (financeCalls.length > 1) {
+      const allTransactions: Record<string, unknown>[] = [];
+      for (const fc of financeCalls) {
+        if (fc.name === 'create_finance_transaction') {
+          if (fc.args && typeof fc.args === 'object') {
+            const item = fc.args as Record<string, unknown>;
+            allTransactions.push({
+              type: item.type === 'income' ? 'income' : 'expense',
+              amount: typeof item.amount === 'number' ? item.amount : 0,
+              note: typeof item.note === 'string' ? item.note : '',
+              category: typeof item.category === 'string' ? item.category : undefined,
+              placeId: typeof item.placeId === 'string' ? item.placeId : undefined,
+              createNewPlace: item.createNewPlace === true ? true : undefined,
+              placeName: typeof item.placeName === 'string' ? item.placeName : undefined,
+              occurredAt: typeof item.occurredAt === 'string' ? item.occurredAt : undefined,
+            });
+          }
+        } else if (fc.name === 'create_finance_transactions') {
+          const args = fc.args as Record<string, unknown> | undefined;
+          if (Array.isArray(args?.transactions)) {
+            allTransactions.push(...(args.transactions as Record<string, unknown>[]));
+          }
+        }
+      }
+
+      const coalescedFinanceCall: FunctionCall = {
+        name: 'create_finance_transactions',
+        args: { transactions: allTransactions },
+      };
+
+      result = result.filter(
+        (c) => c.name !== 'create_finance_transaction' && c.name !== 'create_finance_transactions',
+      );
+      result.push(coalescedFinanceCall);
+    }
+
+    if (taskCalls.length > 1) {
+      const allTasks: Record<string, unknown>[] = [];
+      for (const tc of taskCalls) {
+        if (tc.name === 'create_task') {
+          if (tc.args && typeof tc.args === 'object') {
+            allTasks.push(tc.args as Record<string, unknown>);
+          }
+        } else if (tc.name === 'create_tasks') {
+          const args = tc.args as Record<string, unknown> | undefined;
+          if (Array.isArray(args?.tasks)) {
+            allTasks.push(...(args.tasks as Record<string, unknown>[]));
+          }
+        }
+      }
+
+      const coalescedTaskCall: FunctionCall = {
+        name: 'create_tasks',
+        args: { tasks: allTasks },
+      };
+
+      result = result.filter((c) => c.name !== 'create_task' && c.name !== 'create_tasks');
+      result.push(coalescedTaskCall);
+    }
+
+    return result;
+  }
+
   private getGenerativeModel(modelName: string): GenerativeModel {
     const systemInstruction = buildSystemInstruction(this.defaultTimeZone);
     const functionDeclarations = Array.from(this.toolsMap.values()).map((t) => t.declaration);
@@ -439,7 +524,7 @@ export class GeminiService {
         });
 
         let response = await chatSession.sendMessage(userMessage);
-        let functionCalls = response.response.functionCalls();
+        let functionCalls = this.coalesceFunctionCalls(response.response.functionCalls());
         let lastTool: { name: string; result: Record<string, unknown> } | undefined;
 
         // Multi-turn loop to execute function calls sequentially
@@ -495,7 +580,7 @@ export class GeminiService {
             response = await chatSession.sendMessage(
               `[Kết quả thực thi công cụ ${call.name}]: ${JSON.stringify(functionResponse)}. Hãy gửi phản hồi tự nhiên, đầy đủ cho người dùng theo đúng thẻ xác nhận.`,
             );
-            functionCalls = response.response.functionCalls();
+            functionCalls = this.coalesceFunctionCalls(response.response.functionCalls());
           } catch (contErr) {
             const err = contErr as Error;
             this.logger.warn(
